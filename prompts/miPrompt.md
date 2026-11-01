@@ -1,3 +1,10 @@
+# Pedido original: referencia historica
+
+Este pedido dio origen al frontend que ya existe. Para continuar, usar el
+[contexto vigente](CONTINUAR_FRONTEND_TRAMA.md), sin crear otra aplicacion.
+
+## Texto original
+
 Lee createapp la carpeta que son skills y modos de trabajar. Para hacer esto guiate con createapp.
  
 Quiero que crees una nueva carpeta de frontend y lo construyas desde cero basandote en lo siguiente:

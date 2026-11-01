@@ -1,9 +1,0 @@
-/* Estilos globales de la app de administración. */
-@import "../../../../packages/shared/src/styles/variables.css";
-@import "../../../../packages/shared/src/styles/base.css";
-
-/* Las acciones sensibles se distinguen de las de consulta con un acento propio. */
-:root {
-  --color-acento: #364fc7;
-  --color-acento-hover: #2b3f9e;
-}

@@ -44,8 +44,8 @@ jobs:
       - name: Build and publish frontend
         uses: docker/build-push-action@v6
         with:
-          context: ./Union/frontend
-          file: ./Union/frontend/Dockerfile
+          context: ./frontend-trama
+          file: ./frontend-trama/Dockerfile
           platforms: linux/amd64
           push: true
           tags: |
@@ -54,12 +54,6 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-          build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL || '/api' }}
-            VITE_USE_MOCKS=${{ vars.VITE_USE_MOCKS || 'false' }}
-            VITE_AUTH_GOOGLE_REDIRECT_URL=${{ vars.VITE_AUTH_GOOGLE_REDIRECT_URL }}
-            VITE_AUTH_GITHUB_REDIRECT_URL=${{ vars.VITE_AUTH_GITHUB_REDIRECT_URL }}
-            VITE_GEOLOCATION_ENABLED_DEFAULT=${{ vars.VITE_GEOLOCATION_ENABLED_DEFAULT || 'false' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

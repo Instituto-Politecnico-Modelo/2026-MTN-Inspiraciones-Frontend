@@ -2,7 +2,9 @@
 
 Frontend independiente de la comunidad de artistas. Incluye la experiencia de
 artista y el panel administrativo como una **demo local persistente, sin backend**.
-No reemplaza ni modifica el frontend anterior de [Union](../Union/frontend/).
+Es la unica aplicacion del repositorio; las implementaciones anteriores fueron
+retiradas. La estructura y el despliegue se describen en el
+[README principal](../README.md).
 
 ## Ejecutar
 
@@ -42,6 +44,10 @@ npm run preview
 Preview: <http://127.0.0.1:4180/>. Tambien admite `-- --port 4181`.
 El build se genera en `dist/`; no abrir el HTML directamente con `file://`.
 Un alojamiento estatico debe redirigir las rutas de la SPA a `index.html`.
+
+El contenedor y el workflow existentes ahora construyen este proyecto. Consultar
+[Despliegue](../README.md#despliegue) para Docker y Dokploy. No se requieren
+variables de API ni de autenticacion para esta demo local.
 
 ## Perfiles y datos
 
