@@ -138,9 +138,10 @@ async function adminPages<T>(path: string): Promise<T[]> {
 
 async function uploadImage(source: string): Promise<string> {
   if (!source.startsWith('data:')) return source
-  const blob = await dataUrlToBlob(source)
+  let blob = await dataUrlToBlob(source)
+  if (blob.type !== 'image/png' && blob.type !== 'image/jpeg') blob = await dataUrlToBlob(await toPngDataUrl(source))
   const form = new FormData()
-  form.append('imagen', blob, 'obra.png')
+  form.append('imagen', blob, blob.type === 'image/jpeg' ? 'obra.jpg' : 'obra.png')
   const response = await http<{ url: string }>('POST', '/api/imagenes', undefined, form)
   return response.url
 }
@@ -274,7 +275,12 @@ export class ApiRepository {
       const target = /trama-post:([\w-]+)/.exec(String(answer.descripcionLarga ?? answer.descripcion ?? ''))?.[1]
       if (target) challengeOfPost.set(target, rawChallenges[index]!.id as string)
     }))
-    posts.forEach(post => { post.challengeId = challengeOfPost.get(post.id) ?? null })
+    const stored = readChallengeLinks()
+    const knownChallenges = new Set(rawChallenges.map(challenge => challenge.id as string))
+    posts.forEach(post => {
+      const linked = stored[post.id]
+      post.challengeId = challengeOfPost.get(post.id) ?? (linked && knownChallenges.has(linked) ? linked : null)
+    })
 
     this.versions.clear()
     const challenges: Challenge[] = rawChallenges.map(raw => {
@@ -610,7 +616,18 @@ export class ApiRepository {
     await http('POST', `/api/desafios/${challengeId}/respuestas`, {
       nombre: title, descripcionLarga: `Participación desde Trama. trama-post:${postId}`, contenido: { tipo: 'imagen', url },
     })
+    writeChallengeLink(postId, challengeId)
   }
+}
+
+const CHALLENGE_LINKS_KEY = 'trama-challenge-links'
+
+function readChallengeLinks(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(CHALLENGE_LINKS_KEY) ?? '{}') as Record<string, string> } catch { return {} }
+}
+
+function writeChallengeLink(postId: string, challengeId: string) {
+  try { localStorage.setItem(CHALLENGE_LINKS_KEY, JSON.stringify({ ...readChallengeLinks(), [postId]: challengeId })) } catch { /* sin almacenamiento disponible */ }
 }
 
 const PLACEHOLDER_COVER = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
