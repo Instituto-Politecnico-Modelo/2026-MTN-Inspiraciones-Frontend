@@ -198,7 +198,7 @@ export type Command =
   | { type: 'save-challenge'; challenge: ChallengeInput }
   | { type: 'archive-challenge'; challengeId: string; archived: boolean }
   | { type: 'join-challenge'; challengeId: string; postId: string }
-  | { type: 'create-request'; request: Pick<Proposal, 'id' | 'title' | 'description' | 'discipline'> }
+  | { type: 'create-request'; request: Pick<Proposal, 'id' | 'title' | 'description' | 'discipline'> & { cover?: string } }
   | { type: 'review-request'; requestId: string; status: 'approved' | 'rejected'; note: string }
   | { type: 'create-report'; report: Pick<Report, 'id' | 'postId' | 'reason' | 'description'> }
   | { type: 'review-report'; reportId: string; status: 'accepted' | 'dismissed'; note: string }

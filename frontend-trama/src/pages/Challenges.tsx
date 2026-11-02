@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { ArrowRight, CalendarDays, Check, Plus, Trophy } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { ArrowRight, CalendarDays, Check, ImagePlus, Plus, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import { disciplines, type Challenge, type Discipline } from '../data/model'
 import { challengeStatus, errorMessage, newId, visiblePosts } from '../data/store'
 import { backPath, formatDate, formatDateTime } from '../lib/format'
+import { readUpload } from '../lib/upload'
 import { Badge, Button, EmptyState, ErrorMessage, Field, Modal, PageTitle, SelectField, Tabs, TextArea } from '../components/UI'
 import { PostGrid } from '../components/PostCard'
 import { useAccountGate } from '../components/Shell'
@@ -70,7 +71,7 @@ function ChallengeDetail({ challenge }: { challenge: Challenge }) {
       </div>
     </section>
     <div className="section-heading"><h2>Obras participantes</h2><span className="meta">{posts.length} {posts.length === 1 ? 'obra' : 'obras'}</span></div>
-    {posts.length ? <PostGrid posts={posts} compact /> : <EmptyState icon={Trophy} title="La primera respuesta puede ser la tuya" description={status === 'open' ? 'Compartí una obra propia que dialogue con esta consigna.' : 'Todavía no hay obras para mostrar en este desafío.'} />}
+    {posts.length ? <div className="challenge-works"><PostGrid posts={posts} compact /></div> : <EmptyState icon={Trophy} title="La primera respuesta puede ser la tuya" description={status === 'open' ? 'Compartí una obra propia que dialogue con esta consigna.' : 'Todavía no hay obras para mostrar en este desafío.'} />}
     {joining && <Modal open title="Participar del desafío" description="Elegí una obra propia disponible o publicá una nueva. Se guarda como tu participación." onClose={() => setJoining(false)} busy={pending}>
       {eligible.length ? <form className="form-stack" onSubmit={event => {
         event.preventDefault()
@@ -89,18 +90,30 @@ export function ProposeChallengePage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [discipline, setDiscipline] = useState<Discipline>('Ilustración')
-  const guard = useUnsavedChanges(!!(title || description), pending)
+  const [cover, setCover] = useState('')
+  const [coverError, setCoverError] = useState('')
+  const fileInput = useRef<HTMLInputElement>(null)
+  const guard = useUnsavedChanges(!!(title || description || cover), pending)
+  const pickCover = async (file: File) => {
+    setCoverError('')
+    try { setCover((await readUpload(file, true)).src) }
+    catch (failure) { console.error('[Trama] Portada no disponible.', failure); setCoverError(errorMessage(failure)) }
+  }
   return <div className="editor-page"><PageTitle title="Proponer un desafío" back={{ to: '/desafios', label: 'Desafíos' }} />
     <form className="form-stack profile-form" onSubmit={event => {
       event.preventDefault()
-      void run({ type: 'create-request', request: { id: newId('solicitud'), title, description, discipline } }, 'Tu propuesta se envió a la administración.').then(result => { if (result) { guard.allow(); navigate('/desafios/mis-propuestas') } })
+      void run({ type: 'create-request', request: { id: newId('solicitud'), title, description, discipline, ...(cover ? { cover } : {}) } }, 'Tu propuesta se envió a la administración.').then(result => { if (result) { guard.allow(); navigate('/desafios/mis-propuestas') } })
     }}><Field label="Título de la propuesta" value={title} onChange={event => setTitle(event.target.value)} required maxLength={120} />
       <SelectField label="Disciplina principal" value={discipline} options={disciplines.map(value => ({ value, label: value }))} onChange={event => {
         const option = disciplines.find(value => value === event.target.value)
         if (option) setDiscipline(option)
       }} /><TextArea label="¿Cuál sería la consigna?" value={description} onChange={event => setDescription(event.target.value)} required minLength={10} maxLength={3000} rows={6} hint="Describí qué te gustaría proponer y cómo podría participar la comunidad." />
+      <div className="cover-upload">{cover && <img src={cover} alt="Portada elegida para la propuesta" />}
+        <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden aria-label="Elegir portada de la propuesta" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void pickCover(file) }} />
+        <Button variant="secondary" onClick={() => fileInput.current?.click()}><ImagePlus size={18} aria-hidden="true" />{cover ? 'Cambiar portada' : 'Agregar portada (opcional)'}</Button>
+        <p className="field-hint">JPG, PNG o WebP de hasta 8 MiB. Usá una imagen que tengas derecho a compartir.</p></div>
       <p className="inline-notice">La aprobación no publica automáticamente un desafío. El equipo revisa la propuesta y define las fechas por separado.</p>
-      <ErrorMessage message={error} /><div className="form-actions"><Link className="button button-secondary" to="/desafios">Cancelar</Link><Button type="submit" loading={pending}>Enviar propuesta</Button></div>
+      <ErrorMessage message={coverError || error} /><div className="form-actions"><Link className="button button-secondary" to="/desafios">Cancelar</Link><Button type="submit" loading={pending}>Enviar propuesta</Button></div>
     </form>{guard.dialog}</div>
 }
 

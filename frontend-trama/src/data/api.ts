@@ -69,9 +69,9 @@ async function toPngDataUrl(source: string): Promise<string> {
     image.src = source
   })
   const canvas = document.createElement('canvas')
-  canvas.width = image.naturalWidth
-  canvas.height = image.naturalHeight
-  canvas.getContext('2d')?.drawImage(image, 0, 0)
+  canvas.width = image.naturalWidth || 1200
+  canvas.height = image.naturalHeight || 800
+  canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height)
   return canvas.toDataURL('image/png')
 }
 
@@ -437,8 +437,7 @@ export class ApiRepository {
 
   private async coverFor(source: string) {
     let url = source
-    if (!url.startsWith('data:')) url = await blobToDataUrl(await dataUrlToBlob(url))
-    if (!/^data:image\/(png|jpeg);/.test(url)) throw new Error('La portada debe ser JPG o PNG.')
+    if (!/^data:image\/(png|jpeg);base64,/.test(url)) url = await toPngDataUrl(url.startsWith('/') ? assetUrl(url) : url)
     return { url, formato: url.startsWith('data:image/png') ? 'PNG' : 'JPEG', principal: true }
   }
 
@@ -598,7 +597,7 @@ export class ApiRepository {
           descripcionLarga: pack(request.description, { d: request.discipline }),
           fechaInicio: start.toISOString(), fechaFin: end.toISOString(),
           ambitos: [ambitoByDiscipline[request.discipline]],
-          fotos: [{ url: PLACEHOLDER_COVER, formato: 'PNG', principal: true }],
+          fotos: [request.cover ? await this.coverFor(request.cover) : { url: PLACEHOLDER_COVER, formato: 'PNG', principal: true }],
         })
         return
       }
