@@ -146,6 +146,21 @@ async function uploadImage(source: string): Promise<string> {
   return response.url
 }
 
+// Orden personalizado del backend (preferencias, reacciones, comentarios y bloqueos); hasta 3 lotes de 20.
+async function rankedFeed(): Promise<string[]> {
+  const ids: string[] = []
+  let cursor: string | null | undefined
+  try {
+    for (let batch = 0; batch < 3; batch++) {
+      const page = await http<Page<Json>>('GET', `/api/feed/recomendaciones?limite=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`)
+      ids.push(...items(page).map(item => String(item.id)))
+      cursor = page.nextCursor
+      if (!cursor) break
+    }
+  } catch { /* sin feed personalizado: se usa el orden general */ }
+  return ids
+}
+
 export type Session = { token: string; userId: string }
 
 export class ApiRepository {
@@ -243,6 +258,7 @@ export class ApiRepository {
     const adminAppeals = isAdmin ? await adminPages<Json>('/api/admin/apelaciones') : []
     const rawBlocks = await allPages<Json>('/api/usuarios/me/bloqueos').catch(() => [] as Json[])
     const blocks: DemoState['blocks'] = rawBlocks.map(raw => ({ blockerId: me.id as string, blockedId: raw.usuarioBloqueadoId as string }))
+    const feed = await rankedFeed()
 
     const posts: Post[] = []
     const seen = new Set<string>()
@@ -378,7 +394,7 @@ export class ApiRepository {
 
     return {
       version: 1, revision: this.state.revision + 1, createdAt: this.state.createdAt,
-      users: [...users.values()], posts, folders, follows, blocks, challenges, requests, reports, appeals, audit: [],
+      users: [...users.values()], posts, folders, follows, blocks, feed, challenges, requests, reports, appeals, audit: [],
     }
   }
 

@@ -23,7 +23,8 @@ function requireValue<T>(value: T | undefined, message: string): T {
 
 export function visiblePosts(state: DemoState): Post[] {
   const active = new Set(state.users.filter(user => user.status === 'active').map(user => user.id))
-  return state.posts.filter(post => post.status === 'published' && active.has(post.authorId))
+  const blocked = new Set(state.blocks.map(block => block.blockedId))
+  return state.posts.filter(post => post.status === 'published' && active.has(post.authorId) && !blocked.has(post.authorId))
 }
 
 export function privateFolders(state: DemoState, ownerId: string, viewerId: string | null) {

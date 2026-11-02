@@ -3,7 +3,7 @@ import { ArrowRight, Trophy, Users } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { challengeStatus, searchPosts, visiblePosts } from '../data/store'
-import type { Challenge } from '../data/model'
+import type { Challenge, DemoState } from '../data/model'
 import { Badge, EmptyState, ErrorMessage, PageTitle, Tabs } from '../components/UI'
 import { PostCard } from '../components/PostCard'
 
@@ -16,6 +16,13 @@ export function ChallengeNudge({ challenge }: { challenge: Challenge }) {
   </article>
 }
 
+function forYouPosts(state: DemoState) {
+  const visible = visiblePosts(state)
+  if (!state.feed?.length) return visible
+  const byId = new Map(visible.map(post => [post.id, post]))
+  return state.feed.flatMap(id => byId.get(id) ?? [])
+}
+
 export function HomePage() {
   const { state, user } = useDemo()
   const [params, setParams] = useSearchParams()
@@ -23,7 +30,7 @@ export function HomePage() {
   const tab = ['para-vos', 'seguidos', 'desafios'].includes(requested) ? requested : 'para-vos'
   const challenge = state.challenges.find(item => challengeStatus(item) === 'open')
   const posts = tab === 'seguidos' ? user ? searchPosts(state, { following: user.id }) : []
-    : tab === 'desafios' ? visiblePosts(state).filter(post => post.challengeId) : visiblePosts(state)
+    : tab === 'desafios' ? visiblePosts(state).filter(post => post.challengeId) : forYouPosts(state)
   return <>
     <PageTitle title="Inicio" />
     {requested !== tab && <ErrorMessage message="La vista de ese enlace no existe. Podés elegir una de las pestañas de Inicio." />}

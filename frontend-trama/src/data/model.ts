@@ -138,6 +138,7 @@ export const StateSchema = z.object({
   folders: z.array(FolderSchema),
   follows: z.array(z.object({ followerId: id, followingId: id })),
   blocks: z.array(z.object({ blockerId: id, blockedId: id })).default([]),
+  feed: z.array(id).optional(),
   challenges: z.array(ChallengeSchema),
   requests: z.array(RequestSchema),
   reports: z.array(ReportSchema),
