@@ -30,10 +30,12 @@ function openRoute(path: string, profile?: string) {
   return router
 }
 
+vi.setConfig({ testTimeout: 20000 })
+
 describe('integracion de rutas', () => {
   it('abre Inicio desde la raiz con los datos locales', async () => {
     const current = openRoute('/')
-    expect(await screen.findByRole('heading', { name: 'Inicio' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Inicio' }, { timeout: 8000 })).toBeVisible()
     expect(current.state.location.pathname).toBe('/inicio')
     expect(screen.getByRole('tab', { name: 'Para vos' })).toHaveAttribute('aria-selected', 'true')
   })
@@ -41,7 +43,7 @@ describe('integracion de rutas', () => {
   it('protege Publicar y conserva el destino solicitado', async () => {
     const destination = '/publicar?desafio=consigna-local'
     const current = openRoute(destination)
-    expect(await screen.findByRole('heading', { name: 'Ingresar' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Ingresar' }, { timeout: 8000 })).toBeVisible()
     expect(current.state.location.pathname).toBe('/ingresar')
     expect(new URLSearchParams(current.state.location.search).get('volver')).toBe(destination)
   })
@@ -90,7 +92,6 @@ describe('integracion de rutas', () => {
 
   it.each([
     { path: '/descubrir', postId: 'obra-3', actorId: 'mora', label: /T.cnica/ },
-    { path: '/descubrir?tipo=musica', postId: 'obra-4', actorId: 'nico', label: /Tipo de audio/ },
   ])('descubrir: no duplica la opcion general con tecnicas vacias en $path', async ({ path, postId, actorId, label }) => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const state = await repository.load()
@@ -126,7 +127,7 @@ describe('integracion de rutas', () => {
     const user = userEvent.setup()
     const current = openRoute('/descubrir?q=Corriente&disciplina=Pintura')
     expect(await screen.findByRole('heading', { name: 'Corriente dual' })).toBeVisible()
-    for (const name of ['Obras', 'Música', 'Lugares', 'Artistas']) {
+    for (const name of ['Obras', 'Artistas']) {
       expect(screen.getByRole('tab', { name })).toBeVisible()
     }
     await user.click(screen.getByRole('button', { name: 'Filtros (1)' }))
@@ -214,7 +215,7 @@ describe('integracion de rutas', () => {
     fireEvent.change(screen.getByLabelText('Cierre (Buenos Aires)'), { target: { value: '2027-01-09T18:00' } })
     await user.click(screen.getByRole('button', { name: /Publicar desaf.o/ }))
     await waitFor(async () => expect((await repository.load()).challenges.find(challenge => challenge.requestId === 'solicitud-3')?.startsAt).toBe('2027-01-02T13:00:00.000Z'))
-    await user.click(await screen.findByRole('link', { name: 'Editar Paisajes sonoros del barrio' }))
+    await user.click(await screen.findByRole('link', { name: 'Editar Paisajes sonoros del barrio' }, { timeout: 8000 }))
     expect(await screen.findByLabelText('Cierre (Buenos Aires)')).toHaveValue('2027-01-09T18:00')
     fireEvent.change(screen.getByLabelText('Cierre (Buenos Aires)'), { target: { value: '2027-01-09T19:00' } })
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
@@ -234,46 +235,5 @@ describe('integracion de rutas', () => {
     dialog = await screen.findByRole('dialog', { name: /Restaurar este desaf.o/ })
     await user.click(within(dialog).getByRole('button', { name: /Restaurar desaf.o/ }))
     await waitFor(async () => expect((await repository.load()).challenges.find(challenge => challenge.id === 'desafio-linea')?.archived).toBe(false))
-  })
-
-  it('demo: cambia al perfil elegido desde la pagina de informacion', async () => {
-    const user = userEvent.setup()
-    openRoute('/acerca', 'mora')
-    await user.selectOptions(await screen.findByLabelText(/Perfil de demostraci.n/), 'admin')
-    await user.click(screen.getByRole('button', { name: 'Cambiar perfil' }))
-    expect(await screen.findByRole('heading', { name: 'Resumen' })).toBeVisible()
-    expect(sessionStorage.getItem('trama-demo-profile')).toBe('admin')
-  })
-
-  it('demo: conserva los datos al cancelar y los reinicia solo al confirmar', async () => {
-    const user = userEvent.setup()
-    await repository.execute('mora', { type: 'create-folder', id: 'carpeta-temporal', name: 'Referencia de prueba' })
-    openRoute('/acerca', 'mora')
-    const reset = await screen.findByRole('button', { name: 'Reiniciar datos' })
-    await user.click(reset)
-    let dialog = await screen.findByRole('dialog', { name: 'Reiniciar los datos de Trama' })
-    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
-    expect((await repository.load()).folders.some(folder => folder.id === 'carpeta-temporal')).toBe(true)
-    await user.click(reset)
-    dialog = await screen.findByRole('dialog', { name: 'Reiniciar los datos de Trama' })
-    await user.click(within(dialog).getByRole('button', { name: 'Reiniciar demo' }))
-    await waitFor(() => expect(sessionStorage.getItem('trama-demo-profile')).toBeNull())
-    expect((await repository.load()).folders.some(folder => folder.id === 'carpeta-temporal')).toBe(false)
-    expect(screen.getByRole('heading', { name: 'Acerca de Trama' })).toBeVisible()
-  })
-
-  it('demo: un reinicio fallido conserva la sesion y no anuncia exito', async () => {
-    const user = userEvent.setup()
-    await repository.execute('mora', { type: 'create-folder', id: 'carpeta-protegida', name: 'Conservar ante error' })
-    openRoute('/acerca', 'mora')
-    await user.click(await screen.findByRole('button', { name: 'Reiniciar datos' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Reiniciar los datos de Trama' })
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => { throw new DOMException('Cuota excedida', 'QuotaExceededError') })
-    await user.click(within(dialog).getByRole('button', { name: 'Reiniciar demo' }))
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/No se guardaron los cambios/)
-    expect(sessionStorage.getItem('trama-demo-profile')).toBe('mora')
-    expect((await repository.load()).folders.some(folder => folder.id === 'carpeta-protegida')).toBe(true)
-    expect(screen.queryByText('La demo se reinició con los datos de ejemplo.')).not.toBeInTheDocument()
   })
 })

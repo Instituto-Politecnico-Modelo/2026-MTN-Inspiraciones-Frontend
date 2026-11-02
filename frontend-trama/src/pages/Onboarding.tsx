@@ -24,14 +24,14 @@ export function OnboardingPage() {
         : inspirationTypes.map(inspiration => <Choice key={inspiration} selected={inspirations.includes(inspiration)}
           onClick={() => setInspirations(current => current.includes(inspiration) ? current.filter(item => item !== inspiration) : [...current, inspiration])}>{inspiration}</Choice>)}
     </div>
-    <p className="field-hint">No hay una cantidad mínima. En esta demo se guardan tus preferencias, sin simular un motor de recomendaciones.</p>
+    <p className="field-hint">No hay una cantidad mínima. Usamos tus preferencias para sugerirte obras.</p>
     <ErrorMessage message={error} />
     <div className="onboarding-actions">
       {step ? <Button variant="ghost" onClick={() => setStep(0)} disabled={pending}><ArrowLeft size={18} aria-hidden="true" />Atrás</Button>
         : <Button variant="ghost" onClick={() => navigate('/inicio')} disabled={pending}>Omitir por ahora</Button>}
       <Button loading={pending} onClick={() => {
         if (step === 0) setStep(1)
-        else void run({ type: 'set-interests', disciplines: selected, inspirations }, 'Tus preferencias se guardaron en este navegador.').then(result => { if (result) navigate('/inicio') })
+        else void run({ type: 'set-interests', disciplines: selected, inspirations }, 'Tus preferencias se guardaron.').then(result => { if (result) navigate('/inicio') })
       }}>{step ? 'Explorar Trama' : 'Continuar'}<ArrowRight size={18} aria-hidden="true" /></Button>
     </div>
   </div>

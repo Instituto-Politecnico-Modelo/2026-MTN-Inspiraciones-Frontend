@@ -31,6 +31,15 @@ export function PostActions({ post, comments = true }: { post: Post; comments?: 
   </>
 }
 
+export function PostTile({ post, eager = false }: { post: Post; eager?: boolean }) {
+  const location = useLocation()
+  return <Link to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }} className="post-tile" aria-label={post.title}>
+    <ArtworkImage post={post} eager={eager} decorative retry={false} />
+    {post.kind === 'audio' && <span className="media-kind"><Music2 size={16} aria-hidden="true" />Audio</span>}
+    {post.status !== 'published' && <span className="tile-status"><Badge status={post.status} /></span>}
+  </Link>
+}
+
 export function PostCard({ post, eager = false }: { post: Post; eager?: boolean }) {
   const { state } = useDemo()
   const location = useLocation()
@@ -49,6 +58,7 @@ export function PostCard({ post, eager = false }: { post: Post; eager?: boolean 
   </article>
 }
 
-export function PostGrid({ posts, compact = false }: { posts: Post[]; compact?: boolean }) {
+export function PostGrid({ posts, compact = false, tiles = false }: { posts: Post[]; compact?: boolean; tiles?: boolean }) {
+  if (tiles) return <div className="tile-grid">{posts.map((post, index) => <PostTile key={post.id} post={post} eager={index < 9} />)}</div>
   return <div className={`artwork-grid ${compact ? 'compact-grid' : ''}`}>{posts.map((post, index) => <PostCard key={post.id} post={post} eager={index < 3} />)}</div>
 }

@@ -110,6 +110,17 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
       else state.follows.push({ followerId: actor.id, followingId: command.userId })
       break
     }
+    case 'toggle-block': {
+      if (command.userId === actor.id) throw new Error('No podés bloquear tu propia cuenta.')
+      requireValue(state.users.find(user => user.id === command.userId), 'Este perfil no está disponible.')
+      const index = state.blocks.findIndex(block => block.blockerId === actor.id && block.blockedId === command.userId)
+      if (index >= 0) state.blocks.splice(index, 1)
+      else {
+        state.blocks.push({ blockerId: actor.id, blockedId: command.userId })
+        state.follows = state.follows.filter(follow => !(follow.followerId === actor.id && follow.followingId === command.userId) && !(follow.followerId === command.userId && follow.followingId === actor.id))
+      }
+      break
+    }
     case 'create-folder':
     case 'rename-folder': {
       const name = FolderSchema.shape.name.parse(command.name)

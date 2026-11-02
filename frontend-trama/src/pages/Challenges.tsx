@@ -3,7 +3,7 @@ import { ArrowRight, CalendarDays, Check, Plus, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import { disciplines, type Challenge, type Discipline } from '../data/model'
-import { challengeStatus, newId, visiblePosts } from '../data/store'
+import { challengeStatus, errorMessage, newId, visiblePosts } from '../data/store'
 import { backPath, formatDate, formatDateTime } from '../lib/format'
 import { Badge, Button, EmptyState, ErrorMessage, Field, Modal, PageTitle, SelectField, Tabs, TextArea } from '../components/UI'
 import { PostGrid } from '../components/PostCard'
@@ -63,7 +63,7 @@ function ChallengeDetail({ challenge }: { challenge: Challenge }) {
       <div className="challenge-brief"><Badge status={status} /><h2>La consigna</h2><p>{challenge.description}</p>
         <dl><div><dt>Disciplinas</dt><dd>{challenge.disciplines.join(', ')}</dd></div><div><dt>Formatos</dt><dd>{challenge.kinds.map(kind => kind === 'image' ? 'Imagen' : 'Audio').join(' y ')}</dd></div>
           <div><dt>Inicio</dt><dd>{formatDateTime(challenge.startsAt)}</dd></div><div><dt>Cierre</dt><dd>{formatDateTime(challenge.endsAt)}</dd></div></dl>
-        <p className="field-hint">Fechas en horario de Buenos Aires (UTC−3). Consigna de ejemplo, sin premios, jurados ni rankings.</p>
+        <p className="field-hint">Fechas en horario de Buenos Aires (UTC−3). Sin premios, jurados ni rankings.</p>
         {!!mine.length && <p className="participation-status"><Check size={19} aria-hidden="true" />Ya participás con {mine.length} {mine.length === 1 ? 'obra' : 'obras'}.</p>}
         {status === 'open' ? <Button onClick={() => { if (gate()) setJoining(true) }}><Plus size={19} aria-hidden="true" />{mine.length ? 'Agregar otra obra' : 'Quiero participar'}</Button>
           : <p className="muted">{status === 'upcoming' ? 'Vas a poder participar cuando abra la convocatoria.' : 'Este desafío finalizó. Podés seguir explorando las obras de la comunidad.'}</p>}
@@ -71,7 +71,7 @@ function ChallengeDetail({ challenge }: { challenge: Challenge }) {
     </section>
     <div className="section-heading"><h2>Obras participantes</h2><span className="meta">{posts.length} {posts.length === 1 ? 'obra' : 'obras'}</span></div>
     {posts.length ? <PostGrid posts={posts} compact /> : <EmptyState icon={Trophy} title="La primera respuesta puede ser la tuya" description={status === 'open' ? 'Compartí una obra propia que dialogue con esta consigna.' : 'Todavía no hay obras para mostrar en este desafío.'} />}
-    {joining && <Modal open title="Participar del desafío" description="Elegí una obra propia disponible o publicá una nueva. Se guarda como participación de esta demo." onClose={() => setJoining(false)} busy={pending}>
+    {joining && <Modal open title="Participar del desafío" description="Elegí una obra propia disponible o publicá una nueva. Se guarda como tu participación." onClose={() => setJoining(false)} busy={pending}>
       {eligible.length ? <form className="form-stack" onSubmit={event => {
         event.preventDefault()
         void run({ type: 'join-challenge', challengeId: challenge.id, postId: selected }, 'Tu obra se sumó al desafío.').then(result => { if (result) setJoining(false) })
@@ -93,13 +93,13 @@ export function ProposeChallengePage() {
   return <div className="editor-page"><PageTitle title="Proponer un desafío" back={{ to: '/desafios', label: 'Desafíos' }} />
     <form className="form-stack profile-form" onSubmit={event => {
       event.preventDefault()
-      void run({ type: 'create-request', request: { id: newId('solicitud'), title, description, discipline } }, 'Tu propuesta se envió a la administración de la demo.').then(result => { if (result) { guard.allow(); navigate('/desafios/mis-propuestas') } })
+      void run({ type: 'create-request', request: { id: newId('solicitud'), title, description, discipline } }, 'Tu propuesta se envió a la administración.').then(result => { if (result) { guard.allow(); navigate('/desafios/mis-propuestas') } })
     }}><Field label="Título de la propuesta" value={title} onChange={event => setTitle(event.target.value)} required maxLength={120} />
       <SelectField label="Disciplina principal" value={discipline} options={disciplines.map(value => ({ value, label: value }))} onChange={event => {
         const option = disciplines.find(value => value === event.target.value)
         if (option) setDiscipline(option)
       }} /><TextArea label="¿Cuál sería la consigna?" value={description} onChange={event => setDescription(event.target.value)} required minLength={10} maxLength={3000} rows={6} hint="Describí qué te gustaría proponer y cómo podría participar la comunidad." />
-      <p className="inline-notice">La aprobación no publica automáticamente un desafío. El equipo de la demo revisa la propuesta y define las fechas por separado.</p>
+      <p className="inline-notice">La aprobación no publica automáticamente un desafío. El equipo revisa la propuesta y define las fechas por separado.</p>
       <ErrorMessage message={error} /><div className="form-actions"><Link className="button button-secondary" to="/desafios">Cancelar</Link><Button type="submit" loading={pending}>Enviar propuesta</Button></div>
     </form>{guard.dialog}</div>
 }
@@ -117,19 +117,23 @@ export function MyProposalsPage() {
 }
 
 export function AppealPage() {
-  const { state, user } = useDemo()
-  const { run, pending, error } = useAction()
+  const { appeal, notify } = useDemo()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [description, setDescription] = useState('')
-  if (!user) return <EmptyState title="Ingresá para consultar tu cuenta" description="La revisión de una cuenta está disponible para su propio perfil." action={<Link className="button button-primary" to="/ingresar">Ingresar</Link>} />
-  const appeals = state.appeals.filter(appeal => appeal.authorId === user.id)
-  const waiting = appeals.find(appeal => appeal.status === 'pending')
-  return <div className="editor-page"><PageTitle title={user.status === 'suspended' ? 'Revisemos lo que pasó' : 'Revisión de tu cuenta'} description="Este proceso solo modifica la cuenta de demostración guardada en este navegador." />
-    {user.status === 'suspended' ? <><p className="inline-notice">{user.suspensionReason}</p>{waiting ? <><Badge status="pending" /><p className="appeal-description">Tu solicitud ya está pendiente de revisión. Podés consultar su resolución acá.</p></> : <form className="form-stack profile-form" onSubmit={event => {
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+  const [sent, setSent] = useState(false)
+  return <div className="editor-page"><PageTitle title="Revisemos lo que pasó" description="Si tu cuenta fue suspendida, contanos qué debería revisar el equipo. Confirmá que sos vos con tu correo y tu contraseña." />
+    {sent ? <p className="inline-notice"><Check size={20} aria-hidden="true" />Recibimos tu solicitud. El equipo la va a revisar y vas a poder ingresar si se acepta.</p> : <form className="form-stack profile-form" onSubmit={event => {
       event.preventDefault()
-      void run({ type: 'create-appeal', id: newId('apelacion'), description }, 'Tu solicitud de revisión se guardó.').then(result => { if (result) setDescription('') })
-    }}><TextArea label="Contanos qué debería revisar el equipo" value={description} onChange={event => setDescription(event.target.value)} required minLength={10} maxLength={1500} /><ErrorMessage message={error} /><Button type="submit" loading={pending}>Solicitar revisión</Button></form>}</>
-      : <p className="inline-notice"><Check size={20} aria-hidden="true" />Tu cuenta está activa. Podés volver a crear y participar.</p>}
-    {!!appeals.length && <div className="proposal-list">{appeals.map(appeal => <article key={appeal.id}><Badge status={appeal.status} /><p>{appeal.description}</p>{appeal.note && <p className="review-note">{appeal.note}</p>}</article>)}</div>}
-    <div className="button-row"><Link className="button button-secondary" to="/inicio">Volver a Inicio</Link><Link className="text-link" to="/salir">Cerrar sesión</Link></div>
+      setPending(true)
+      setError('')
+      appeal({ email: email.trim(), password, mensaje: description }).then(() => { setSent(true); setPassword(''); notify('Tu solicitud de revisión se envió.') })
+        .catch((failure: unknown) => setError(errorMessage(failure))).finally(() => setPending(false))
+    }}><Field label="Correo" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" required maxLength={254} />
+      <Field label="Contraseña" type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required />
+      <TextArea label="Contanos qué debería revisar el equipo" value={description} onChange={event => setDescription(event.target.value)} required minLength={10} maxLength={1500} /><ErrorMessage message={error} /><Button type="submit" loading={pending}>Solicitar revisión</Button></form>}
+    <div className="button-row"><Link className="button button-secondary" to="/inicio">Volver a Inicio</Link><Link className="text-link" to="/ingresar">Ingresar</Link></div>
   </div>
 }

@@ -16,10 +16,10 @@ function ReportDialog({ post, onClose }: { post: Post; onClose: () => void }) {
   const { run, pending, error } = useAction()
   const [reason, setReason] = useState<Report['reason']>(reportReasons[0])
   const [description, setDescription] = useState('')
-  return <Modal open title="Reportar publicación" description="Contanos qué debería revisar el equipo. El reporte queda registrado únicamente en esta demo." onClose={onClose} busy={pending}>
+  return <Modal open title="Reportar publicación" description="Contanos qué debería revisar el equipo." onClose={onClose} busy={pending}>
     <form className="form-stack" onSubmit={event => {
       event.preventDefault()
-      void run({ type: 'create-report', report: { id: newId('reporte'), postId: post.id, reason, description } }, 'Reporte enviado a la moderación de la demo.').then(result => { if (result) onClose() })
+      void run({ type: 'create-report', report: { id: newId('reporte'), postId: post.id, reason, description } }, 'Reporte enviado a moderación.').then(result => { if (result) onClose() })
     }}><SelectField label="Motivo" value={reason} options={reportReasons.map(value => ({ value, label: value }))} onChange={event => {
       const selected = reportReasons.find(value => value === event.target.value)
       if (selected) setReason(selected)
@@ -56,11 +56,11 @@ function WorkDetail({ post }: { post: Post }) {
     <div className="work-topline"><Link className="back-link" to={returnTo}><ArrowLeft size={18} aria-hidden="true" />Volver</Link>
       <div className="button-row">{user?.id === author.id && post.status !== 'deleted' && <>
         <Link className="icon-button" to={`/obra/${post.id}/editar`} aria-label="Editar publicación" title="Editar publicación"><Pencil size={20} aria-hidden="true" /></Link>
-        <IconButton icon={Trash2} label="Eliminar publicación" onClick={() => setConfirmation({ title: 'Eliminar publicación', description: `«${post.title}» dejará de aparecer en la demo. Esta acción no se puede deshacer sin reiniciar los datos.`, label: 'Eliminar publicación', dangerous: true, command: () => ({ type: 'delete-post', postId: post.id }), success: 'Publicación eliminada de la demo.', destination: '/perfil' })} />
+        <IconButton icon={Trash2} label="Eliminar publicación" onClick={() => setConfirmation({ title: 'Eliminar publicación', description: `«${post.title}» dejará de aparecer. Esta acción no se puede deshacer.`, label: 'Eliminar publicación', dangerous: true, command: () => ({ type: 'delete-post', postId: post.id }), success: 'Publicación eliminada.', destination: '/perfil' })} />
       </>}
         {isPublic && user?.id !== author.id && <IconButton icon={Flag} label="Reportar publicación" onClick={() => { if (gate()) setReportOpen(true) }} />}</div>
     </div>
-    {!isPublic && <p className="inline-notice"><Flag size={18} aria-hidden="true" />Esta obra no es pública. La podés consultar por ser su autor o por administrar la demo. <Badge status={post.status} /></p>}
+    {!isPublic && <p className="inline-notice"><Flag size={18} aria-hidden="true" />Esta obra no es pública. La podés consultar por ser su autor o por administrar la comunidad. <Badge status={post.status} /></p>}
     <div className="work-layout">
       <section className="work-visual" aria-label="Obra completa"><div className="work-image"><ArtworkImage post={post} eager decorative={post.kind === 'audio'} /></div>
         {post.kind === 'audio' && <AudioPlayer post={post} />}

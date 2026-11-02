@@ -67,6 +67,7 @@ export function createSeed(now = new Date().toISOString()): DemoState {
       { id: 'carpeta-objetos', ownerId: 'mora', name: 'Objetos con historia', postIds: ['obra-2'] },
     ],
     follows: [{ followerId: 'mora', followingId: 'lara' }, { followerId: 'mora', followingId: 'mateo' }, { followerId: 'julia', followingId: 'mora' }],
+    blocks: [],
     challenges: [
       { id: 'desafio-linea', title: 'Todo empieza con una línea', description: 'Elegí algo que tengas cerca y dibujalo sin levantar la mano del papel. No buscamos un resultado perfecto: nos interesa descubrir a dónde te lleva el trazo. Compartí una imagen de tu proceso o de la obra terminada. Una obra propia por participación, sin jurado ni premios en esta demo.', disciplines: ['Ilustración', 'Pintura', 'Diseño'], kinds: ['image'], startsAt: at(-2), endsAt: at(5), cover: '/media/linea.svg', archived: false, createdBy: 'admin', requestId: null },
       { id: 'desafio-texturas', title: 'Escuchar las texturas', description: 'Encontrá una textura en tu entorno y transformala en una imagen o en un sonido propio. Podés trabajar con papel, arcilla, fotografía o síntesis sonora. Acompañá tu obra con una breve explicación del proceso. No hay clasificación ni premios.', disciplines: ['Fotografía', 'Música', 'Collage', 'Cerámica'], kinds: ['image', 'audio'], startsAt: at(-1), endsAt: at(10), cover: '/media/objetos.svg', archived: false, createdBy: 'admin', requestId: null },

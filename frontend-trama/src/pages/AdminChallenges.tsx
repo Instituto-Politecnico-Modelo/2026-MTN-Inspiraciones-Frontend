@@ -34,7 +34,7 @@ export function AdminChallengesPage() {
   return <><PageTitle title="Desafíos" description="Consignas, fechas y formatos de participación de la comunidad." actions={<Link className="button button-primary" to="/admin/desafios/nuevo"><Plus size={18} aria-hidden="true" />Nuevo desafío</Link>} />
     <div className="filter-row"><SearchField label="Buscar desafíos" value={query} onChange={value => update('q', value)} /><SelectField label="Estado" value={status} onChange={event => update('estado', event.target.value)} options={[{ value: 'todos', label: 'Todos' }, { value: 'open', label: 'Abiertos' }, { value: 'upcoming', label: 'Próximos' }, { value: 'closed', label: 'Finalizados' }, { value: 'archived', label: 'Archivados' }]} /></div>
     <p className="filter-summary" role="status">{challenges.length} desafíos · Fechas de Buenos Aires (UTC−3).</p>
-    {challenges.length ? <div className="table-scroll" role="region" aria-label="Desafíos de la demo" tabIndex={0}><table className="admin-table"><caption className="sr-only">Desafíos de la demo</caption><thead><tr>{['Consigna', 'Estado', 'Fechas', 'Formatos', 'Acciones'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>
+    {challenges.length ? <div className="table-scroll" role="region" aria-label="Desafíos" tabIndex={0}><table className="admin-table"><caption className="sr-only">Desafíos</caption><thead><tr>{['Consigna', 'Estado', 'Fechas', 'Formatos', 'Acciones'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>
       {challenges.map(challenge => <tr key={challenge.id}><th scope="row"><Link className="table-work" to={`/admin/desafios/${challenge.id}/editar`} state={{ from: location.pathname + location.search }}><img src={challenge.cover} alt="" /><span>{challenge.title}<small>{challenge.disciplines.join(' · ')}</small></span></Link></th><td><Badge status={challengeStatus(challenge)} /></td>
         <td><span className="date-cell">{formatDateTime(challenge.startsAt)}</span><br /><span className="date-cell">{formatDateTime(challenge.endsAt)}</span></td><td>{challenge.kinds.map(kind => kind === 'image' ? 'Imagen' : 'Audio').join(' y ')}</td>
         <td><div className="table-actions">{!challenge.archived && <Link className="icon-button" to={`/desafios/${challenge.id}`} state={{ from: location.pathname + location.search }} aria-label={`Ver ${challenge.title}`} title="Ver en la comunidad"><Eye size={21} aria-hidden="true" /></Link>}
@@ -85,7 +85,7 @@ function ChallengeForm({ existing, proposal }: { existing?: Challenge; proposal?
     setUploading(true)
     setUploadError('')
     try { update('cover', (await readUpload(file, true)).src) }
-    catch (failure) { console.error('[Trama demo] Portada no disponible.', failure); setUploadError(errorMessage(failure)) }
+    catch (failure) { console.error('[Trama] Portada no disponible.', failure); setUploadError(errorMessage(failure)) }
     finally { setUploading(false) }
   }
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -94,7 +94,7 @@ function ChallengeForm({ existing, proposal }: { existing?: Challenge; proposal?
     try {
       const result = await run({ type: 'save-challenge', challenge: { ...form, id, startsAt: fromLocalDateTime(form.startsAt), endsAt: fromLocalDateTime(form.endsAt), archived: existing?.archived ?? false, requestId: existing?.requestId ?? proposal?.id ?? null } }, existing ? 'Los cambios del desafío se guardaron.' : 'El desafío se publicó en la demo.')
       if (result) { guard.allow(); navigate(destination) }
-    } catch (failure) { console.error('[Trama demo] Fechas no válidas.', failure); setUploadError('Revisá las fechas de inicio y cierre antes de publicar.') }
+    } catch (failure) { console.error('[Trama] Fechas no válidas.', failure); setUploadError('Revisá las fechas de inicio y cierre antes de publicar.') }
   }
   return <div className="editor-page"><PageTitle title={existing ? 'Editar desafío' : 'Nuevo desafío'} description="La consigna será pública y aceptará participaciones durante las fechas indicadas." back={{ to: destination, label: 'Desafíos' }} />
     {existing?.archived && <p className="inline-notice">Esta consigna está archivada. Guardar cambios no la vuelve a publicar.</p>}
@@ -107,7 +107,7 @@ function ChallengeForm({ existing, proposal }: { existing?: Challenge; proposal?
       <div className="form-columns"><Field label="Inicio (Buenos Aires)" type="datetime-local" value={form.startsAt} onChange={event => update('startsAt', event.target.value)} required /><Field label="Cierre (Buenos Aires)" type="datetime-local" value={form.endsAt} onChange={event => update('endsAt', event.target.value)} required /></div>
       <p className="field-hint">Horario de Buenos Aires (UTC−3), independientemente de la zona horaria del dispositivo. El cierre debe ser posterior al inicio.</p>
       <fieldset className="plain-fieldset"><legend>Portada</legend><div className="cover-options">{covers.map(cover => <label key={cover.src} className={`cover-choice ${form.cover === cover.src ? 'is-selected' : ''}`}><img src={cover.src} alt="" /><span><input type="radio" name="portada" value={cover.src} checked={form.cover === cover.src} onChange={() => update('cover', cover.src)} />{cover.label}</span></label>)}</div></fieldset>
-      {!covers.some(cover => cover.src === form.cover) && <div className="cover-upload"><img src={form.cover} alt="Portada elegida para el desafío" /><p className="meta">Portada del archivo local</p></div>}
+      {!covers.some(cover => cover.src === form.cover) && <div className="cover-upload"><img src={form.cover} alt="Portada elegida para el desafío" /><p className="meta">Portada elegida</p></div>}
       <div><input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden aria-label="Elegir portada del desafío" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file) }} />
         <Button variant="secondary" loading={uploading} disabled={pending} onClick={() => fileInput.current?.click()}><ImagePlus size={18} aria-hidden="true" />Elegir otra portada</Button><p className="field-hint">JPG, PNG o WebP de hasta 8 MiB. Usá una imagen que tengas derecho a compartir.</p></div>
       <ErrorMessage message={uploadError || error} /><div className="form-actions"><Link className="button button-secondary" to={destination}>Cancelar</Link><Button type="submit" loading={pending} disabled={uploading || (!!existing && !dirty)}>{existing ? 'Guardar cambios' : 'Publicar desafío'}</Button></div>

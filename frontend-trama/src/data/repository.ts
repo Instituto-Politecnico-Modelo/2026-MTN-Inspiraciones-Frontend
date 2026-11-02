@@ -1,5 +1,5 @@
 import { StateSchema, type Command, type DemoState } from './model'
-import { applyCommand, createSeed } from './store'
+import { applyCommand, createSeed, newId } from './store'
 
 const DATABASE = 'trama-frontend-demo-v1'
 const STORE = 'application'
@@ -73,6 +73,27 @@ export class DemoRepository {
   reset() {
     return this.transaction(undefined, true)
   }
+
+  private session = 'trama-demo-profile'
+  resolveId = (id: string) => id
+  currentUserId() { return sessionStorage.getItem(this.session) }
+  async login(email: string) {
+    const user = (await this.load()).users.find(candidate => candidate.email === email.trim().toLowerCase() && candidate.status !== 'deleted')
+    if (!user) throw new Error('No encontramos ese perfil.')
+    sessionStorage.setItem(this.session, user.id)
+    return user.id
+  }
+  async register(input: { email: string; username: string; nombreCompleto: string; password: string }) {
+    const id = newId('artista')
+    await this.execute(null, { type: 'create-account', user: { id, name: input.nombreCompleto, handle: input.username, email: input.email } })
+    sessionStorage.setItem(this.session, id)
+    return id
+  }
+  async appeal(input: { email: string; password: string; mensaje: string }) {
+    const id = await this.login(input.email)
+    await this.execute(id, { type: 'create-appeal', id: newId('apelacion'), description: input.mensaje })
+  }
+  logout() { sessionStorage.removeItem(this.session) }
 
   async close() {
     if (this.database) (await this.database).close()

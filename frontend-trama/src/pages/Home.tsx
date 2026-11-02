@@ -36,7 +36,7 @@ export function HomePage() {
       </div> : <EmptyState icon={tab === 'seguidos' ? Users : Trophy}
         title={tab === 'seguidos' ? user ? 'Encontrá otras miradas' : 'Tu comunidad empieza acá' : 'Todavía no hay obras para mostrar'}
         description={tab === 'seguidos' ? 'Seguí artistas para reunir sus publicaciones en este espacio.' : 'Las respuestas de la comunidad a los desafíos van a aparecer en esta pestaña.'}
-        action={<Link className="button button-primary" to={tab === 'seguidos' ? user ? '/descubrir?tipo=artistas' : '/ingresar' : '/desafios'}>{tab === 'seguidos' ? user ? 'Descubrir artistas' : 'Ingresar a la demo' : 'Explorar desafíos'}</Link>} />}
+        action={<Link className="button button-primary" to={tab === 'seguidos' ? user ? '/descubrir?tipo=artistas' : '/ingresar' : '/desafios'}>{tab === 'seguidos' ? user ? 'Descubrir artistas' : 'Ingresar' : 'Explorar desafíos'}</Link>} />}
     </Tabs>
   </>
 }

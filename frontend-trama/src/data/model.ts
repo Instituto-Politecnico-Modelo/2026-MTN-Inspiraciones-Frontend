@@ -137,6 +137,7 @@ export const StateSchema = z.object({
   posts: z.array(PostSchema),
   folders: z.array(FolderSchema),
   follows: z.array(z.object({ followerId: id, followingId: id })),
+  blocks: z.array(z.object({ blockerId: id, blockedId: id })).default([]),
   challenges: z.array(ChallengeSchema),
   requests: z.array(RequestSchema),
   reports: z.array(ReportSchema),
@@ -180,6 +181,7 @@ export type Command =
   | { type: 'set-interests'; disciplines: User['disciplines']; inspirations: User['inspirations'] }
   | { type: 'toggle-like'; postId: string }
   | { type: 'toggle-follow'; userId: string }
+  | { type: 'toggle-block'; userId: string }
   | { type: 'create-folder'; id: string; name: string }
   | { type: 'rename-folder'; folderId: string; name: string }
   | { type: 'delete-folder'; folderId: string }

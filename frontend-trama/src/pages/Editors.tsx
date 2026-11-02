@@ -17,7 +17,7 @@ const profileFields = (user: User): ProfileChanges => ({
 
 export function EditProfilePage() {
   const { user } = useDemo()
-  return user ? <ProfileForm key={user.id} user={user} /> : <EmptyState title="Ingresá para editar tu perfil" description="Tu presentación artística se guarda en tu perfil local." action={<Link to="/ingresar" className="button button-primary">Ingresar</Link>} />
+  return user ? <ProfileForm key={user.id} user={user} /> : <EmptyState title="Ingresá para editar tu perfil" description="Tu presentación artística se guarda en tu perfil." action={<Link to="/ingresar" className="button button-primary">Ingresar</Link>} />
 }
 
 function ProfileForm({ user }: { user: User }) {
@@ -34,11 +34,11 @@ function ProfileForm({ user }: { user: User }) {
   const photo = async (file: File) => {
     setUploading(true); setUploadError('')
     try { const media = await readUpload(file, true); update('avatar', media.src) }
-    catch (failure) { console.error('[Trama demo] No se pudo abrir la foto.', failure); setUploadError(errorMessage(failure)) }
+    catch (failure) { console.error('[Trama] No se pudo abrir la foto.', failure); setUploadError(errorMessage(failure)) }
     finally { setUploading(false) }
   }
   return <div className="editor-page">
-    <PageTitle title="Editar perfil" description="Estos datos serán públicos en la demo." back={{ to: '/perfil', label: 'Volver a mi perfil' }} />
+    <PageTitle title="Editar perfil" description="Estos datos serán públicos." back={{ to: '/perfil', label: 'Volver a mi perfil' }} />
     <form className="form-stack profile-form" onSubmit={event => {
       event.preventDefault()
       void run({ type: 'update-profile', changes: form }, 'Tu perfil se actualizó.').then(result => { if (result) { guard.allow(); navigate('/perfil') } })
@@ -51,7 +51,7 @@ function ProfileForm({ user }: { user: User }) {
       </div></div>
       <ErrorMessage message={uploadError} />
       <div className="form-columns"><Field label="Nombre visible" required minLength={2} maxLength={80} value={form.name} onChange={event => update('name', event.target.value)} autoComplete="nickname" />
-        <Field label="Nombre de usuario" required pattern="[a-z0-9._]{3,24}" maxLength={24} hint="Este es tu identificador público, sin @." value={form.handle} onChange={event => update('handle', event.target.value.toLowerCase())} /></div>
+        <Field label="Nombre de usuario" required pattern="[a-z0-9._]{3,24}" maxLength={24} hint="Este es tu identificador público, sin @. Hasta 10 caracteres si lo cambiás." value={form.handle} onChange={event => update('handle', event.target.value.toLowerCase())} /></div>
       <TextArea label="Sobre mí" value={form.bio} onChange={event => update('bio', event.target.value)} maxLength={500} hint={`${form.bio.length}/500 caracteres. Contá qué hacés, qué buscás o qué te inspira.`} />
       <fieldset className="plain-fieldset"><legend>Disciplinas</legend><div className="choice-grid compact">{disciplines.map(discipline => <Choice key={discipline} selected={form.disciplines.includes(discipline)}
         onClick={() => update('disciplines', form.disciplines.includes(discipline) ? form.disciplines.filter(value => value !== discipline) : [...form.disciplines, discipline])}>{discipline}</Choice>)}</div></fieldset>
@@ -73,7 +73,7 @@ export function PublishPage() {
 }
 
 function PublishForm({ user, existing, initialChallenge }: { user: User; existing?: Post; initialChallenge: string }) {
-  const { state } = useDemo()
+  const { state, resolveId } = useDemo()
   const { run, pending, error } = useAction()
   const navigate = useNavigate()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -98,10 +98,10 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
     setUploadError(''); setUploading(true)
     try {
       const result = await readUpload(file)
+      if (result.kind === 'audio') throw new Error('Por ahora solo se pueden publicar imágenes.')
       setMedia(result)
-      if (result.kind === 'audio') setDiscipline('Música')
     } catch (failure) {
-      console.error('[Trama demo] No se pudo abrir el archivo.', failure)
+      console.error('[Trama] No se pudo abrir el archivo.', failure)
       setUploadError(errorMessage(failure))
     } finally { setUploading(false) }
   }
@@ -112,9 +112,9 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
     const id = existing?.id ?? newId('obra')
     const result = await run(existing ? { type: 'update-post', postId: existing.id, changes } : {
       type: 'create-post',
-      post: { id, ...changes, ...media, cover: media.kind === 'audio' ? '/media/sonido.svg' : '', challengeId: challengeId || null, credit: `Archivo compartido por el perfil local ${user.name}.`, creditUrl: '' },
-    }, existing ? 'Los cambios de tu obra se guardaron.' : 'Tu obra se publicó en esta demo local.')
-    if (result) { guard.allow(); navigate(`/obra/${id}`) }
+      post: { id, ...changes, ...media, cover: media.kind === 'audio' ? '/media/sonido.svg' : '', challengeId: challengeId || null, credit: `Obra compartida por ${user.name}.`, creditUrl: '' },
+    }, existing ? 'Los cambios de tu obra se guardaron.' : 'Tu obra se publicó.')
+    if (result) { guard.allow(); navigate(`/obra/${resolveId(id)}`) }
   }
   const preview: Post | null = media ? { id: 'vista-previa', ...media, authorId: user.id, title: title || 'Vista previa', description, alt, discipline, technique, license, cover: existing?.cover || (media.kind === 'audio' ? '/media/sonido.svg' : ''), credit: '', creditUrl: '', createdAt: new Date().toISOString(), status: 'published', likes: [], comments: [], challengeId: null } : null
   return <>
@@ -124,14 +124,14 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
         {preview ? <><div className="publish-media"><img src={preview.kind === 'audio' ? preview.cover : preview.src} alt={alt || 'Vista previa del archivo elegido'} width={preview.width} height={preview.height} /></div>
           {preview.kind === 'audio' && <AudioPlayer key={preview.src} post={preview} />}
           {!existing && <Button className="full-width" variant="secondary" disabled={pending} loading={uploading} onClick={() => fileInput.current?.click()}><ImagePlus size={18} aria-hidden="true" />Elegir otro archivo</Button>}
-          <p className="field-hint">{preview.kind === 'audio' ? 'Audio' : 'Imagen'} listo para compartir. Se guardará únicamente en este navegador.</p>
+          <p className="field-hint">{preview.kind === 'audio' ? 'Audio' : 'Imagen'} listo para compartir.</p>
         </> : <div className="upload-target" onDragOver={event => event.preventDefault()} onDrop={event => {
           event.preventDefault()
           if (event.dataTransfer.files.length !== 1) { setUploadError('Elegí un solo archivo por publicación.'); return }
           void upload(event.dataTransfer.files[0])
-        }}><Upload size={32} strokeWidth={1.5} aria-hidden="true" /><p>Imagen o audio</p>
+        }}><Upload size={32} strokeWidth={1.5} aria-hidden="true" /><p>Imagen</p>
           <Button onClick={() => fileInput.current?.click()} loading={uploading}><Plus size={19} aria-hidden="true" />Elegir archivo</Button>
-          <small>JPG, PNG o WebP: hasta 8 MB.<br />MP3, WAV, Ogg o M4A: hasta 16 MB.</small>
+          <small>JPG, PNG o WebP: hasta 8 MB.</small>
         </div>}
         <input ref={fileInput} type="file" hidden accept={mediaAccept} aria-label="Elegir archivo de la obra" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file) }} />
         <ErrorMessage message={uploadError} />

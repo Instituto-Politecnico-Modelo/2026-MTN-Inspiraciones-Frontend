@@ -30,7 +30,7 @@ function AdminTable({ label, columns, children }: { label: string; columns: stri
 function Resolution({ record }: { record: Pick<Report, 'note' | 'resolvedAt' | 'resolvedBy'> }) {
   const { state } = useDemo()
   return <section className="review-resolution"><h2>Resolución</h2><p>{record.note}</p>
-    <p className="meta">{record.resolvedAt && formatDateTime(record.resolvedAt)} · {state.users.find(member => member.id === record.resolvedBy)?.name ?? 'Equipo de la demo'}</p>
+    <p className="meta">{record.resolvedAt && formatDateTime(record.resolvedAt)} · {state.users.find(member => member.id === record.resolvedBy)?.name ?? 'Equipo de administración'}</p>
   </section>
 }
 
@@ -45,13 +45,13 @@ export function AdminSummaryPage() {
   const activity = state.audit.slice(-8).reverse()
   const openCount = state.challenges.filter(challenge => challengeStatus(challenge) === 'open').length
   const pendingAppeals = state.appeals.filter(appeal => appeal.status === 'pending').length
-  return <><PageTitle title="Resumen" description="El estado actual de esta comunidad de demostración." />
+  return <><PageTitle title="Resumen" description="El estado actual de la comunidad." />
     <dl className="admin-metrics">{metrics.map(metric => <div key={metric.label}><dt><Link to={metric.to}>{metric.label}<ArrowRight size={16} aria-hidden="true" /></Link></dt><dd>{metric.value}</dd></div>)}</dl>
     <div className="admin-summary-links"><Link to="/admin/desafios"><strong>{openCount}</strong> {openCount === 1 ? 'desafío abierto' : 'desafíos abiertos'}<ArrowRight size={18} aria-hidden="true" /></Link>
       <Link to="/admin/moderacion?vista=apelaciones"><strong>{pendingAppeals}</strong> {pendingAppeals === 1 ? 'apelación pendiente' : 'apelaciones pendientes'}<ArrowRight size={18} aria-hidden="true" /></Link></div>
     <section className="admin-section"><div className="section-heading"><h2>Actividad reciente</h2><Link to="/admin/reportes">Ver actividad<ArrowRight size={17} aria-hidden="true" /></Link></div>
       {activity.length ? <ul className="activity-list">{activity.map(entry => <li key={entry.id}><span>{entry.label}</span><small>{state.users.find(member => member.id === entry.actorId)?.name} · {formatDateTime(entry.createdAt)}</small></li>)}</ul>
-        : <EmptyState icon={ShieldCheck} title="Todavía no hay decisiones registradas" description="Las acciones de administración quedarán en la actividad local de esta demo." />}
+        : <EmptyState icon={ShieldCheck} title="Todavía no hay decisiones registradas" description="Las decisiones de administración van a aparecer acá." />}
     </section></>
 }
 
@@ -62,16 +62,16 @@ export function AdminUsersPage() {
   const users = state.users.filter(member => (status === 'todos' || member.status === status) && normalize(`${member.name} ${member.handle} ${member.email}`).includes(normalize(query)))
   const changeStatus = (member: User, next: User['status']) => setConfirmation({
     title: next === 'suspended' ? 'Suspender este perfil' : next === 'active' ? 'Reactivar este perfil' : 'Eliminar este perfil',
-    description: next === 'deleted' ? `Se retirarán las obras, comentarios, likes y carpetas de ${member.name}. No se puede deshacer sin reiniciar la demo.` : next === 'suspended' ? `Las obras de ${member.name} dejarán de ser públicas mientras la cuenta esté suspendida. Podrá solicitar una revisión.` : `${member.name} podrá volver a participar. Sus obras no eliminadas ni ocultas volverán a mostrarse.`,
+    description: next === 'deleted' ? `Se retirarán las obras, comentarios, likes y carpetas de ${member.name}. Esta acción no se puede deshacer.` : next === 'suspended' ? `Las obras de ${member.name} dejarán de ser públicas mientras la cuenta esté suspendida. Podrá solicitar una revisión.` : `${member.name} podrá volver a participar. Sus obras no eliminadas ni ocultas volverán a mostrarse.`,
     label: next === 'suspended' ? 'Suspender perfil' : next === 'active' ? 'Reactivar perfil' : 'Eliminar perfil',
     reason: true, maxReasonLength: 1000, dangerous: next !== 'active',
     command: reason => ({ type: 'set-user-status', userId: member.id, status: next, reason }),
-    success: 'El estado del perfil se actualizó en la demo.',
+    success: 'El estado del perfil se actualizó.',
   })
-  return <><PageTitle title="Usuarios" description="Perfiles locales, estado de las cuentas y decisiones de la comunidad." />
+  return <><PageTitle title="Usuarios" description="Perfiles, estado de las cuentas y decisiones de la comunidad." />
     <div className="filter-row"><SearchField label="Buscar perfiles" placeholder="Nombre, usuario o correo" value={query} onChange={value => update({ q: value })} /><SelectField label="Estado" value={status} options={userStatuses} onChange={event => update({ estado: event.target.value })} /></div>
     <p className="filter-summary" role="status">{users.length} perfiles</p>
-    {users.length ? <AdminTable label="Perfiles de la demo" columns={['Perfil', 'Rol', 'Estado', 'Alta', 'Acciones']}>{users.map(member => <tr key={member.id}>
+    {users.length ? <AdminTable label="Perfiles" columns={['Perfil', 'Rol', 'Estado', 'Alta', 'Acciones']}>{users.map(member => <tr key={member.id}>
       <th scope="row"><div className="table-person"><Avatar user={member} size="medium" /><div>{member.status === 'active' ? <Link to={`/perfil/${member.id}`}>{member.name}</Link> : <strong>{member.name}</strong>}<small>@{member.handle}</small><small>{member.email}</small>{member.id === user?.id && <small>Tu sesión actual</small>}</div></div></th>
       <td><Badge status={member.role} /></td><td><Badge status={member.status} /></td><td className="date-cell">{formatDate(member.joinedAt)}</td>
       <td><div className="table-actions">{member.status !== 'deleted' && <>
@@ -91,15 +91,15 @@ export function AdminPostsPage() {
   const kind = params.get('medio') ?? 'todos'
   const publicIds = new Set(visiblePosts(state).map(post => post.id))
   const posts = state.posts.filter(post => (status === 'todos' || post.status === status) && (kind === 'todos' || post.kind === kind) && normalize(`${post.title} ${post.discipline} ${state.users.find(member => member.id === post.authorId)?.name}`).includes(normalize(query)))
-  return <><PageTitle title="Publicaciones" description="Obras de la demo, incluida su disponibilidad pública." />
+  return <><PageTitle title="Publicaciones" description="Obras publicadas y su disponibilidad pública." />
     <div className="filter-row"><SearchField label="Buscar publicaciones" placeholder="Título, disciplina o autor" value={query} onChange={value => update({ q: value })} />
       <SelectField label="Estado" value={status} onChange={event => update({ estado: event.target.value })} options={[{ value: 'todos', label: 'Todos' }, { value: 'published', label: 'Publicadas' }, { value: 'hidden', label: 'Ocultas' }, { value: 'deleted', label: 'Eliminadas' }]} />
       <SelectField label="Medio" value={kind} onChange={event => update({ medio: event.target.value })} options={[{ value: 'todos', label: 'Todos' }, { value: 'image', label: 'Imágenes' }, { value: 'audio', label: 'Audio' }]} /></div>
     <p className="filter-summary" role="status">{posts.length} publicaciones</p>
-    {posts.length ? <AdminTable label="Publicaciones de la demo" columns={['Obra', 'Autoría', 'Estado', 'Fecha', 'Acciones']}>{posts.map(post => {
+    {posts.length ? <AdminTable label="Publicaciones" columns={['Obra', 'Autoría', 'Estado', 'Fecha', 'Acciones']}>{posts.map(post => {
       const author = state.users.find(member => member.id === post.authorId)
       const change = (next: typeof post.status) => setConfirmation({ title: next === 'hidden' ? 'Ocultar esta publicación' : next === 'published' ? 'Restaurar esta publicación' : 'Eliminar esta publicación',
-        description: next === 'deleted' ? `«${post.title}» dejará de estar disponible. No se puede deshacer sin reiniciar los datos.` : `Se cambiará la visibilidad de «${post.title}». La obra solo será pública si su autor tiene una cuenta activa.`,
+        description: next === 'deleted' ? `«${post.title}» dejará de estar disponible. Esta acción no se puede deshacer.` : `Se cambiará la visibilidad de «${post.title}». La obra solo será pública si su autor tiene una cuenta activa.`,
         label: next === 'hidden' ? 'Ocultar obra' : next === 'published' ? 'Restaurar obra' : 'Eliminar obra', reason: true, dangerous: next !== 'published', command: reason => ({ type: 'moderate-post', postId: post.id, status: next, reason }), success: 'Estado de la publicación actualizado.' })
       return <tr key={post.id}><th scope="row"><Link className="table-work" to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }}><img src={post.kind === 'audio' ? post.cover || '/media/sonido.svg' : post.src} alt="" /><span>{post.title}<small>{post.kind === 'audio' ? 'Audio' : 'Imagen'} · {post.discipline}</small></span></Link></th>
         <td>{author?.name ?? 'Perfil no disponible'}</td><td>{post.status === 'published' && !publicIds.has(post.id) ? <Badge>Cuenta no activa</Badge> : <Badge status={post.status} />}</td><td className="date-cell">{formatDate(post.createdAt)}</td>
@@ -136,15 +136,15 @@ function ReviewPage({ appeal = false }: { appeal?: boolean }) {
   const location = useLocation()
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const record = appeal ? state.appeals.find(item => item.id === id) : state.reports.find(item => item.id === id)
-  if (!record) return <EmptyState title="Esta revisión no está disponible" description="El enlace puede ser incorrecto o los datos de la demo pueden haber cambiado." action={<Link className="button button-secondary" to="/admin/moderacion">Volver a Moderación</Link>} />
+  if (!record) return <EmptyState title="Esta revisión no está disponible" description="El enlace puede ser incorrecto o los datos pueden haber cambiado." action={<Link className="button button-secondary" to="/admin/moderacion">Volver a Moderación</Link>} />
   const member = state.users.find(candidate => candidate.id === record.authorId)
   const post = 'postId' in record ? state.posts.find(candidate => candidate.id === record.postId) : undefined
   const resolve = (approve: boolean) => setConfirmation({
     title: appeal ? approve ? 'Aceptar esta apelación' : 'Rechazar esta apelación' : approve ? 'Aceptar este reporte' : 'Desestimar este reporte',
-    description: appeal ? approve ? 'La cuenta local será reactivada. La resolución quedará registrada y no se podrá volver a resolver esta apelación.' : 'La cuenta conservará su estado. La persona podrá consultar el motivo de esta resolución.' : approve ? 'La obra será ocultada, salvo que ya haya sido eliminada. Esta revisión quedará resuelta.' : 'No se cambiará el estado de la publicación. El reporte quedará resuelto.',
+    description: appeal ? approve ? 'La cuenta será reactivada. La resolución quedará registrada y no se podrá volver a resolver esta apelación.' : 'La cuenta conservará su estado. La persona podrá consultar el motivo de esta resolución.' : approve ? 'La obra será ocultada, salvo que ya haya sido eliminada. Esta revisión quedará resuelta.' : 'No se cambiará el estado de la publicación. El reporte quedará resuelto.',
     label: appeal ? approve ? 'Aceptar apelación' : 'Rechazar apelación' : approve ? 'Aceptar reporte' : 'Desestimar reporte', reason: true, dangerous: !appeal && approve,
     command: note => appeal ? { type: 'review-appeal', appealId: record.id, status: approve ? 'approved' : 'rejected', note } : { type: 'review-report', reportId: record.id, status: approve ? 'accepted' : 'dismissed', note },
-    success: 'La resolución quedó registrada en la demo.',
+    success: 'La resolución quedó registrada.',
   })
   return <div className="admin-detail"><PageTitle title={appeal ? 'Revisión de cuenta' : 'Reporte de publicación'} back={{ to: backPath(location.state, `/admin/moderacion${appeal ? '?vista=apelaciones' : ''}`), label: 'Moderación' }} />
     <Badge status={record.status} /><dl className="admin-facts"><div><dt>Enviado por</dt><dd>{member?.name ?? 'Perfil no disponible'}</dd></div><div><dt>Fecha</dt><dd>{formatDateTime(record.createdAt)}</dd></div>{'reason' in record && <div><dt>Motivo</dt><dd>{record.reason}</dd></div>}{appeal && member && <div><dt>Estado de la cuenta</dt><dd><Badge status={member.status} /></dd></div>}</dl>
@@ -199,10 +199,10 @@ export function AdminAccessPage() {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const users = state.users.filter(member => member.status === 'active' && normalize(`${member.name} ${member.handle}`).includes(normalize(query)))
   return <><PageTitle title="Accesos y roles" description="Solo las cuentas activas pueden cambiar de rol. No podés modificar el de tu propia sesión." />
-    <p className="inline-notice">Estos permisos son de demostración. No reemplazan autorización ni autenticación de un servidor.</p>
+    <p className="inline-notice">Los cambios de acceso se aplican de inmediato y quedan registrados.</p>
     <div className="filter-row"><SearchField label="Buscar perfil para cambiar su rol" value={query} onChange={value => update({ q: value })} /></div>
     {users.length ? <AdminTable label="Roles de los perfiles activos" columns={['Perfil', 'Rol actual', 'Acción']}>{users.map(member => <tr key={member.id}><th scope="row"><div className="table-person"><Avatar user={member} size="medium" /><span>{member.name}<small>@{member.handle}</small></span></div></th><td><Badge status={member.role} /></td>
-      <td><IconButton icon={ShieldCheck} label={`Cambiar rol de ${member.name}`} disabled={member.id === user?.id} onClick={() => setConfirmation({ title: 'Cambiar acceso de este perfil', description: member.role === 'artist' ? `${member.name} podrá administrar las obras, cuentas y desafíos de esta demo.` : `${member.name} dejará de tener acceso a administración y conservará su perfil de artista.`, label: member.role === 'artist' ? 'Dar acceso de administración' : 'Cambiar a artista', command: () => ({ type: 'change-role', userId: member.id, role: member.role === 'artist' ? 'admin' : 'artist' }), success: 'El rol se actualizó en la demo.' })} /></td>
+      <td><IconButton icon={ShieldCheck} label={`Cambiar rol de ${member.name}`} disabled={member.id === user?.id} onClick={() => setConfirmation({ title: 'Cambiar acceso de este perfil', description: member.role === 'artist' ? `${member.name} podrá administrar las obras, cuentas y desafíos.` : `${member.name} dejará de tener acceso a administración y conservará su perfil de artista.`, label: member.role === 'artist' ? 'Dar acceso de administración' : 'Cambiar a artista', command: () => ({ type: 'change-role', userId: member.id, role: member.role === 'artist' ? 'admin' : 'artist' }), success: 'El rol se actualizó en la demo.' })} /></td>
     </tr>)}</AdminTable> : <EmptyState title="No hay perfiles activos con ese nombre" description="Probá otra búsqueda. Las cuentas suspendidas o eliminadas no pueden cambiar de rol." />}
     {confirmation && <CommandDialog confirmation={confirmation} onClose={() => setConfirmation(null)} />}
   </>
@@ -236,9 +236,9 @@ export function AdminReportsPage() {
       link.click()
       link.remove()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
-    } catch (failure) { console.error('[Trama demo] No se pudo generar el CSV.', failure); setError(errorMessage(failure)) }
+    } catch (failure) { console.error('[Trama] No se pudo generar el CSV.', failure); setError(errorMessage(failure)) }
   }
-  return <><PageTitle title="Reportes y actividad" description="Datos del estado local actual, sin estadísticas de servidor ni métricas estimadas." actions={<Button variant="secondary" onClick={download} disabled={!rows.length}><Download size={18} aria-hidden="true" />Exportar CSV</Button>} />
+  return <><PageTitle title="Reportes y actividad" description="Datos actuales de la comunidad, sin métricas estimadas." actions={<Button variant="secondary" onClick={download} disabled={!rows.length}><Download size={18} aria-hidden="true" />Exportar CSV</Button>} />
     <div className="filter-row"><SelectField label="Contenido" value={selection} options={Object.entries(datasets).map(([value, data]) => ({ value, label: data.label }))} onChange={event => update({ datos: event.target.value, q: '' })} /><SearchField label="Filtrar filas del reporte" value={query} onChange={value => update({ q: value })} /></div>
     <p className="filter-summary" role="status">{rows.length} filas · La exportación incluye esta selección. Fechas de Buenos Aires (UTC−3).</p><ErrorMessage message={error} />
     {rows.length ? <AdminTable label={dataset.label} columns={dataset.columns}>{rows.map((row, index) => <tr key={index}>{row.map((cell, column) => column === 0 ? <th scope="row" key={column}>{cell}</th> : <td key={column}>{cell}</td>)}</tr>)}</AdminTable> : <EmptyState title="No hay datos en esta selección" description="Elegí otro contenido o quitá el filtro. La actividad aparece después de realizar decisiones administrativas." />}

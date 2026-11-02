@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowUpRight, ChartNoAxesCombined, CircleDot, Compass, Flag, House, Images, Inbox, Info, LogOut, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
+import { ArrowUpRight, ChartNoAxesCombined, Compass, Flag, House, Images, Inbox, Info, LogOut, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
 import { Link, NavLink, Navigate, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { canManage } from '../data/store'
@@ -50,8 +50,8 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   const location = useLocation()
   if (!user) return <Navigate to={`/ingresar?modo=admin&volver=${encodeURIComponent(location.pathname + location.search)}`} replace />
   if (!canManage(user)) return <main className="startup"><Brand /><h1>Solo administración</h1><EmptyState icon={ShieldCheck} title="Este perfil no tiene acceso al panel"
-    description="Podés volver a la comunidad o elegir explícitamente el perfil de administración de esta demo."
-    action={<div className="button-row"><Link className="button button-secondary" to="/inicio">Volver a Inicio</Link><Link className="button button-primary" to="/ingresar?modo=admin">Elegir perfil de demo</Link></div>} /></main>
+    description="Podés volver a la comunidad o elegir explícitamente el perfil de administración."
+    action={<div className="button-row"><Link className="button button-secondary" to="/inicio">Volver a Inicio</Link><Link className="button button-primary" to="/ingresar?modo=admin">Ingresar como administrador</Link></div>} /></main>
   return children
 }
 
@@ -70,12 +70,15 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
     <NavLink key={item.path} to={item.path} className={({ isActive }) => isActive ? 'nav-item is-active' : 'nav-item'}>
       <item.icon size={22} strokeWidth={1.8} aria-hidden="true" /><span>{item.label}</span>
     </NavLink>)
+  const publishLink = <Link key="publicar" className="nav-publish" to="/publicar" aria-label="Publicar una obra" title="Publicar una obra"><Plus size={22} strokeWidth={2} aria-hidden="true" /><span>Publicar</span></Link>
+  const mobileLinks = links(true)
+  if (!admin) mobileLinks.splice(2, 0, publishLink)
   return <div className={`app-frame ${admin ? 'admin-frame' : ''}`}>
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
     <aside className="sidebar">
       <Link className="brand-link" to={admin ? '/admin/resumen' : '/inicio'} aria-label="Trama, ir al inicio"><Brand /></Link>
       {admin && <span className="admin-marker">Administración</span>}
-      <nav className="primary-nav" aria-label={admin ? 'Administración' : 'Principal'}>{links()}</nav>
+      <nav className="primary-nav" aria-label={admin ? 'Administración' : 'Principal'}>{links()}{!admin && <Link className="nav-publish nav-publish-side" to="/publicar" aria-label="Publicar una obra" title="Publicar una obra"><Plus size={22} strokeWidth={2} aria-hidden="true" /><span>Publicar</span></Link>}</nav>
       <div className="sidebar-bottom">
         {admin ? <Link className="nav-item" to="/inicio"><ArrowUpRight size={21} aria-hidden="true" /><span>Ver comunidad</span></Link>
           : <Link className="nav-item" to={canManage(user) ? '/admin/resumen' : '/ingresar?modo=admin'}><ShieldCheck size={21} aria-hidden="true" /><span>Administración</span></Link>}
@@ -89,18 +92,16 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
     <div className="workspace">
       <header className="site-header">
         <Link className="mobile-brand" to={admin ? '/admin/resumen' : '/inicio'} aria-label="Trama, ir al inicio"><Brand /></Link>
-        <Link className="demo-indicator" to="/acerca" title="Contenido de ejemplo guardado en este navegador"><CircleDot size={15} aria-hidden="true" /><span>Demo local</span></Link>
         <div className="header-actions">
-          {admin ? <Link className="button button-secondary" to="/inicio" aria-label="Comunidad" title="Ver comunidad"><ArrowUpRight size={19} aria-hidden="true" /><span className="desktop-label">Comunidad</span></Link>
-            : <Link className="button button-primary publish-button" to="/publicar" aria-label="Publicar una obra" title="Publicar una obra"><Plus size={21} aria-hidden="true" /><span className="desktop-label">Publicar</span></Link>}
+          {admin && <Link className="button button-secondary" to="/inicio" aria-label="Comunidad" title="Ver comunidad"><ArrowUpRight size={19} aria-hidden="true" /><span className="desktop-label">Comunidad</span></Link>}
         </div>
       </header>
-      {user?.status === 'suspended' && <div className="account-warning" role="status">Tu cuenta de demo está suspendida. <Link to="/apelacion">Solicitar revisión</Link></div>}
+      {user?.status === 'suspended' && <div className="account-warning" role="status">Tu cuenta está suspendida. <Link to="/apelacion">Solicitar revisión</Link></div>}
       <main id="contenido" className="app-content" ref={main} tabIndex={-1}><Outlet /></main>
-      <footer className="site-footer"><span>Demo local · Contenido de ejemplo</span><Link to="/acerca">Acerca de Trama</Link></footer>
+      <footer className="site-footer"><span>Trama · Comunidad para artistas</span><Link to="/acerca">Acerca de Trama</Link></footer>
     </div>
     <nav className="bottom-nav" aria-label={admin ? 'Administración móvil' : 'Principal móvil'}>
-      {links(true)}
+      {mobileLinks}
       {admin && <button className={`nav-item ${menuOpen ? 'is-active' : ''}`} type="button" aria-expanded={menuOpen} aria-haspopup="dialog" onClick={() => setMenuOpen(true)}><Menu size={23} aria-hidden="true" /><span>Más</span></button>}
     </nav>
     {menuOpen && <Modal open title="Administración" onClose={() => setMenuOpen(false)} className="navigation-modal">

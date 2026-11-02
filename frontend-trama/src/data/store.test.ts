@@ -27,6 +27,14 @@ describe('interacciones y privacidad de la demo', () => {
     expect(twice.follows.filter(f => f.followerId === 'mora' && f.followingId === 'nico')).toHaveLength(0)
   })
 
+  it('bloquea y desbloquea cuentas retirando los seguimientos entre ambas', () => {
+    expect(() => applyCommand(seed(), 'mora', { type: 'toggle-block', userId: 'mora' }, now)).toThrow(/bloquear.*propia/i)
+    const blocked = applyCommand(seed(), 'mora', { type: 'toggle-block', userId: 'lara' }, now)
+    expect(blocked.blocks).toEqual([{ blockerId: 'mora', blockedId: 'lara' }])
+    expect(blocked.follows.some(f => f.followerId === 'mora' && f.followingId === 'lara')).toBe(false)
+    expect(applyCommand(blocked, 'mora', { type: 'toggle-block', userId: 'lara' }, now).blocks).toHaveLength(0)
+  })
+
   it('mantiene las carpetas privadas incluso frente a otra cuenta administradora', () => {
     expect(privateFolders(seed(), 'mora', 'mora')).toHaveLength(2)
     expect(privateFolders(seed(), 'mora', 'lara')).toHaveLength(0)

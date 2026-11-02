@@ -1,33 +1,43 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, CheckCircle2, LoaderCircle, X } from 'lucide-react'
-import { DemoRepository } from '../data/repository'
+import { ApiRepository } from '../data/api'
 import { errorMessage, newId } from '../data/store'
 import type { Command, DemoState, User } from '../data/model'
 import { Brand } from '../components/Brand'
-import { Button, ErrorMessage, IconButton, Modal } from '../components/UI'
+import { Button, ErrorMessage, IconButton } from '../components/UI'
 
-const SESSION = 'trama-demo-profile'
 type Notice = { id: string; text: string; kind: 'success' | 'error' | 'info' }
+export type Backend = {
+  load: () => Promise<DemoState>
+  execute: (actorId: string | null, command: Command) => Promise<DemoState>
+  close: () => Promise<void>
+  currentUserId: () => string | null
+  login: (email: string, password: string) => Promise<string>
+  register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<string>
+  appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
+  logout: () => void
+  resolveId: (id: string) => string
+}
 type Context = {
   state: DemoState
   user: User | null
   execute: (command: Command) => Promise<DemoState>
-  login: (userId: string) => Promise<User>
+  login: (email: string, password: string) => Promise<User>
+  register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<User>
+  appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
   logout: () => void
-  reset: () => Promise<void>
+  resolveId: (id: string) => string
   notify: (text: string, kind?: Notice['kind']) => void
 }
 const DemoContext = createContext<Context | null>(null)
 
-export function DemoProvider({ children, repository: providedRepository }: { children: ReactNode; repository?: DemoRepository }) {
-  const [repository] = useState(() => providedRepository ?? new DemoRepository())
+export function DemoProvider({ children, repository: providedRepository }: { children: ReactNode; repository?: Backend }) {
+  const [repository] = useState<Backend>(() => providedRepository ?? new ApiRepository())
   const [state, setState] = useState<DemoState | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [startupError, setStartupError] = useState('')
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState<Notice | null>(null)
-  const [resetOpen, setResetOpen] = useState(false)
-  const channel = useRef<BroadcastChannel | null>(null)
   const notify = useCallback((text: string, kind: Notice['kind'] = 'success') => setNotice({ id: newId('aviso'), text, kind }), [])
   const refresh = useCallback(async () => {
     const result = await repository.load()
@@ -39,30 +49,17 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
     setLoading(true)
     setStartupError('')
     try {
-      const currentId = sessionStorage.getItem(SESSION)
       await refresh()
-      setUserId(currentId)
+      setUserId(repository.currentUserId())
     } catch (error) {
-      console.error('[Trama demo] No se pudo abrir la demo.', error)
+      console.error('[Trama] No se pudo abrir la aplicación.', error)
       setStartupError(errorMessage(error))
     } finally {
       setLoading(false)
     }
-  }, [refresh])
+  }, [refresh, repository])
 
-  useEffect(() => {
-    void initialize()
-    if (typeof BroadcastChannel === 'undefined') return
-    const updates = new BroadcastChannel('trama-demo-updates')
-    channel.current = updates
-    updates.onmessage = () => {
-      void refresh().catch(error => {
-        console.error('[Trama demo] No se pudieron sincronizar los cambios.', error)
-        notify('No pudimos leer los cambios de otra pestaña. Recargá antes de seguir editando.', 'error')
-      })
-    }
-    return () => { updates.close(); channel.current = null }
-  }, [initialize, notify, refresh])
+  useEffect(() => { void initialize() }, [initialize])
 
   useEffect(() => {
     if (!notice || notice.kind === 'error') return
@@ -73,51 +70,39 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   const execute = useCallback(async (command: Command) => {
     const result = await repository.execute(userId, command)
     setState(previous => !previous || result.revision >= previous.revision ? result : previous)
-    channel.current?.postMessage({ changed: true })
     return result
   }, [repository, userId])
 
-  const login = useCallback(async (id: string) => {
+  const enter = useCallback(async (id: string) => {
     const latest = await repository.load()
     const candidate = latest.users.find(user => user.id === id && user.status !== 'deleted')
-    if (!candidate) throw new Error('Este perfil de demostración no está disponible.')
-    sessionStorage.setItem(SESSION, candidate.id)
+    if (!candidate) throw new Error('No pudimos abrir tu perfil. Intentá de nuevo.')
     setState(latest)
     setUserId(candidate.id)
     return candidate
   }, [repository])
 
-  const logout = useCallback(() => {
-    sessionStorage.removeItem(SESSION)
-    setUserId(null)
-  }, [])
+  const login = useCallback(async (email: string, password: string) => enter(await repository.login(email, password)), [enter, repository])
+  const register = useCallback(async (input: { email: string; username: string; nombreCompleto: string; password: string }) => enter(await repository.register(input)), [enter, repository])
+  const appeal = useCallback((input: { email: string; password: string; mensaje: string }) => repository.appeal(input), [repository])
 
-  const reset = useCallback(async () => {
-    const result = await repository.reset()
-    sessionStorage.removeItem(SESSION)
+  const logout = useCallback(() => {
+    repository.logout()
     setUserId(null)
-    setState(result)
-    setStartupError('')
-    channel.current?.postMessage({ changed: true })
-    notify('La demo se reinició con los datos de ejemplo.')
-  }, [notify, repository])
+    void refresh().catch(error => console.error('[Trama] No se pudo actualizar tras cerrar sesión.', error))
+  }, [refresh, repository])
 
   if (loading || !state || startupError) return <main className="startup">
     <Brand />
-    {loading ? <><LoaderCircle className="spin" aria-hidden="true" /><h1>Preparando tu espacio</h1><p role="status">Cargando la demo local de Trama…</p></> : <>
-      <h1>No pudimos abrir la demo</h1><ErrorMessage message={startupError} />
-      <p>No reemplazamos tus datos por ejemplos cuando algo falla. Podés reintentar o reiniciar únicamente los datos de Trama.</p>
-      <div className="button-row"><Button onClick={() => void initialize()}>Reintentar</Button><Button variant="secondary" onClick={() => setResetOpen(true)}>Reiniciar datos de Trama</Button></div>
-      <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Reiniciar la demo" description="Se borrarán las obras subidas y los cambios locales de esta demo. No afecta el frontend anterior ni otros sitios.">
-        <div className="dialog-actions"><Button variant="secondary" onClick={() => setResetOpen(false)}>Cancelar</Button><Button variant="danger" onClick={() => {
-          void reset().then(() => setResetOpen(false)).catch(error => { console.error('[Trama demo] No se pudo reiniciar.', error); setStartupError(errorMessage(error)) })
-        }}>Reiniciar demo</Button></div>
-      </Modal>
+    {loading ? <><LoaderCircle className="spin" aria-hidden="true" /><h1>Preparando tu espacio</h1><p role="status">Cargando Trama…</p></> : <>
+      <h1>No pudimos abrir Trama</h1><ErrorMessage message={startupError} />
+      <p>Revisá tu conexión e intentá de nuevo.</p>
+      <div className="button-row"><Button onClick={() => void initialize()}>Reintentar</Button></div>
     </>}
   </main>
 
   const user = state.users.find(candidate => candidate.id === userId && candidate.status !== 'deleted') ?? null
-  return <DemoContext.Provider value={{ state, user, execute, login, logout, reset, notify }}>
+  return <DemoContext.Provider value={{ state, user, execute, login, register, appeal, logout, resolveId: repository.resolveId, notify }}>
     {children}
     {notice && <div className={`toast toast-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
       {notice.kind === 'error' ? <AlertCircle size={20} aria-hidden="true" /> : <CheckCircle2 size={20} aria-hidden="true" />}
@@ -125,10 +110,9 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
     </div>}
   </DemoContext.Provider>
 }
-
 export function useDemo() {
   const context = useContext(DemoContext)
-  if (!context) throw new Error('No está disponible el contexto de la demo.')
+  if (!context) throw new Error('No está disponible el contexto de la aplicación.')
   return context
 }
 
@@ -145,7 +129,7 @@ export function useAction() {
       return result
     } catch (failure) {
       const message = errorMessage(failure)
-      console.error('[Trama demo] Operación rechazada.', failure)
+      console.error('[Trama] Operación rechazada.', failure)
       setError(message)
       notify(message, 'error')
       return null

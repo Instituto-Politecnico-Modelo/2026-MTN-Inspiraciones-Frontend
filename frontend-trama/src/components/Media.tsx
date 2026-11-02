@@ -44,7 +44,7 @@ export function AudioPlayer({ post }: { post: Post }) {
       if (audio.ended) audio.currentTime = 0
       await audio.play()
     } catch (failure) {
-      console.error('[Trama demo] Error de reproducción.', failure)
+      console.error('[Trama] Error de reproducción.', failure)
       setError('No pudimos reproducir este audio. Volvé a intentar.')
     } finally {
       setLoading(false)

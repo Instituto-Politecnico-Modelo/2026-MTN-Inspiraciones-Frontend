@@ -9,7 +9,7 @@ import { Avatar, Button, EmptyState, ErrorMessage, Modal, PageTitle, SearchField
 import { PostGrid } from '../components/PostCard'
 import { FollowButton } from '../components/FollowButton'
 
-const tabs = [{ value: 'obras', label: 'Obras' }, { value: 'musica', label: 'Música' }, { value: 'lugares', label: 'Lugares' }, { value: 'artistas', label: 'Artistas' }]
+const tabs = [{ value: 'obras', label: 'Obras' }, { value: 'artistas', label: 'Artistas' }]
 
 export function DiscoverPage() {
   const { state } = useDemo()
@@ -49,7 +49,7 @@ export function DiscoverPage() {
   return <div className="discover-page">
     <PageTitle title="Descubrir" />
     <div className="discover-search"><SearchField value={query} onChange={value => update({ q: value })} label="Buscar en Descubrir" placeholder={tab === 'musica' ? 'Buscá música, samples o artistas' : tab === 'lugares' ? 'Buscá un espacio o un barrio' : 'Buscá obras, técnicas y artistas'} /></div>
-    {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras, Música, Lugares o Artistas." />}
+    {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras o Artistas." />}
     <Tabs items={tabs} value={tab} label="Qué querés descubrir" onChange={value => update({ tipo: value, disciplina: '', tecnica: '', zona: '' })}>
       {tab !== 'lugares' ? <>
         <div className="filter-row">
