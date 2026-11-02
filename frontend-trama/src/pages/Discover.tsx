@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Grid2X2, MapPin, Music2, SlidersHorizontal, Users } from 'lucide-react'
+import { MapPin, SlidersHorizontal } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { disciplines } from '../data/model'
@@ -9,7 +9,7 @@ import { Avatar, Button, EmptyState, ErrorMessage, Modal, PageTitle, SearchField
 import { PostGrid } from '../components/PostCard'
 import { FollowButton } from '../components/FollowButton'
 
-const tabs = [{ value: 'obras', label: 'Obras', icon: Grid2X2 }, { value: 'musica', label: 'Música', icon: Music2 }, { value: 'lugares', label: 'Lugares', icon: MapPin }, { value: 'artistas', label: 'Artistas', icon: Users }]
+const tabs = [{ value: 'obras', label: 'Obras' }, { value: 'musica', label: 'Música' }, { value: 'lugares', label: 'Lugares' }, { value: 'artistas', label: 'Artistas' }]
 
 export function DiscoverPage() {
   const { state } = useDemo()
@@ -46,8 +46,8 @@ export function DiscoverPage() {
   </>
   const empty = <EmptyState title="Todavía no encontramos coincidencias" description="Probá con otras palabras o quitá los filtros para ampliar tu búsqueda."
     action={<Button variant="secondary" onClick={() => activeFilters || area ? update({ disciplina: '', tecnica: '', zona: '' }) : update({ q: '' })}>{activeFilters || area ? 'Quitar filtros' : 'Limpiar búsqueda'}</Button>} />
-  return <>
-    <PageTitle title="Descubrir" description="Seguí tu curiosidad. Hay más de una forma de encontrar inspiración." />
+  return <div className="discover-page">
+    <PageTitle title="Descubrir" />
     <div className="discover-search"><SearchField value={query} onChange={value => update({ q: value })} label="Buscar en Descubrir" placeholder={tab === 'musica' ? 'Buscá música, samples o artistas' : tab === 'lugares' ? 'Buscá un espacio o un barrio' : 'Buscá obras, técnicas y artistas'} /></div>
     {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras, Música, Lugares o Artistas." />}
     <Tabs items={tabs} value={tab} label="Qué querés descubrir" onChange={value => update({ tipo: value, disciplina: '', tecnica: '', zona: '' })}>
@@ -55,7 +55,7 @@ export function DiscoverPage() {
         <div className="filter-row">
           <div className="filter-row discover-filters">{filters()}</div>
           <Button className="filter-toggle" variant="secondary" onClick={() => { setDraftDiscipline(discipline); setDraftTechnique(technique); setFiltersOpen(true) }}><SlidersHorizontal size={18} aria-hidden="true" />Filtros{activeFilters ? ` (${activeFilters})` : ''}</Button>
-          {tab !== 'artistas' && <SelectField label="Orden" value={order} onChange={event => update({ orden: event.target.value })} options={[{ value: 'seleccion', label: 'Selección de ejemplo' }, { value: 'recientes', label: 'Más recientes' }, { value: 'titulo', label: 'Por título' }]} />}
+          {tab !== 'artistas' && <SelectField label="Orden" value={order} onChange={event => update({ orden: event.target.value })} options={[{ value: 'seleccion', label: 'Selección' }, { value: 'recientes', label: 'Más recientes' }, { value: 'titulo', label: 'Por título' }]} />}
           {!!activeFilters && <Button variant="ghost" onClick={() => update({ disciplina: '', tecnica: '' })}>Limpiar filtros</Button>}
         </div>
         <p className="filter-summary" role="status">{tab === 'artistas' ? `${artists.length} artistas` : `${posts.length} ${posts.length === 1 ? 'resultado' : 'resultados'}`}{query ? ` para «${query}»` : ''}{activeFilters ? ` · ${activeFilters} ${activeFilters === 1 ? 'filtro activo' : 'filtros activos'}` : ''}</p>
@@ -84,5 +84,5 @@ export function DiscoverPage() {
       <Button variant="secondary" onClick={() => { setDraftDiscipline(''); setDraftTechnique('') }}>Limpiar</Button>
       <Button onClick={() => { update({ disciplina: draftDiscipline, tecnica: draftTechnique }); setFiltersOpen(false) }}>Mostrar resultados</Button>
     </div></Modal>}
-  </>
+  </div>
 }

@@ -15,10 +15,25 @@
   "design": "existing",
   "database": "none",
   "goal": "",
-  "skills": null,
+  "skills": [
+    "browser-test",
+    "debug",
+    "find-skills",
+    "impeccable",
+    "performance",
+    "security",
+    "simplicity",
+    "sources",
+    "ux",
+    "visual",
+    "web-review",
+    "workflow"
+  ],
   "packs": [
     "addy",
     "anthropic",
+    "find-skills",
+    "impeccable",
     "ponytail",
     "superpowers",
     "uiux"

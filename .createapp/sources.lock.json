@@ -1124,5 +1124,14 @@
         }
       ]
     }
-  }
+  },
+  "additions": [
+    {
+      "skills": [
+        "find-skills",
+        "impeccable"
+      ],
+      "sources_lock": ".createapp/additions/815246ddaf093c24316d/sources.lock.json"
+    }
+  ]
 }

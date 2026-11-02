@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
-import { AlertCircle, ArrowLeft, Check, CheckCircle2, ChevronDown, Circle, Clock3, LoaderCircle, Search, Sparkles, X, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Check, CheckCircle2, ChevronDown, Circle, Clock3, Inbox, LoaderCircle, Search, X, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export function Button({ children, variant = 'primary', loading = false, className = '', disabled, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; loading?: boolean }) {
@@ -124,7 +124,7 @@ export function PageTitle({ title, description, actions, back }: { title: string
   </header>
 }
 
-export function EmptyState({ title, description, action, icon: Icon = Sparkles }: { title: string; description: string; action?: ReactNode; icon?: LucideIcon }) {
+export function EmptyState({ title, description, action, icon: Icon = Inbox }: { title: string; description: string; action?: ReactNode; icon?: LucideIcon }) {
   return <div className="empty-state"><Icon size={32} strokeWidth={1.5} aria-hidden="true" /><h2>{title}</h2><p>{description}</p>{action}</div>
 }
 

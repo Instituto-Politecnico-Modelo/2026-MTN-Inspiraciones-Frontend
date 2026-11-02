@@ -124,7 +124,19 @@ ilustrativos: no sirven como direcciones o servicios reales.
 
 ## Verificacion realizada
 
-Ultima continuacion: 30 de octubre de 2026, horario de Buenos Aires.
+### Simplificacion UX/UI: 1 de noviembre de 2026
+
+- CreateApp agrego `ca-impeccable` y `ca-find-skills`; `--doctor` confirmo la configuracion, sin sustituir la marca ni activar otro coordinador.
+- Menos slogans y explicaciones repetidas, cabecera compacta, categorias visibles en movil, campos opcionales claros y cantidades correctas.
+- **43 pruebas** de Vitest, **ESLint y build aprobados**; sin diagnosticos del editor.
+- Edge aislado: **85 combinaciones**, 17 rutas a 320, 390, 768, 1024 y 1440 px, sin desbordamiento de pagina ni controles recortados fuera del desplazamiento interno previsto de tablas.
+- Filtros con aplicar/cancelar, Escape y retorno de foco, teclado en pestanas, guardado y recuperacion en carpeta, publicaciones JPEG/WAV, recarga persistente, proteccion de cambios, audio exclusivo y cancelacion administrativa a 320 px.
+- Ampliacion de texto al 200% y capturas locales de las pantallas modificadas. No se incorporaron dependencias de pruebas ni se desplego la aplicacion.
+
+El alcance y los limites de esta entrega estan en el
+[plan UX/UI actualizado](PLAN_UX_UI_IMPECCABLE.md).
+
+### Verificacion anterior: 30 de octubre de 2026
 
 - **38 pruebas** de Vitest: dominio, IndexedDB y rutas/interacciones. Incluyen escrituras simultaneas, fallos de escritura, reinicio fallido y guardas de permisos.
 - **ESLint y build de produccion aprobados**; `npm audit` informo **0 vulnerabilidades conocidas** con el lockfile instalado.
@@ -144,6 +156,6 @@ no forman parte de `npm test`; las regresiones automatizadas quedan en
 
 - Figma solicito autenticacion. La revision visual se hizo contra el manual y las decisiones aprobadas, no contra un lienzo de Figma accesible.
 - No se certificaron Safari, iOS, lectores de pantalla reales ni todos los codecs de audio. Las cargas reales verificadas fueron JPEG y WAV.
-- Vite advierte que el bloque principal ronda 537 kB minificados, 164 kB con gzip. El build es valido; queda pendiente reducir la carga inicial si se requiere optimizacion de rendimiento.
+- Vite advierte que el bloque principal ronda 535 kB minificados, 164 kB con gzip. El build es valido; queda pendiente medir y reducir la carga inicial si se requiere optimizacion de rendimiento.
 - Sin backend, autenticacion real, sincronizacion entre equipos, recuperacion de contrasenas, recomendaciones calculadas, PWA ni tema oscuro.
 - IndexedDB tiene cuotas variables; los archivos se almacenan como datos locales y pueden agotar el espacio del navegador. No es un servicio de respaldo.

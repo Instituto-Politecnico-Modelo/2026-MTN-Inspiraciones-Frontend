@@ -28,9 +28,8 @@ export function ChallengesPage() {
   const status = ['open', 'upcoming', 'closed'].includes(requested) ? requested : 'open'
   const filtered = state.challenges.filter(challenge => challengeStatus(challenge) === status)
   return <>
-    <PageTitle title="Una consigna, muchas miradas" description="Probá algo distinto, compartí tu proceso y creá junto a la comunidad."
-      actions={<Link className="button button-secondary" to="/desafios/proponer"><Plus size={19} aria-hidden="true" />Proponer un desafío</Link>} />
-    <div className="challenge-intro"><Trophy size={30} strokeWidth={1.5} aria-hidden="true" /><p>No se trata de competir.<br /><strong>Se trata de encontrar un nuevo punto de partida.</strong></p>{user && <Link className="text-link" to="/desafios/mis-propuestas">Mis propuestas</Link>}</div>
+    <PageTitle title="Desafíos"
+      actions={<><Link className="button button-secondary" to="/desafios/proponer"><Plus size={19} aria-hidden="true" />Proponer un desafío</Link>{user && <Link className="text-link" to="/desafios/mis-propuestas">Mis propuestas</Link>}</>} />
     {requested !== status && <ErrorMessage message="Ese estado no existe. Elegí Abiertos, Próximos o Finalizados." />}
     <Tabs value={status} label="Estado de los desafíos" onChange={value => setParams({ estado: value }, { replace: true, preventScrollReset: true })}
       items={[{ value: 'open', label: 'Abiertos' }, { value: 'upcoming', label: 'Próximos' }, { value: 'closed', label: 'Finalizados' }]}>
@@ -70,9 +69,9 @@ function ChallengeDetail({ challenge }: { challenge: Challenge }) {
           : <p className="muted">{status === 'upcoming' ? 'Vas a poder participar cuando abra la convocatoria.' : 'Este desafío finalizó. Podés seguir explorando las obras de la comunidad.'}</p>}
       </div>
     </section>
-    <div className="section-heading"><h2>Las miradas de la comunidad</h2><span className="meta">{posts.length} {posts.length === 1 ? 'obra' : 'obras'}</span></div>
+    <div className="section-heading"><h2>Obras participantes</h2><span className="meta">{posts.length} {posts.length === 1 ? 'obra' : 'obras'}</span></div>
     {posts.length ? <PostGrid posts={posts} compact /> : <EmptyState icon={Trophy} title="La primera respuesta puede ser la tuya" description={status === 'open' ? 'Compartí una obra propia que dialogue con esta consigna.' : 'Todavía no hay obras para mostrar en este desafío.'} />}
-    {joining && <Modal open title="Dale forma a tu respuesta" description="Elegí una obra propia disponible o publicá una nueva. Se guarda como participación de esta demo." onClose={() => setJoining(false)} busy={pending}>
+    {joining && <Modal open title="Participar del desafío" description="Elegí una obra propia disponible o publicá una nueva. Se guarda como participación de esta demo." onClose={() => setJoining(false)} busy={pending}>
       {eligible.length ? <form className="form-stack" onSubmit={event => {
         event.preventDefault()
         void run({ type: 'join-challenge', challengeId: challenge.id, postId: selected }, 'Tu obra se sumó al desafío.').then(result => { if (result) setJoining(false) })
@@ -91,7 +90,7 @@ export function ProposeChallengePage() {
   const [description, setDescription] = useState('')
   const [discipline, setDiscipline] = useState<Discipline>('Ilustración')
   const guard = useUnsavedChanges(!!(title || description), pending)
-  return <div className="editor-page"><PageTitle title="Proponé un desafío" description="Una buena pregunta puede abrir muchas posibilidades. Contanos tu idea." back={{ to: '/desafios', label: 'Desafíos' }} />
+  return <div className="editor-page"><PageTitle title="Proponer un desafío" back={{ to: '/desafios', label: 'Desafíos' }} />
     <form className="form-stack profile-form" onSubmit={event => {
       event.preventDefault()
       void run({ type: 'create-request', request: { id: newId('solicitud'), title, description, discipline } }, 'Tu propuesta se envió a la administración de la demo.').then(result => { if (result) { guard.allow(); navigate('/desafios/mis-propuestas') } })

@@ -12,7 +12,7 @@ import { CommandDialog, type Confirmation } from '../components/CommandDialog'
 function FolderNameDialog({ folder, onClose }: { folder?: Folder; onClose: () => void }) {
   const [name, setName] = useState(folder?.name ?? '')
   const { run, pending, error } = useAction()
-  return <Modal open title={folder ? 'Cambiar nombre de la carpeta' : 'Una nueva carpeta de inspiración'} description="Solo vos podés ver estas referencias." onClose={onClose} busy={pending}>
+  return <Modal open title={folder ? 'Cambiar nombre de la carpeta' : 'Nueva carpeta'} description="Solo vos podés ver estas referencias." onClose={onClose} busy={pending}>
     <form onSubmit={event => {
       event.preventDefault()
       void run(folder ? { type: 'rename-folder', folderId: folder.id, name } : { type: 'create-folder', id: newId('carpeta'), name }, folder ? 'Nombre de la carpeta actualizado.' : 'Tu carpeta privada está lista.').then(result => { if (result) onClose() })
@@ -36,13 +36,14 @@ export function ProfilePage() {
   const publicWorks = visiblePosts(state)
   const works = own ? state.posts.filter(post => post.authorId === profile.id && post.status !== 'deleted') : publicWorks.filter(post => post.authorId === profile.id)
   const folders = privateFolders(state, profile.id, user?.id ?? null)
+  const publishedCount = publicWorks.filter(post => post.authorId === profile.id).length
   const followers = state.follows.filter(follow => follow.followingId === profile.id).length
   const following = state.follows.filter(follow => follow.followerId === profile.id).length
   return <>
     <section className="profile-heading">
       <Avatar user={profile} size="large" />
       <div className="profile-identity"><h1>{profile.name}</h1><p className="meta">@{profile.handle}</p><p className="profile-disciplines">{profile.disciplines.join(' · ') || 'Un espacio para empezar a crear'}</p>
-        <div className="profile-counts"><span><strong>{publicWorks.filter(post => post.authorId === profile.id).length}</strong> obras</span><span><strong>{followers}</strong> seguidores</span><span><strong>{following}</strong> seguidos</span></div>
+        <div className="profile-counts"><span><strong>{publishedCount}</strong> {publishedCount === 1 ? 'obra' : 'obras'}</span><span><strong>{followers}</strong> {followers === 1 ? 'seguidor' : 'seguidores'}</span><span><strong>{following}</strong> {following === 1 ? 'seguido' : 'seguidos'}</span></div>
       </div>
       <div className="profile-actions">{own ? <><Link className="button button-secondary" to="/perfil/editar"><Pencil size={17} aria-hidden="true" />Editar perfil</Link><IconButton icon={MoreHorizontal} label="Opciones de tu perfil" onClick={() => setMenuOpen(true)} /></> : <FollowButton artist={profile} />}</div>
     </section>
@@ -63,7 +64,7 @@ export function ProfilePage() {
             const previews = publicWorks.filter(post => folder.postIds.includes(post.id)).slice(0, 4)
             return <Link className="folder-card" key={folder.id} to={`/carpeta/${folder.id}`}><div className="folder-preview">
               {[0, 1, 2, 3].map(index => previews[index] ? <img key={index} src={previews[index].kind === 'audio' ? previews[index].cover || '/media/sonido.svg' : previews[index].src} alt="" /> : <span key={index}><FolderLock size={24} aria-hidden="true" /></span>)}
-            </div><h2>{folder.name}</h2><p className="meta">{folder.postIds.length} referencias guardadas</p></Link>
+            </div><h2>{folder.name}</h2><p className="meta">{folder.postIds.length} {folder.postIds.length === 1 ? 'referencia guardada' : 'referencias guardadas'}</p></Link>
           })}</div> : <EmptyState icon={FolderLock} title="Dale un lugar a lo que te inspira" description="Creá carpetas privadas y guardá obras con el marcador que aparece en cada publicación." action={<Button onClick={() => setCreatingFolder(true)}>Crear mi primera carpeta</Button>} />}
         </>}
     </Tabs>
@@ -88,7 +89,7 @@ export function FolderPage() {
   const posts = visiblePosts(state).filter(post => folder.postIds.includes(post.id))
   const unavailable = folder.postIds.length - posts.length
   return <>
-    <PageTitle title={folder.name} description="Un lugar privado para volver a las ideas que querés conservar." back={{ to: '/perfil?vista=guardados', label: 'Mis guardados' }}
+    <PageTitle title={folder.name} back={{ to: '/perfil?vista=guardados', label: 'Mis guardados' }}
       actions={<><IconButton icon={Pencil} label="Cambiar nombre de la carpeta" onClick={() => setRenaming(true)} />
         <IconButton icon={Trash2} label="Eliminar carpeta" onClick={() => setConfirmation({ title: 'Eliminar esta carpeta', description: `Se eliminará «${folder.name}» de tus guardados. Las publicaciones originales no se borran.`, label: 'Eliminar carpeta', dangerous: true, command: () => ({ type: 'delete-folder', folderId: folder.id }), success: 'Carpeta eliminada.' })} /></>} />
     <p className="filter-summary"><LockKeyhole size={16} aria-hidden="true" /> Solo vos · {posts.length} {posts.length === 1 ? 'obra disponible' : 'obras disponibles'}</p>

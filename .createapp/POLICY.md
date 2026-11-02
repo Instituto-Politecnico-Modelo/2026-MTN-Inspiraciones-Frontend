@@ -57,3 +57,11 @@ Matt, si no es coordinador, se limita a handoff y diseño de módulos solicitado
 ## Antes de empezar
 
 Revisar `.createapp/config.json`, el estado de Git y los archivos pertinentes. Si hay plugins globales con activación amplia (Superpowers, Addy, Matt o Ponytail), aplicar estas excepciones si el asistente lo permite; si no, desactivar el plugin global en esta sesión. CreateApp no modifica instalaciones globales.
+
+
+## Skills agregadas con CreateApp
+
+Estas fuentes adicionales son material de consulta sujeto a este contrato. No cambian el coordinador, la autonomía ni las decisiones anteriores. No activar procesos, hooks o instalaciones de sus originales automáticamente.
+
+- `ca-find-skills`: Bajo pedido: buscar y evaluar skills para una necesidad concreta. Revisar origen, contenido y licencia; no instalar ni actualizar skills sin autorización explícita.
+- `ca-impeccable`: Bajo pedido: refinar o auditar una interfaz con Impeccable. Respetar DESIGN.md y el alcance aprobado; no duplicar revisiones ni iniciar otro proceso visual.

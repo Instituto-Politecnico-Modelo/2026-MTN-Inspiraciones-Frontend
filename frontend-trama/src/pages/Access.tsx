@@ -64,8 +64,7 @@ export function AccessPage({ register = false }: { register?: boolean }) {
     <header className="auth-header"><Link to="/inicio" aria-label="Trama, ir al inicio"><Brand /></Link><Link className="back-link" to="/inicio"><ArrowLeft size={17} aria-hidden="true" />Explorar la comunidad</Link></header>
     <main className="auth-grid">
       <section className="auth-form">
-        <h1>{register ? 'Empezá a crear conexiones' : admin ? 'Ingresar a administración' : 'Qué bueno encontrarte'}</h1>
-        <p className="auth-intro">{register ? 'Un espacio para tus ideas, tus procesos y lo que todavía está por venir.' : admin ? 'Un espacio para cuidar la comunidad de Trama.' : 'Volvé a las ideas, las obras y las personas que te inspiran.'}</p>
+        <h1>{register ? 'Crear perfil' : admin ? 'Ingresar a administración' : 'Ingresar'}</h1>
         <form className="form-stack" onSubmit={event => void submit(event)}>
           {register && <>
             <Field label="Nombre visible" value={name} onChange={event => setName(event.target.value)} autoComplete="nickname" required minLength={2} maxLength={80} placeholder="Cómo te gusta que te llamen" />
@@ -82,7 +81,7 @@ export function AccessPage({ register = false }: { register?: boolean }) {
           <Button type="submit" className="full-width" loading={pending || action.pending}>{register ? 'Crear perfil local' : 'Ingresar'}</Button>
         </form>
         <p className="auth-switch">{register ? '¿Ya tenés un perfil?' : '¿Primera vez por acá?'} <Link to={register ? '/ingresar' : '/registro'}>{register ? 'Ingresá' : 'Creá tu perfil'}</Link></p>
-        <div className="demo-shortcuts"><p>O recorré la demo en un clic</p><div className="demo-shortcut-buttons">
+        <div className="demo-shortcuts"><p>Perfiles de ejemplo</p><div className="demo-shortcut-buttons">
           <Button variant="secondary" disabled={pending || action.pending} onClick={() => void demo('mora')}><UserRound size={18} aria-hidden="true" />Como artista</Button>
           <Button variant="secondary" disabled={pending || action.pending} onClick={() => void demo('admin')}><ShieldCheck size={18} aria-hidden="true" />Como admin</Button>
         </div></div>
@@ -94,7 +93,6 @@ export function AccessPage({ register = false }: { register?: boolean }) {
           <img className="auth-art-second" src="/media/linea.svg" alt="Ilustración original de un retrato con líneas sobre papel." width="800" height="1040" />
           <img className="auth-art-third" src="/media/objetos.svg" alt="Ilustración de dos piezas de cerámica y una rama." width="900" height="800" />
         </div>
-        <h2>Encontrá ideas.<br />Compartí lo que creás.</h2><p>Distintas miradas. Un mismo espacio.</p>
         <small>Contenido de ejemplo. Fotografías e ilustraciones con sus créditos en la demo.</small>
       </aside>
     </main>

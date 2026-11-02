@@ -1,6 +1,7 @@
 # Plan UX/UI de TRAMA con Impeccable
 
-Fecha: 2026-11-01. Estado: propuesta para aprobar; no se implementaron cambios de interfaz.
+Fecha: 2026-11-01. Estado: simplificacion visual implementada y verificada;
+las etapas propuestas originalmente se conservan como referencia, no como tareas completadas.
 
 ## Objetivo y alcance
 
@@ -13,14 +14,16 @@ conservando la identidad y los flujos funcionales de la demo independiente de TR
 - Requiere Node >=24.15.0. El arranque de esta revision uso Node 24.21.0 portatil.
 - Trabajar solo sobre el frontend vigente; no agregar un backend, autenticacion real,
   tema oscuro, PWA, servicios pagos o dependencias sin una necesidad aprobada.
-- Esta revision es una exploracion para planificar, no una ejecucion formal de
-  `/impeccable critique` ni una auditoria completa de accesibilidad o rendimiento.
+- Esta entrega usa los perfiles adaptados y las referencias pertinentes, sin activar
+  el motor, los hooks ni una nueva direccion visual de Impeccable. No es una
+  auditoria completa de accesibilidad o rendimiento.
 
 ## Autoridad y restricciones
 
 Aplicar [POLICY.md](../.createapp/POLICY.md), el
-[manual de marca](../manualMarca/MANUAL_MARCA_RED_ARTISTAS.md) y las
-[decisiones vigentes](../prompts/CONTINUAR_FRONTEND_TRAMA.md).
+[manual de marca](../manualMarca/MANUAL_MARCA_RED_ARTISTAS.md) y el frontend vigente.
+El [pedido original](../prompts/miPrompt.md) aporta contexto historico; no sustituye
+las decisiones actuales. El archivo de continuacion citado anteriormente no esta en el arbol.
 
 - Conservar Trama, simbolo 11 Encuentro e Inter, tambien en titulos y marca.
 - Mantener cobalto #2447D8, fondo #FAF9F6, superficie #FFFFFF y texto #202327.
@@ -35,9 +38,31 @@ Aplicar [POLICY.md](../.createapp/POLICY.md), el
   no reemplazan decisiones de marca aprobadas. Registrar solo excepciones justificadas.
 - Ejecutar en una sola sesion, sin subagentes ni coordinadores adicionales automaticos.
 
+## Entrega implementada
+
+- CreateApp 0.2.2 agrego `ca-impeccable` y `ca-find-skills`, conservando las
+  selecciones previas y fuentes fijadas. `--doctor` confirmo la configuracion.
+- Se quitaron slogans, explicaciones repetidas, iconos decorativos y marcos
+  innecesarios. Se conservaron Inter, Encuentro, colores, radios y funcionalidades.
+- Cabecera, titulos y filtros mas compactos; las cuatro categorias de Descubrir
+  estan visibles en movil. Se aclararon campos opcionales, cantidades y nombres de acciones.
+- Las acciones de Desafios se ajustan al ancho disponible; las tablas administrativas
+  conservan desplazamiento interno con la columna de acciones fija en movil.
+- A 390 x 844, la primera publicacion de Inicio paso aproximadamente de y=353 a y=199;
+  en Descubrir, de y=484 a y=396. Son mediciones de esta entrega, no del diagnostico anterior.
+- Verificacion final: 43 pruebas de Vitest, ESLint y build aprobados, sin diagnosticos
+  del editor. Vite advierte por un paquete principal de 535 kB minificados, 164 kB gzip.
+- Edge aislado: 17 rutas por 5 anchos (320, 390, 768, 1024 y 1440), 85 combinaciones
+  sin desbordamiento de pagina ni controles recortados, exceptuando el scroll interno previsto.
+- Ocho recorridos: filtros/Escape/foco, pestanas con teclado, guardar y recuperar,
+  JPEG con recarga y proteccion de cambios, WAV, audio exclusivo, cancelacion
+  administrativa a 320 px y ampliacion de texto al 200%. Los datos de prueba fueron aislados.
+- Capturas locales revisadas; Playwright se reutilizo desde una carpeta temporal,
+  sin agregar dependencias. No hubo commit, despliegue ni ejecucion del detector en esta entrega.
+
 ## Evidencia inicial
 
-Observaciones del navegador integrado y lecturas acotadas del codigo actual:
+Diagnostico anterior a la implementacion, conservado como referencia historica:
 
 | Superficie | Evidencia | Interpretacion |
 | --- | --- | --- |
@@ -67,7 +92,10 @@ usabilidad, Safari, lectores de pantalla o funcionamiento automatico del hook.
 Un fallo de carga `ERR_NO_BUFFER_SPACE` al abrir acceso administrativo desaparecio
 al recargar; no se clasifica como defecto reproducible de la aplicacion.
 
-## Orden de trabajo
+## Etapas propuestas originalmente
+
+La siguiente propuesta es historica. No activa comandos, coordinadores o hooks
+automaticamente; cualquier continuacion debe respetar la politica vigente.
 
 ### 0. Capturar contexto, sin volver a elegir la marca
 
@@ -191,8 +219,8 @@ solo si las mediciones lo justifican, `/impeccable optimize la carga inicial de 
 5. Buscar contraste AA, nombres accesibles y controles tactiles comodamente operables;
    conservar objetivos de 44 x 44 px cuando corresponda, sin afirmar conformidad total
    por una sola medicion o un escaneo estatico.
-6. Ejecutar detector en codigo tocado y en las rutas renderizadas cuando aplique.
-   Revisar cada hallazgo contra la marca; no silenciar reglas completas para obtener cero.
+6. Si se acuerda una revision con detector, revisar cada hallazgo contra la marca;
+  no silenciar reglas completas para obtener cero ni activar motor o hooks por defecto.
 7. Al cerrar cambios de codigo, ejecutar `npm.cmd --prefix frontend-trama run lint` y
    `npm.cmd --prefix frontend-trama run build`; repetir tests de dominio/repositorio
    si se modificaron sus contratos. No instalar otro runner por defecto.
@@ -200,8 +228,10 @@ solo si las mediciones lo justifican, `/impeccable optimize la carga inicial de 
    Safari/iOS, lector de pantalla real y Figma autenticado siguen pendientes hasta
    comprobarlos con herramientas o dispositivos adecuados.
 
-## Primer incremento recomendado
+## Continuacion opcional
 
-Tras aprobar el plan: capturar contexto y sistema visual, luego ejecutar solo la
-etapa 1 sobre Descubrir. Es un cambio acotado, visible y comprobable antes de tocar
-formularios largos o decisiones administrativas. Las demas etapas quedan pendientes.
+Esta entrega no equivale a completar todas las etapas originales. Quedan fuera
+la optimizacion de rendimiento medido, una auditoria formal de accesibilidad,
+Safari/iOS, lector de pantalla real, Figma autenticado y una nueva verificacion
+completa de altas, desafios y decisiones de moderacion. Continuar solo con un
+objetivo adicional acordado; no reiniciar el proceso de identidad visual.

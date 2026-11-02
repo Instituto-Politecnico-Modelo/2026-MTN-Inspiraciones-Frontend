@@ -79,7 +79,7 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
       <div className="sidebar-bottom">
         {admin ? <Link className="nav-item" to="/inicio"><ArrowUpRight size={21} aria-hidden="true" /><span>Ver comunidad</span></Link>
           : <Link className="nav-item" to={canManage(user) ? '/admin/resumen' : '/ingresar?modo=admin'}><ShieldCheck size={21} aria-hidden="true" /><span>Administración</span></Link>}
-        <Link className="nav-item" to="/acerca"><Info size={21} aria-hidden="true" /><span>Sobre esta demo</span></Link>
+        <Link className="nav-item" to="/acerca"><Info size={21} aria-hidden="true" /><span>Acerca de Trama</span></Link>
         {user ? <>
           <Link className="sidebar-profile" to="/perfil"><Avatar user={user} size="medium" /><span><strong>{user.name}</strong><small>@{user.handle}</small></span></Link>
           <Link className="nav-item logout-link" to="/salir"><LogOut size={20} aria-hidden="true" /><span>Cerrar sesión</span></Link>
@@ -89,16 +89,15 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
     <div className="workspace">
       <header className="site-header">
         <Link className="mobile-brand" to={admin ? '/admin/resumen' : '/inicio'} aria-label="Trama, ir al inicio"><Brand /></Link>
-        <Link className="demo-indicator" to="/acerca"><CircleDot size={15} aria-hidden="true" /><span>Demo local</span><span className="demo-explanation">Obras y perfiles de ejemplo</span></Link>
+        <Link className="demo-indicator" to="/acerca" title="Contenido de ejemplo guardado en este navegador"><CircleDot size={15} aria-hidden="true" /><span>Demo local</span></Link>
         <div className="header-actions">
           {admin ? <Link className="button button-secondary" to="/inicio" aria-label="Comunidad" title="Ver comunidad"><ArrowUpRight size={19} aria-hidden="true" /><span className="desktop-label">Comunidad</span></Link>
-            : <Link className="button button-primary publish-button" to="/publicar" aria-label="Publicar una obra"><Plus size={21} aria-hidden="true" /><span className="desktop-label">Publicar</span></Link>}
-          <Link className="icon-button header-profile" to={user ? '/perfil' : '/ingresar'} aria-label={user ? `Tu perfil: ${user.name}` : 'Ingresar a Trama'}>{user ? <Avatar user={user} /> : <UserRound size={22} aria-hidden="true" />}</Link>
+            : <Link className="button button-primary publish-button" to="/publicar" aria-label="Publicar una obra" title="Publicar una obra"><Plus size={21} aria-hidden="true" /><span className="desktop-label">Publicar</span></Link>}
         </div>
       </header>
       {user?.status === 'suspended' && <div className="account-warning" role="status">Tu cuenta de demo está suspendida. <Link to="/apelacion">Solicitar revisión</Link></div>}
       <main id="contenido" className="app-content" ref={main} tabIndex={-1}><Outlet /></main>
-      <footer className="site-footer"><span>Hecho para encontrarnos creando.</span><Link to="/acerca">Acerca de Trama y de esta demo</Link></footer>
+      <footer className="site-footer"><span>Demo local · Contenido de ejemplo</span><Link to="/acerca">Acerca de Trama</Link></footer>
     </div>
     <nav className="bottom-nav" aria-label={admin ? 'Administración móvil' : 'Principal móvil'}>
       {links(true)}

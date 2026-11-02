@@ -18,12 +18,12 @@ export function PostActions({ post, comments = true }: { post: Post; comments?: 
   const saved = !!user && state.folders.some(folder => folder.ownerId === user.id && folder.postIds.includes(post.id))
   return <>
     <div className="post-actions">
-      <button type="button" className={`post-action ${liked ? 'is-active' : ''}`} aria-pressed={liked} aria-label={`${liked ? 'Quitar Me gusta de' : 'Me gusta en'} ${post.title}`} disabled={pending}
+      <button type="button" className={`post-action ${liked ? 'is-active' : ''}`} aria-pressed={liked} aria-label={`${liked ? 'Quitar Me gusta de' : 'Me gusta en'} ${post.title}`} title={liked ? 'Quitar Me gusta' : 'Me gusta'} disabled={pending}
         onClick={() => { if (gate()) void run({ type: 'toggle-like', postId: post.id }) }}>
         <Heart size={21} strokeWidth={1.8} aria-hidden="true" /><span>{post.likes.length}</span>
       </button>
-      {comments && <Link className="post-action" to={`/obra/${post.id}#comentarios`} state={{ from: location.pathname + location.search }} aria-label={`Ver ${post.comments.length} comentarios de ${post.title}`}><MessageCircle size={20} strokeWidth={1.8} aria-hidden="true" /><span>{post.comments.length}</span></Link>}
-      <button type="button" className={`post-action save-action ${saved ? 'is-active' : ''}`} aria-pressed={saved} aria-label={`${saved ? 'Administrar guardado de' : 'Guardar'} ${post.title}`}
+      {comments && <Link className="post-action" to={`/obra/${post.id}#comentarios`} state={{ from: location.pathname + location.search }} aria-label={`Ver ${post.comments.length} comentarios de ${post.title}`} title="Ver comentarios"><MessageCircle size={20} strokeWidth={1.8} aria-hidden="true" /><span>{post.comments.length}</span></Link>}
+      <button type="button" className={`post-action save-action ${saved ? 'is-active' : ''}`} aria-pressed={saved} aria-label={`${saved ? 'Administrar guardado de' : 'Guardar'} ${post.title}`} title={saved ? 'Administrar guardado' : 'Guardar en carpeta'}
         onClick={() => { if (gate()) setSaving(true) }}><Bookmark size={20} strokeWidth={1.8} aria-hidden="true" /></button>
     </div>
     <ErrorMessage message={error} />

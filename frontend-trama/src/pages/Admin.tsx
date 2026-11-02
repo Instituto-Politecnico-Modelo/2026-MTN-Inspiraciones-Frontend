@@ -43,10 +43,12 @@ export function AdminSummaryPage() {
     { label: 'Propuestas pendientes', value: state.requests.filter(request => request.status === 'pending').length, to: '/admin/solicitudes' },
   ]
   const activity = state.audit.slice(-8).reverse()
+  const openCount = state.challenges.filter(challenge => challengeStatus(challenge) === 'open').length
+  const pendingAppeals = state.appeals.filter(appeal => appeal.status === 'pending').length
   return <><PageTitle title="Resumen" description="El estado actual de esta comunidad de demostración." />
     <dl className="admin-metrics">{metrics.map(metric => <div key={metric.label}><dt><Link to={metric.to}>{metric.label}<ArrowRight size={16} aria-hidden="true" /></Link></dt><dd>{metric.value}</dd></div>)}</dl>
-    <div className="admin-summary-links"><Link to="/admin/desafios"><strong>{state.challenges.filter(challenge => challengeStatus(challenge) === 'open').length}</strong> desafíos abiertos<ArrowRight size={18} aria-hidden="true" /></Link>
-      <Link to="/admin/moderacion?vista=apelaciones"><strong>{state.appeals.filter(appeal => appeal.status === 'pending').length}</strong> apelaciones pendientes<ArrowRight size={18} aria-hidden="true" /></Link></div>
+    <div className="admin-summary-links"><Link to="/admin/desafios"><strong>{openCount}</strong> {openCount === 1 ? 'desafío abierto' : 'desafíos abiertos'}<ArrowRight size={18} aria-hidden="true" /></Link>
+      <Link to="/admin/moderacion?vista=apelaciones"><strong>{pendingAppeals}</strong> {pendingAppeals === 1 ? 'apelación pendiente' : 'apelaciones pendientes'}<ArrowRight size={18} aria-hidden="true" /></Link></div>
     <section className="admin-section"><div className="section-heading"><h2>Actividad reciente</h2><Link to="/admin/reportes">Ver actividad<ArrowRight size={17} aria-hidden="true" /></Link></div>
       {activity.length ? <ul className="activity-list">{activity.map(entry => <li key={entry.id}><span>{entry.label}</span><small>{state.users.find(member => member.id === entry.actorId)?.name} · {formatDateTime(entry.createdAt)}</small></li>)}</ul>
         : <EmptyState icon={ShieldCheck} title="Todavía no hay decisiones registradas" description="Las acciones de administración quedarán en la actividad local de esta demo." />}

@@ -33,7 +33,7 @@ function openRoute(path: string, profile?: string) {
 describe('integracion de rutas', () => {
   it('abre Inicio desde la raiz con los datos locales', async () => {
     const current = openRoute('/')
-    expect(await screen.findByRole('heading', { name: /Encontr. tu pr.xima inspiraci.n/ })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Inicio' })).toBeVisible()
     expect(current.state.location.pathname).toBe('/inicio')
     expect(screen.getByRole('tab', { name: 'Para vos' })).toHaveAttribute('aria-selected', 'true')
   })
@@ -41,7 +41,7 @@ describe('integracion de rutas', () => {
   it('protege Publicar y conserva el destino solicitado', async () => {
     const destination = '/publicar?desafio=consigna-local'
     const current = openRoute(destination)
-    expect(await screen.findByRole('heading', { name: /Qu. bueno encontrarte/ })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Ingresar' })).toBeVisible()
     expect(current.state.location.pathname).toBe('/ingresar')
     expect(new URLSearchParams(current.state.location.search).get('volver')).toBe(destination)
   })
@@ -120,6 +120,60 @@ describe('integracion de rutas', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Suspender perfil' }))
     await waitFor(async () => expect((await repository.load()).users.find(member => member.id === 'mora')?.status).toBe('suspended'))
     expect(await screen.findByRole('button', { name: 'Reactivar a Mora Vidal' })).toBeVisible()
+  })
+
+  it('descubrir: cancelar los filtros conserva la busqueda y aplicar actualiza la URL', async () => {
+    const user = userEvent.setup()
+    const current = openRoute('/descubrir?q=Corriente&disciplina=Pintura')
+    expect(await screen.findByRole('heading', { name: 'Corriente dual' })).toBeVisible()
+    for (const name of ['Obras', 'Música', 'Lugares', 'Artistas']) {
+      expect(screen.getByRole('tab', { name })).toBeVisible()
+    }
+    await user.click(screen.getByRole('button', { name: 'Filtros (1)' }))
+    let dialog = await screen.findByRole('dialog', { name: 'Filtros' })
+    await user.selectOptions(within(dialog).getByLabelText('Disciplina'), 'Cerámica')
+    await user.click(within(dialog).getByRole('button', { name: 'Cerrar diálogo' }))
+    expect(new URLSearchParams(current.state.location.search).get('disciplina')).toBe('Pintura')
+    await user.click(screen.getByRole('button', { name: 'Filtros (1)' }))
+    dialog = await screen.findByRole('dialog', { name: 'Filtros' })
+    expect(within(dialog).getByLabelText('Disciplina')).toHaveValue('Pintura')
+    await user.click(within(dialog).getByRole('button', { name: 'Limpiar' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Mostrar resultados' }))
+    const params = new URLSearchParams(current.state.location.search)
+    expect(params.get('disciplina')).toBeNull()
+    expect(params.get('q')).toBe('Corriente')
+    expect(screen.getByRole('heading', { name: 'Corriente dual' })).toBeVisible()
+  })
+
+  it('descubrir: volver de una obra conserva los parametros de busqueda', async () => {
+    const user = userEvent.setup()
+    const current = openRoute('/descubrir?q=Corriente&disciplina=Pintura')
+    await user.click(await screen.findByRole('heading', { name: 'Corriente dual' }))
+    expect(await screen.findByRole('heading', { name: 'Corriente dual', level: 1 })).toBeVisible()
+    await user.click(screen.getByRole('link', { name: /Volver/ }))
+    expect(current.state.location.pathname).toBe('/descubrir')
+    expect(new URLSearchParams(current.state.location.search).get('q')).toBe('Corriente')
+    expect(new URLSearchParams(current.state.location.search).get('disciplina')).toBe('Pintura')
+  })
+
+  it('perfil: usa el singular cuando una carpeta contiene una referencia', async () => {
+    openRoute('/perfil?vista=guardados', 'mora')
+    expect(await screen.findByText('1 referencia guardada')).toBeVisible()
+    expect(screen.getByText('2 referencias guardadas')).toBeVisible()
+  })
+
+  it('perfil: muestra cantidades en singular para un seguidor', async () => {
+    openRoute('/perfil', 'mora')
+    const heading = await screen.findByRole('heading', { name: 'Mora Vidal' })
+    const counts = heading.closest('.profile-heading')?.querySelector('.profile-counts')
+    expect(counts?.children[0]).toHaveTextContent(/^3 obras$/)
+    expect(counts?.children[1]).toHaveTextContent(/^1 seguidor$/)
+    expect(counts?.children[2]).toHaveTextContent(/^2 seguidos$/)
+  })
+
+  it('admin: muestra cantidades en singular para una apelacion pendiente', async () => {
+    openRoute('/admin/resumen', 'admin')
+    expect(await screen.findByRole('link', { name: /^1 apelaci.n pendiente$/ })).toBeVisible()
   })
 
   it('admin: aceptar un reporte oculta la obra y conserva la resolucion', async () => {

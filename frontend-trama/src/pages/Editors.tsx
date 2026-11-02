@@ -38,7 +38,7 @@ function ProfileForm({ user }: { user: User }) {
     finally { setUploading(false) }
   }
   return <div className="editor-page">
-    <PageTitle title="Editar perfil" description="Tu forma de presentarte a la comunidad. Estos datos serán públicos dentro de la demo." back={{ to: '/perfil', label: 'Volver a mi perfil' }} />
+    <PageTitle title="Editar perfil" description="Estos datos serán públicos en la demo." back={{ to: '/perfil', label: 'Volver a mi perfil' }} />
     <form className="form-stack profile-form" onSubmit={event => {
       event.preventDefault()
       void run({ type: 'update-profile', changes: form }, 'Tu perfil se actualizó.').then(result => { if (result) { guard.allow(); navigate('/perfil') } })
@@ -118,7 +118,7 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   }
   const preview: Post | null = media ? { id: 'vista-previa', ...media, authorId: user.id, title: title || 'Vista previa', description, alt, discipline, technique, license, cover: existing?.cover || (media.kind === 'audio' ? '/media/sonido.svg' : ''), credit: '', creditUrl: '', createdAt: new Date().toISOString(), status: 'published', likes: [], comments: [], challengeId: null } : null
   return <>
-    <PageTitle title={existing ? 'Editar publicación' : 'Compartí lo que estás creando'} description={existing ? 'Actualizá el contexto de tu obra sin cambiar su archivo original.' : 'Una obra terminada, una prueba o un proceso. Tu mirada tiene un lugar acá.'} back={{ to: existing ? `/obra/${existing.id}` : '/inicio', label: 'Volver' }} />
+    <PageTitle title={existing ? 'Editar publicación' : 'Publicar obra'} description={existing ? 'El archivo original no se modifica.' : undefined} back={{ to: existing ? `/obra/${existing.id}` : '/inicio', label: 'Volver' }} />
     <form className="publish-layout" onSubmit={event => void submit(event)}>
       <section className="publish-preview" aria-label="Archivo de la obra">
         {preview ? <><div className="publish-media"><img src={preview.kind === 'audio' ? preview.cover : preview.src} alt={alt || 'Vista previa del archivo elegido'} width={preview.width} height={preview.height} /></div>
@@ -129,7 +129,7 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
           event.preventDefault()
           if (event.dataTransfer.files.length !== 1) { setUploadError('Elegí un solo archivo por publicación.'); return }
           void upload(event.dataTransfer.files[0])
-        }}><Upload size={40} strokeWidth={1.5} aria-hidden="true" /><h2>Todo empieza con algo</h2><p>Arrastrá una imagen o un audio, o elegí un archivo de tu dispositivo.</p>
+        }}><Upload size={32} strokeWidth={1.5} aria-hidden="true" /><p>Imagen o audio</p>
           <Button onClick={() => fileInput.current?.click()} loading={uploading}><Plus size={19} aria-hidden="true" />Elegir archivo</Button>
           <small>JPG, PNG o WebP: hasta 8 MB.<br />MP3, WAV, Ogg o M4A: hasta 16 MB.</small>
         </div>}
@@ -138,17 +138,17 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
       </section>
       <div className="form-stack">
         <Field label="Título" value={title} onChange={event => setTitle(event.target.value)} required maxLength={120} placeholder="Dale un nombre a tu obra" />
-        <TextArea label="Sobre esta obra" value={description} onChange={event => setDescription(event.target.value)} maxLength={2500} placeholder="Contá qué te inspiró o cómo fue el proceso…" />
+        <TextArea label="Sobre esta obra (opcional)" value={description} onChange={event => setDescription(event.target.value)} maxLength={2500} placeholder="Contá qué te inspiró o cómo fue el proceso…" />
         <div className="form-columns"><SelectField label="Disciplina" value={discipline} onChange={event => {
           const option = disciplines.find(value => value === event.target.value)
           if (option) setDiscipline(option)
           else setUploadError('Elegí una disciplina de la lista.')
         }} options={disciplines.map(value => ({ value, label: value }))} />
-          <Field label="Técnica" value={technique} onChange={event => setTechnique(event.target.value)} maxLength={80} placeholder="Por ejemplo, acuarela" /></div>
+          <Field label="Técnica (opcional)" value={technique} onChange={event => setTechnique(event.target.value)} maxLength={80} placeholder="Por ejemplo, acuarela" /></div>
         <TextArea label={media?.kind === 'audio' ? 'Descripción del audio o transcripción' : 'Descripción accesible de la imagen'} value={alt} onChange={event => setAlt(event.target.value)} required maxLength={media?.kind === 'audio' ? 10000 : 700}
           hint={media?.kind === 'audio' ? 'Describí los sonidos. Si hay voz, incluí la transcripción. Hasta 10.000 caracteres.' : 'Describí lo importante de la imagen para quienes no pueden verla. Hasta 700 caracteres.'} />
         <SelectField label="Licencia o derechos" value={license} onChange={event => setLicense(event.target.value)} options={Array.from(new Set(['Todos los derechos reservados', 'CC BY 4.0', 'CC0', 'Licencia no informada', ...(existing ? [existing.license] : [])])).map(value => ({ value, label: value }))} />
-        {!existing && <><SelectField label="Participar de un desafío" value={challengeId} onChange={event => setChallengeId(event.target.value)}
+        {!existing && <><SelectField label="Desafío (opcional)" value={challengeId} onChange={event => setChallengeId(event.target.value)}
           options={[{ value: '', label: 'Publicar sin desafío' }, ...openChallenges.map(challenge => ({ value: challenge.id, label: challenge.title })), ...(invalidChallenge ? [{ value: challengeId, label: 'Desafío no disponible' }] : [])]} />
           {invalidChallenge && <ErrorMessage message="El desafío elegido no está abierto. Elegí otro o publicá sin asociar tu obra." />}
         </>}

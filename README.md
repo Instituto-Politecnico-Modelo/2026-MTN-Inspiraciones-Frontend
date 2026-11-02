@@ -97,6 +97,14 @@ desplegó ninguna imagen como parte de esta limpieza.
 ## Continuar el trabajo
 
 Leer [AGENTS.md](AGENTS.md), la [política del proyecto](.createapp/POLICY.md) y el
-[contexto vigente](prompts/CONTINUAR_FRONTEND_TRAMA.md). Conservar la identidad
-de marca y revisar los cambios locales antes de editar. El plan UX/UI pendiente
-se conserva dentro del frontend; esta limpieza no implementa ese rediseño.
+[manual de marca](manualMarca/MANUAL_MARCA_RED_ARTISTAS.md). Conservar la identidad
+de marca y revisar los cambios locales antes de editar. El
+[pedido original](prompts/miPrompt.md) es histórico; el archivo de continuación
+citado anteriormente no está presente.
+
+La simplificación de interfaz del 1 de noviembre conserva los flujos existentes:
+menos texto repetido, controles más compactos y mejor acceso móvil. Se verificaron
+43 pruebas, lint, build y 85 combinaciones de ruta y ancho en Edge. CreateApp agregó
+los perfiles `ca-impeccable` y `ca-find-skills`, sin cambiar la marca ni activar
+otro coordinador. El [plan UX/UI](frontend-trama/PLAN_UX_UI_IMPECCABLE.md) registra
+lo implementado y separa las propuestas opcionales y verificaciones pendientes.

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flag, Pencil, Send, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, Flag, Pencil, Send, Trash2, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import { reportReasons, type Post, type Report } from '../data/model'
@@ -53,9 +53,9 @@ function WorkDetail({ post }: { post: Post }) {
   const returnTo = backPath(location.state, canManage(user) ? '/admin/publicaciones' : '/descubrir')
   if (!author) return <ErrorMessage message="No pudimos encontrar la autoría de esta publicación." />
   return <>
-    <div className="work-topline"><Link className="back-link" to={returnTo}>← Volver</Link>
+    <div className="work-topline"><Link className="back-link" to={returnTo}><ArrowLeft size={18} aria-hidden="true" />Volver</Link>
       <div className="button-row">{user?.id === author.id && post.status !== 'deleted' && <>
-        <Link className="icon-button" to={`/obra/${post.id}/editar`} aria-label="Editar publicación"><Pencil size={20} aria-hidden="true" /></Link>
+        <Link className="icon-button" to={`/obra/${post.id}/editar`} aria-label="Editar publicación" title="Editar publicación"><Pencil size={20} aria-hidden="true" /></Link>
         <IconButton icon={Trash2} label="Eliminar publicación" onClick={() => setConfirmation({ title: 'Eliminar publicación', description: `«${post.title}» dejará de aparecer en la demo. Esta acción no se puede deshacer sin reiniciar los datos.`, label: 'Eliminar publicación', dangerous: true, command: () => ({ type: 'delete-post', postId: post.id }), success: 'Publicación eliminada de la demo.', destination: '/perfil' })} />
       </>}
         {isPublic && user?.id !== author.id && <IconButton icon={Flag} label="Reportar publicación" onClick={() => { if (gate()) setReportOpen(true) }} />}</div>
@@ -81,7 +81,7 @@ function WorkDetail({ post }: { post: Post }) {
               {commenter?.status === 'active' ? <Link to={`/perfil/${commenter.id}`}><strong>{commenter.name}</strong></Link> : <strong>Perfil no disponible</strong>}<span>{relativeDate(item.createdAt)}</span></div><p>{item.text}</p></div>
               {(item.authorId === user?.id || canManage(user)) && <IconButton icon={Trash2} label={`Eliminar comentario de ${commenter?.name ?? 'este perfil'}`} onClick={() => setConfirmation({ title: 'Eliminar comentario', description: 'El comentario se quitará de esta conversación local.', label: 'Eliminar comentario', dangerous: true, command: () => ({ type: 'delete-comment', postId: post.id, commentId: item.id }), success: 'Comentario eliminado.' })} />}
             </li>
-          })}</ul> : <p className="muted">Una pregunta, una idea o algo que te hizo mirar de nuevo. La conversación puede empezar con vos.</p>}
+          })}</ul> : <p className="muted">Todavía no hay comentarios.</p>}
           {isPublic && user?.status === 'active' ? <form className="comment-form" onSubmit={event => {
             event.preventDefault()
             void run({ type: 'add-comment', id: newId('comentario'), postId: post.id, text: comment }, 'Tu comentario se agregó.').then(result => { if (result) setComment('') })
@@ -97,5 +97,5 @@ function WorkDetail({ post }: { post: Post }) {
 }
 
 export function MissingPage() {
-  return <><PageTitle title="No encontramos esa página" description="Puede que el enlace haya cambiado. Tu próxima inspiración sigue por acá." /><EmptyState title="Volvamos a un lugar conocido" description="Podés seguir explorando la comunidad de Trama." action={<Link className="button button-primary" to="/inicio">Ir a Inicio</Link>} /></>
+  return <><PageTitle title="No encontramos esa página" /><EmptyState title="El enlace no está disponible" description="Podés volver a Inicio para seguir explorando." action={<Link className="button button-primary" to="/inicio">Ir a Inicio</Link>} /></>
 }

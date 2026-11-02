@@ -9,10 +9,9 @@ import { PostCard } from '../components/PostCard'
 
 export function ChallengeNudge({ challenge }: { challenge: Challenge }) {
   return <article className="challenge-nudge post-card">
-    <span className="challenge-nudge-label"><Trophy size={19} aria-hidden="true" />Una invitación a crear</span>
     <img src={challenge.cover} alt="" width="240" height="140" />
     <Badge status="open">Desafío abierto</Badge>
-    <h2>{challenge.title}</h2><p>No hace falta tenerlo todo resuelto. Dale forma a tu propia respuesta.</p>
+    <h2>{challenge.title}</h2>
     <Link to={`/desafios/${challenge.id}`}>Ver la consigna<ArrowRight size={18} aria-hidden="true" /></Link>
   </article>
 }
@@ -26,7 +25,7 @@ export function HomePage() {
   const posts = tab === 'seguidos' ? user ? searchPosts(state, { following: user.id }) : []
     : tab === 'desafios' ? visiblePosts(state).filter(post => post.challengeId) : visiblePosts(state)
   return <>
-    <PageTitle title="Encontrá tu próxima inspiración" description="Una obra, un proceso, una idea. Todo puede ser un punto de partida." />
+    <PageTitle title="Inicio" />
     {requested !== tab && <ErrorMessage message="La vista de ese enlace no existe. Podés elegir una de las pestañas de Inicio." />}
     <Tabs label="Contenido de Inicio" value={tab} items={[{ value: 'para-vos', label: 'Para vos' }, { value: 'seguidos', label: 'Seguidos' }, { value: 'desafios', label: 'Desafíos' }]}
       onChange={value => setParams(value === 'para-vos' ? {} : { vista: value }, { replace: true, preventScrollReset: true })}>
