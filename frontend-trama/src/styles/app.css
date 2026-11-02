@@ -139,8 +139,8 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 8px; font-size: .875rem; line-height: 1.4286; color: var(--muted); background: var(--surface-subtle); width: fit-content; }
 .badge-positive { background: var(--success-surface); color: var(--success); }
 .badge-warning { background: var(--warning-surface); color: var(--warning); }
-.artwork-grid { columns: 3; column-gap: 24px; }
-.post-card { display: inline-block; vertical-align: top; width: 100%; break-inside: avoid; margin: 0 0 24px; }
+.artwork-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 24px; align-items: start; }
+.post-card { min-width: 0; }
 .artwork-link { display: block; border-radius: var(--card-radius); }
 .card-media { overflow: hidden; position: relative; border-radius: var(--card-radius); background: var(--surface-subtle); }
 .artwork-image { display: block; width: 100%; height: auto; }
@@ -430,9 +430,6 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
   .map-column { max-width: 640px; width: 100%; }
   .admin-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (min-width: 1440px) {
-  .compact-grid { columns: 4; }
-}
 @media (max-width: 1200px) {
   .card-discipline { display: none; }
 }
@@ -448,7 +445,6 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
   .site-header { padding: 16px 24px; min-height: 76px; }
   .app-content { padding: 24px; }
   .site-footer { margin-inline: 24px; }
-  .artwork-grid { columns: 2; }
 }
 @media (max-width: 767px) {
   :root { --sidebar: 0px; }
@@ -478,9 +474,8 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
   .discover-page .tabs { gap: 0; }
   .discover-page .tabs > button { flex: 1; min-width: 0; }
   .tab-content { padding-top: 16px; }
-  .artwork-grid { columns: 1; }
-  .compact-grid { columns: 2; column-gap: 12px; }
-  .compact-grid .post-card { margin-bottom: 20px; }
+  .artwork-grid { grid-template-columns: minmax(0, 1fr); }
+  .compact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
   .compact-grid .artist-link .avatar { display: none; }
   .compact-grid .post-action { padding-inline: 4px; gap: 4px; }
   .compact-grid .post-actions { gap: 0; }
@@ -532,7 +527,7 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
   .photo-credits { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 12px; }
 }
 @media (max-width: 359px) {
-  .compact-grid { columns: 1; }
+  .compact-grid { grid-template-columns: minmax(0, 1fr); }
   .tabs { gap: 16px; }
   .tabs > button { font-size: .875rem; }
   .tabs > button > svg { display: none; }
