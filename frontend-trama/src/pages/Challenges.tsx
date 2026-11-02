@@ -65,7 +65,7 @@ function ChallengeDetail({ challenge }: { challenge: Challenge }) {
           <div><dt>Inicio</dt><dd>{formatDateTime(challenge.startsAt)}</dd></div><div><dt>Cierre</dt><dd>{formatDateTime(challenge.endsAt)}</dd></div></dl>
         <p className="field-hint">Fechas en horario de Buenos Aires (UTC−3). Sin premios, jurados ni rankings.</p>
         {!!mine.length && <p className="participation-status"><Check size={19} aria-hidden="true" />Ya participás con {mine.length} {mine.length === 1 ? 'obra' : 'obras'}.</p>}
-        {status === 'open' ? <Button onClick={() => { if (gate()) setJoining(true) }}><Plus size={19} aria-hidden="true" />{mine.length ? 'Agregar otra obra' : 'Quiero participar'}</Button>
+        {status === 'open' ? (mine.length ? null : <Button onClick={() => { if (gate()) setJoining(true) }}><Plus size={19} aria-hidden="true" />Quiero participar</Button>)
           : <p className="muted">{status === 'upcoming' ? 'Vas a poder participar cuando abra la convocatoria.' : 'Este desafío finalizó. Podés seguir explorando las obras de la comunidad.'}</p>}
       </div>
     </section>
