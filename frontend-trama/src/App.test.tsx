@@ -60,6 +60,22 @@ describe('integracion de rutas', () => {
     expect(screen.queryByRole('navigation', { name: /Administraci.n m.vil/ })).not.toBeInTheDocument()
   })
 
+  it.each([
+    { profile: undefined, visible: false },
+    { profile: 'mora', visible: false },
+    { profile: 'admin', visible: true },
+  ])('navegacion: acceso administrativo con perfil $profile', async ({ profile, visible }) => {
+    openRoute('/inicio', profile)
+    expect(await screen.findByRole('heading', { name: 'Inicio' })).toBeVisible()
+    const link = screen.queryByRole('link', { name: /^Administraci.n$/ })
+    if (visible) {
+      expect(link).toBeVisible()
+      expect(link).toHaveAttribute('href', '/admin/resumen')
+    } else {
+      expect(link).not.toBeInTheDocument()
+    }
+  })
+
   it('ofrece una salida para una ruta desconocida', async () => {
     openRoute('/ruta-que-no-existe')
     expect(await screen.findByRole('heading', { name: /No encontramos esa p.gina/ })).toBeVisible()

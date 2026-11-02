@@ -81,7 +81,7 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
       <nav className="primary-nav" aria-label={admin ? 'Administración' : 'Principal'}>{links()}{!admin && <Link className="nav-publish nav-publish-side" to="/publicar" aria-label="Publicar una obra" title="Publicar una obra"><Plus size={22} strokeWidth={2} aria-hidden="true" /><span>Publicar</span></Link>}</nav>
       <div className="sidebar-bottom">
         {admin ? <Link className="nav-item" to="/inicio"><ArrowUpRight size={21} aria-hidden="true" /><span>Ver comunidad</span></Link>
-          : <Link className="nav-item" to={canManage(user) ? '/admin/resumen' : '/ingresar?modo=admin'}><ShieldCheck size={21} aria-hidden="true" /><span>Administración</span></Link>}
+          : canManage(user) && <Link className="nav-item" to="/admin/resumen"><ShieldCheck size={21} aria-hidden="true" /><span>Administración</span></Link>}
         <Link className="nav-item" to="/acerca"><Info size={21} aria-hidden="true" /><span>Acerca de Trama</span></Link>
         {user ? <>
           <Link className="sidebar-profile" to="/perfil"><Avatar user={user} size="medium" /><span><strong>{user.name}</strong><small>@{user.handle}</small></span></Link>
