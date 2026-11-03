@@ -144,7 +144,7 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .badge-positive { background: var(--success-surface); color: var(--success); }
 .badge-warning { background: var(--warning-surface); color: var(--warning); }
 .artwork-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 24px; align-items: start; }
-.challenge-works .artwork-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.compact-grid, .challenge-works .artwork-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
 .tile-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; max-width: 960px; margin-inline: auto; }
 @media (min-width: 768px) { .tile-grid { gap: 12px; } }
 @media (min-width: 1200px) { .tile-grid { gap: 24px; } }
