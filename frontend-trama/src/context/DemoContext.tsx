@@ -15,6 +15,7 @@ export type Backend = {
   login: (email: string, password: string) => Promise<string>
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<string>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
+  searchUsers?: (query: string) => Promise<User[]>
   logout: () => void
   resolveId: (id: string) => string
 }
@@ -25,6 +26,7 @@ type Context = {
   login: (email: string, password: string) => Promise<User>
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<User>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
+  searchUsers: (query: string) => Promise<void>
   logout: () => void
   resolveId: (id: string) => string
   notify: (text: string, kind?: Notice['kind']) => void
@@ -86,6 +88,17 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   const register = useCallback(async (input: { email: string; username: string; nombreCompleto: string; password: string }) => enter(await repository.register(input)), [enter, repository])
   const appeal = useCallback((input: { email: string; password: string; mensaje: string }) => repository.appeal(input), [repository])
 
+  const searchUsers = useCallback(async (query: string) => {
+    if (!repository.searchUsers) return
+    const users = await repository.searchUsers(query)
+    setState(previous => {
+      if (!previous) return previous
+      const merged = new Map(previous.users.map(user => [user.id, user]))
+      users.forEach(user => merged.set(user.id, user))
+      return { ...previous, users: [...merged.values()] }
+    })
+  }, [repository])
+
   const logout = useCallback(() => {
     repository.logout()
     setUserId(null)
@@ -102,7 +115,7 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   </main>
 
   const user = state.users.find(candidate => candidate.id === userId && candidate.status !== 'deleted') ?? null
-  return <DemoContext.Provider value={{ state, user, execute, login, register, appeal, logout, resolveId: repository.resolveId, notify }}>
+  return <DemoContext.Provider value={{ state, user, execute, login, register, appeal, searchUsers, logout, resolveId: repository.resolveId, notify }}>
     {children}
     {notice && <div className={`toast toast-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
       {notice.kind === 'error' ? <AlertCircle size={20} aria-hidden="true" /> : <CheckCircle2 size={20} aria-hidden="true" />}

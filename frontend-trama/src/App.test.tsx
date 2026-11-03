@@ -33,6 +33,26 @@ function openRoute(path: string, profile?: string) {
 vi.setConfig({ testTimeout: 20000 })
 
 describe('integracion de rutas', () => {
+  it('busca artistas remotos sin publicaciones y permite abrir su perfil', async () => {
+    const state = await repository.load()
+    const remote = { ...state.users.find(user => user.id === 'mora')!, id: 'remote-user', name: 'Artista Remota', handle: 'remota' }
+    const searchUsers = vi.fn().mockResolvedValue([remote])
+    Object.assign(repository, { searchUsers })
+    openRoute('/descubrir?tipo=artistas&q=remota', 'mora')
+
+    const link = await screen.findByRole('link', { name: /Artista Remota/ })
+    expect(searchUsers).toHaveBeenCalledWith('remota')
+    await userEvent.click(link)
+    expect(await screen.findByRole('heading', { name: 'Artista Remota', level: 1 })).toBeVisible()
+  })
+
+  it('informa cuando falla la búsqueda remota de artistas', async () => {
+    Object.assign(repository, { searchUsers: vi.fn().mockRejectedValue(new Error('Servidor de búsqueda no disponible.')) })
+    openRoute('/descubrir?tipo=artistas&q=remota', 'mora')
+
+    expect(await screen.findByText('Servidor de búsqueda no disponible.')).toBeVisible()
+  })
+
   it('abre Inicio desde la raiz con los datos locales', async () => {
     const current = openRoute('/')
     expect(await screen.findByRole('heading', { name: 'Inicio' }, { timeout: 8000 })).toBeVisible()

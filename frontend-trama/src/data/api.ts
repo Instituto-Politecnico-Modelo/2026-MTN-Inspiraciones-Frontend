@@ -196,6 +196,13 @@ export class ApiRepository {
     await http('POST', '/api/auth/appeals', input)
   }
 
+  async searchUsers(query: string): Promise<User[]> {
+    const prefix = query.trim().replace(/^@/, '').trim()
+    if (!prefix) return []
+    const users = await http<Json[]>('POST', '/api/usuarios/buscar', { busqueda: prefix })
+    return users.map(user => this.toUser(user))
+  }
+
   logout() {
     localStorage.removeItem(TOKEN_KEY)
     this.meId = null
@@ -360,6 +367,7 @@ export class ApiRepository {
       })
     }
     const needed = uniq([
+      ...this.userCache.keys(),
       ...posts.map(post => post.authorId), ...posts.flatMap(post => post.comments.map(comment => comment.authorId)),
       ...challenges.map(challenge => challenge.createdBy), ...requests.map(request => request.authorId),
       ...reports.map(report => report.authorId), ...appeals.map(appeal => appeal.authorId), ...blocks.map(block => block.blockedId),
