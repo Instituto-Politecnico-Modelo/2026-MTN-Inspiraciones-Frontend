@@ -1,11 +1,10 @@
-import { Fragment } from 'react'
 import { ArrowRight, Trophy, Users } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { challengeStatus, searchPosts, visiblePosts } from '../data/store'
 import type { Challenge, DemoState } from '../data/model'
 import { Badge, EmptyState, ErrorMessage, PageTitle, Tabs } from '../components/UI'
-import { PostCard } from '../components/PostCard'
+import { PostGrid } from '../components/PostCard'
 
 export function ChallengeNudge({ challenge }: { challenge: Challenge }) {
   return <article className="challenge-nudge post-card">
@@ -36,11 +35,9 @@ export function HomePage() {
     {requested !== tab && <ErrorMessage message="La vista de ese enlace no existe. Podés elegir una de las pestañas de Inicio." />}
     <Tabs label="Contenido de Inicio" value={tab} items={[{ value: 'para-vos', label: 'Para vos' }, { value: 'seguidos', label: 'Seguidos' }, { value: 'desafios', label: 'Desafíos' }]}
       onChange={value => setParams(value === 'para-vos' ? {} : { vista: value }, { replace: true, preventScrollReset: true })}>
-      {posts.length ? <div className="artwork-grid home-grid">
-        {posts.map((post, index) => <Fragment key={post.id}><PostCard post={post} eager={index < 3} />
-          {index === Math.min(1, posts.length - 1) && challenge && <ChallengeNudge challenge={challenge} />}
-        </Fragment>)}
-      </div> : <EmptyState icon={tab === 'seguidos' ? Users : Trophy}
+      {posts.length ? <><PostGrid posts={posts} compact />
+        {challenge && <ChallengeNudge challenge={challenge} />}
+      </> : <EmptyState icon={tab === 'seguidos' ? Users : Trophy}
         title={tab === 'seguidos' ? user ? 'Encontrá otras miradas' : 'Tu comunidad empieza acá' : 'Todavía no hay obras para mostrar'}
         description={tab === 'seguidos' ? 'Seguí artistas para reunir sus publicaciones en este espacio.' : 'Las respuestas de la comunidad a los desafíos van a aparecer en esta pestaña.'}
         action={<Link className="button button-primary" to={tab === 'seguidos' ? user ? '/descubrir?tipo=artistas' : '/ingresar' : '/desafios'}>{tab === 'seguidos' ? user ? 'Descubrir artistas' : 'Ingresar' : 'Explorar desafíos'}</Link>} />}

@@ -57,6 +57,20 @@ describe('integracion de rutas', () => {
     expect(screen.queryByText('Todavía no hay obras para mostrar')).not.toBeInTheDocument()
   })
 
+  it('descubrir artistas excluye administradores recibidos desde la búsqueda', async () => {
+    const state = await repository.load()
+    const artist = { ...state.users.find(user => user.id === 'mora')!, id: 'remote-artist', name: 'Artista Remota', handle: 'artista.remota' }
+    const admin = { ...state.users.find(user => user.role === 'admin')!, id: 'remote-admin', name: 'Administracion Remota', handle: 'equipo.remoto' }
+    const cached = { ...artist, id: 'cached-admin', name: 'Administrador sin rol precargado', handle: 'equipo.precargado' }
+    vi.spyOn(repository, 'load').mockResolvedValue({ ...state, users: [...state.users, cached] })
+    Object.assign(repository, { searchUsers: vi.fn().mockResolvedValue([artist, admin]) })
+    openRoute('/descubrir?tipo=artistas', 'mora')
+
+    expect(await screen.findByRole('link', { name: /Artista Remota/ })).toBeVisible()
+    expect(screen.queryByRole('link', { name: /Administracion Remota/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Administrador sin rol precargado/ })).not.toBeInTheDocument()
+  })
+
   it('busca artistas remotos sin publicaciones y permite abrir su perfil', async () => {
     const state = await repository.load()
     const remote = { ...state.users.find(user => user.id === 'mora')!, id: 'remote-user', name: 'Artista Remota', handle: 'remota' }

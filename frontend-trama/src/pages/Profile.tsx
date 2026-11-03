@@ -89,7 +89,7 @@ export function ProfilePage() {
   return <>
     <section className="profile-heading">
       <Avatar user={profile} size="large" />
-      <div className="profile-identity"><h1>{profile.name}</h1><p className="meta">@{profile.handle}</p><p className="profile-disciplines">{profile.disciplines.join(' · ') || 'Un espacio para empezar a crear'}</p>
+      <div className="profile-identity"><h1>{profile.name}</h1><p className="meta">@{profile.handle}</p>{profile.disciplines.length > 0 && <p className="profile-disciplines">{profile.disciplines.join(' · ')}</p>}
         {user && <div className="profile-counts"><span><strong>{publishedCount}</strong> {publishedCount === 1 ? 'obra' : 'obras'}</span>
           <button type="button" className="profile-count" aria-haspopup="dialog" onClick={() => setConnections('seguidores')}><strong>{followers.length}</strong> {followers.length === 1 ? 'seguidor' : 'seguidores'}</button>
           <button type="button" className="profile-count" aria-haspopup="dialog" onClick={() => setConnections('seguidos')}><strong>{following.length}</strong> {following.length === 1 ? 'seguido' : 'seguidos'}</button>

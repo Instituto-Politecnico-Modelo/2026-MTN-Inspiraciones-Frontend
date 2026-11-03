@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { MapPin, SlidersHorizontal } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
-import { disciplines } from '../data/model'
+import { disciplines, type User } from '../data/model'
 import { places } from '../data/seed'
 import { errorMessage, normalize, profilePath, searchPosts, visiblePosts } from '../data/store'
 import { Avatar, Button, EmptyState, ErrorMessage, Modal, PageTitle, SearchField, SelectField, Tabs } from '../components/UI'
@@ -26,13 +26,16 @@ export function DiscoverPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [searchError, setSearchError] = useState('')
   const [searching, setSearching] = useState(false)
+  const [artistResults, setArtistResults] = useState<User[]>([])
   useEffect(() => {
     if (tab !== 'artistas' || !viewerId) return
     let active = true
     const timeout = setTimeout(() => {
       setSearchError('')
       setSearching(true)
-      void searchUsers(artistQuery).catch(error => {
+      void searchUsers(artistQuery).then(users => {
+        if (active) setArtistResults(users)
+      }).catch(error => {
         if (active) setSearchError(errorMessage(error))
       }).finally(() => {
         if (active) setSearching(false)
@@ -52,7 +55,7 @@ export function DiscoverPage() {
   const posts = searchPosts(state, { query, kind: tab === 'musica' ? 'audio' : 'image', discipline, technique })
   if (order === 'recientes') posts.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
   if (order === 'titulo') posts.sort((a, b) => a.title.localeCompare(b.title, 'es'))
-  const artists = state.users.filter(user => user.role === 'artist' && user.status === 'active' && (!discipline || user.disciplines.some(value => value === discipline)) && normalize(`${user.name} ${user.handle} ${user.bio} ${user.disciplines.join(' ')}`).includes(normalize(artistQuery)))
+  const artists = (viewerId ? artistResults : state.users).filter(user => user.role === 'artist' && user.status === 'active' && (!discipline || user.disciplines.some(value => value === discipline)) && normalize(`${user.name} ${user.handle} ${user.bio} ${user.disciplines.join(' ')}`).includes(normalize(artistQuery)))
   const filteredPlaces = places.filter(place => (!area || place.area === area) && normalize(`${place.name} ${place.area} ${place.kind}`).includes(normalize(query)))
   const mapPlace = filteredPlaces.find(place => place.id === selectedPlace) ?? filteredPlaces[0]
   const techniqueOptions = Array.from(new Set(visiblePosts(state).filter(post => post.kind === (tab === 'musica' ? 'audio' : 'image')).map(post => post.technique).filter(Boolean)))
@@ -79,7 +82,7 @@ export function DiscoverPage() {
         </div>
         <p className="filter-summary" role="status">{tab === 'artistas' ? searching ? 'Buscando artistas…' : `${artists.length} artistas` : `${posts.length} ${posts.length === 1 ? 'resultado' : 'resultados'}`}{query ? ` para «${query}»` : ''}{activeFilters ? ` · ${activeFilters} ${activeFilters === 1 ? 'filtro activo' : 'filtros activos'}` : ''}</p>
         {tab === 'artistas' ? artists.length ? <div className="artist-grid">{artists.map(artist => <article className="artist-card" key={artist.id}>
-          <Link to={profilePath(artist)}><Avatar user={artist} size="large" /><h2>{artist.name}</h2><p className="meta">@{artist.handle}</p></Link>
+          <Link to={profilePath(artist)} title={`${artist.name} @${artist.handle}`}><Avatar user={artist} size="large" /><h2>{artist.name}</h2><p className="meta">@{artist.handle}</p></Link>
           <p className="artist-disciplines">{artist.disciplines.join(' · ')}</p><p>{artist.bio}</p><FollowButton artist={artist} />
         </article>)}</div> : empty : posts.length ? <PostGrid posts={posts} compact /> : empty}
       </> : <>

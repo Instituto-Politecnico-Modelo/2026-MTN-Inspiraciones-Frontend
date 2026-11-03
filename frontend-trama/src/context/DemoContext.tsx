@@ -27,7 +27,7 @@ type Context = {
   login: (email: string, password: string) => Promise<User>
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<User>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
-  searchUsers: (query: string) => Promise<void>
+  searchUsers: (query: string) => Promise<User[]>
   getProfile: (lookup: ProfileLookup) => Promise<void>
   logout: () => void
   resolveId: (id: string) => string
@@ -100,7 +100,9 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   }, [])
 
   const searchUsers = useCallback(async (query: string) => {
-    if (repository.searchUsers) mergeUsers(await repository.searchUsers(query))
+    const users = repository.searchUsers ? await repository.searchUsers(query) : (await repository.load()).users
+    mergeUsers(users)
+    return users
   }, [repository, mergeUsers])
 
   const getProfile = useCallback(async (lookup: ProfileLookup) => {
