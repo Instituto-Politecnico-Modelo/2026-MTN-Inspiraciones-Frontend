@@ -47,11 +47,11 @@ function ProfileForm({ user }: { user: User }) {
         <input ref={fileInput} type="file" accept={imageAccept} hidden aria-label="Elegir foto de perfil" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void photo(file) }} />
         <div className="button-row"><Button variant="secondary" loading={uploading} disabled={pending} onClick={() => fileInput.current?.click()}><Camera size={18} aria-hidden="true" />Cambiar foto</Button>
           {form.avatar && <IconButton icon={X} label="Quitar foto de perfil" disabled={pending || uploading} onClick={() => update('avatar', '')} />}</div>
-        <p className="field-hint">JPG, PNG o WebP, hasta 8 MB. Se mostrará con recorte circular.</p>
+        <p className="field-hint">JPG, PNG o WebP, hasta 5 MB. Se mostrará con recorte circular.</p>
       </div></div>
       <ErrorMessage message={uploadError} />
       <div className="form-columns"><Field label="Nombre visible" required minLength={2} maxLength={80} value={form.name} onChange={event => update('name', event.target.value)} autoComplete="nickname" />
-        <Field label="Nombre de usuario" required pattern="[a-z0-9._]{3,24}" maxLength={24} hint="Este es tu identificador público, sin @. Hasta 10 caracteres si lo cambiás." value={form.handle} onChange={event => update('handle', event.target.value.toLowerCase())} /></div>
+        <Field label="Nombre de usuario" required pattern="[a-z0-9._\-]{3,50}" maxLength={50} hint="Tu identificador público único, sin @. Entre 3 y 50 caracteres." value={form.handle} onChange={event => update('handle', event.target.value.toLowerCase())} /></div>
       <TextArea label="Sobre mí" value={form.bio} onChange={event => update('bio', event.target.value)} maxLength={500} hint={`${form.bio.length}/500 caracteres. Contá qué hacés, qué buscás o qué te inspira.`} />
       <fieldset className="plain-fieldset"><legend>Disciplinas</legend><div className="choice-grid compact">{disciplines.map(discipline => <Choice key={discipline} selected={form.disciplines.includes(discipline)}
         onClick={() => update('disciplines', form.disciplines.includes(discipline) ? form.disciplines.filter(value => value !== discipline) : [...form.disciplines, discipline])}>{discipline}</Choice>)}</div></fieldset>
@@ -131,7 +131,7 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
           void upload(event.dataTransfer.files[0])
         }}><Upload size={32} strokeWidth={1.5} aria-hidden="true" /><p>Imagen</p>
           <Button onClick={() => fileInput.current?.click()} loading={uploading}><Plus size={19} aria-hidden="true" />Elegir archivo</Button>
-          <small>JPG, PNG o WebP: hasta 8 MB.</small>
+          <small>JPG, PNG o WebP: hasta 5 MB.</small>
         </div>}
         <input ref={fileInput} type="file" hidden accept={mediaAccept} aria-label="Elegir archivo de la obra" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file) }} />
         <ErrorMessage message={uploadError} />

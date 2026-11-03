@@ -3,6 +3,7 @@ import { Bookmark, Heart, MessageCircle, Music2 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import type { Post } from '../data/model'
+import { profilePath } from '../data/store'
 import { Avatar, Badge, ErrorMessage } from './UI'
 import { ArtworkImage, AudioPlayer } from './Media'
 import { SaveDialog } from './SaveDialog'
@@ -53,7 +54,7 @@ export function PostCard({ post, eager = false }: { post: Post; eager?: boolean 
       <h2>{post.title}</h2>
     </Link>
     {post.kind === 'audio' && <AudioPlayer post={post} />}
-    <Link className="artist-link" to={`/perfil/${author.id}`}><Avatar user={author} /><span>{author.name}</span><span className="card-discipline">{post.discipline}</span></Link>
+    <Link className="artist-link" to={profilePath(author)}><Avatar user={author} /><span>{author.name}</span><span className="card-discipline">{post.discipline}</span></Link>
     {post.status === 'published' ? <PostActions post={post} /> : <Badge status={post.status} />}
   </article>
 }

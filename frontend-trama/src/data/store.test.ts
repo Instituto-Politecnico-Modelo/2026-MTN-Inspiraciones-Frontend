@@ -134,10 +134,10 @@ describe('moderación y desafíos', () => {
 })
 
 describe('límites de archivos y exportación', () => {
-  it('admite imágenes hasta 8 MiB y audio hasta 16 MiB, inclusive', () => {
-    expect(validateFile({ type: 'image/png', size: 8 * 1024 * 1024 })).toBe('image')
+  it('admite imágenes hasta 5 MiB y audio hasta 16 MiB, inclusive', () => {
+    expect(validateFile({ type: 'image/png', size: 5 * 1024 * 1024 })).toBe('image')
     expect(validateFile({ type: 'audio/mpeg', size: 16 * 1024 * 1024 })).toBe('audio')
-    expect(() => validateFile({ type: 'image/png', size: 8 * 1024 * 1024 + 1 })).toThrow(/8 MB/)
+    expect(() => validateFile({ type: 'image/png', size: 5 * 1024 * 1024 + 1 })).toThrow(/5 MB/)
     expect(() => validateFile({ type: 'audio/wav', size: 16 * 1024 * 1024 + 1 })).toThrow(/16 MB/)
     expect(() => validateFile({ type: 'image/svg+xml', size: 100 })).toThrow(/formato/i)
     expect(() => validateFile({ type: 'image/png', size: 0 })).toThrow(/vacío/i)

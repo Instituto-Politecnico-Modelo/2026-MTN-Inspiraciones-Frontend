@@ -95,6 +95,28 @@ durante el registro indica que hay que revisar el enrutamiento del servicio API.
 El éxito del job significa que Dokploy aceptó la solicitud; el resultado final
 del despliegue se consulta en su panel.
 
+### Perfiles y publicaciones
+
+Los enlaces de perfiles usan `/nombre-de-usuario`. Los enlaces anteriores
+`/perfil` y `/perfil/:id` siguen funcionando y redirigen al nombre actual.
+Los nombres admiten entre 3 y 50 letras ASCII, numeros, puntos, guiones y guiones
+bajos; la API controla la unicidad sin distinguir mayusculas y minusculas y
+reserva los nombres de las rutas de la aplicacion. Las cuentas antiguas con
+un nombre reservado conservan su enlace por ID.
+
+Descubrir > Artistas consulta el directorio compartido aun sin escribir una
+busqueda (hasta 100 cuentas activas). La busqueda encuentra coincidencias dentro
+del nombre visible o del nombre de usuario, incluyendo cuentas sin publicaciones.
+Un perfil puede abrirse directamente sin datos precargados; sus obras requieren
+iniciar sesion, igual que el resto del contenido protegido por la API.
+
+Desplegar primero la API actualizada y despues el frontend: el cliente utiliza
+`GET /api/usuarios/username/{username}` y la busqueda ampliada. Las imagenes
+admiten hasta 5 MB. El contenedor API debe poder escribir en
+`/app/var/uploads/imagenes` como UID/GID `10001:10001`, con un volumen persistente
+en esa misma ruta para no perder archivos al recrear el contenedor. Publicar
+solo el frontend no corrige los permisos del servidor de imagenes.
+
 Prueba local, con el motor de Docker ejecutándose:
 
 ```sh

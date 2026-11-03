@@ -25,12 +25,23 @@ describe('búsqueda de perfiles compartidos', () => {
     expect(users).toEqual([expect.objectContaining({ id: 'remote-user', handle: 'artista.nueva', name: 'Artista Nueva' })])
   })
 
-  it('no envía búsquedas vacías al servidor', async () => {
-    const fetch = vi.fn()
+  it('pide el directorio compartido cuando la búsqueda está vacía', async () => {
+    localStorage.setItem('trama-token', 'test-token')
+    const fetch = vi.fn().mockResolvedValue(new Response('[]', { status: 200 }))
     vi.stubGlobal('fetch', fetch)
 
     expect(await new ApiRepository().searchUsers(' @ ')).toEqual([])
-    expect(fetch).not.toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledWith('/api/usuarios/buscar', expect.objectContaining({ body: JSON.stringify({ busqueda: '' }) }))
+  })
+
+  it('carga un perfil por usuario sin sesión ni datos precargados', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 'remote-user', username: 'remota', nombreCompleto: 'Artista Remota' }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    const user = await new ApiRepository().getProfile({ username: 'Remota' })
+
+    expect(fetch).toHaveBeenCalledWith('/api/usuarios/username/remota', expect.objectContaining({ method: 'GET', headers: {} }))
+    expect(user).toMatchObject({ id: 'remote-user', handle: 'remota' })
   })
 
   it('conserva el perfil encontrado después de actualizar los datos compartidos', async () => {

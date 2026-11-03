@@ -9,6 +9,17 @@ export { createSeed } from './seed'
 export const newId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`
 export const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
+const reservedProfilePaths = new Set([
+  'ingresar', 'registro', 'recuperar', 'salir', 'admin', 'inicio', 'descubrir', 'desafios',
+  'perfil', 'carpeta', 'cuestionario', 'publicar', 'obra', 'apelacion', 'acerca', 'api',
+  'assets', 'media', 'marca', 'fonts', 'licenses', 'healthz', 'favicon.ico', 'index.html', 'robots.txt', 'sitemap.xml',
+])
+
+export function profilePath(user: Pick<User, 'id' | 'handle'>) {
+  const username = user.handle.trim().toLowerCase()
+  return !username || reservedProfilePaths.has(username) ? `/perfil/${encodeURIComponent(user.id)}` : `/${encodeURIComponent(username)}`
+}
+
 export function errorMessage(error: unknown): string {
   if (error instanceof z.ZodError) return error.issues[0]?.message ?? 'Revisá los datos del formulario.'
   if (error instanceof DOMException && error.name === 'QuotaExceededError') return 'No queda espacio en este navegador. No se guardaron los cambios. Probá con un archivo más pequeño.'
@@ -309,7 +320,7 @@ export function validateFile(file: Pick<File, 'type' | 'size'>): MediaKind {
   const kind = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ? 'image'
     : ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/mp4'].includes(file.type) ? 'audio' : null
   if (!kind) throw new Error('Formato no admitido. Usá JPG, PNG, WebP, MP3, WAV, Ogg o M4A.')
-  const limit = kind === 'image' ? 8 : 16
+  const limit = kind === 'image' ? 5 : 16
   if (file.size > limit * 1024 * 1024) throw new Error(`El archivo supera el límite de ${limit} MB.`)
   return kind
 }

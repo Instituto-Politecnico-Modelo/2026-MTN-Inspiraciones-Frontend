@@ -21,7 +21,7 @@ const website = z.union([
 export const UserSchema = z.object({
   id,
   name: z.string().trim().min(2, 'Escribí un nombre de al menos 2 caracteres.').max(80),
-  handle: z.string().trim().toLowerCase().regex(/^[a-z0-9._]{3,24}$/, 'Usá entre 3 y 24 letras, números, puntos o guiones bajos.'),
+  handle: z.string().trim().toLowerCase().regex(/^[a-z0-9._-]{3,50}$/, 'Usá entre 3 y 50 letras, números, puntos, guiones o guiones bajos.'),
   email: z.string().trim().toLowerCase().email('Escribí un correo válido.').max(254),
   role: z.enum(['artist', 'admin']),
   status: z.enum(['active', 'suspended', 'deleted']),

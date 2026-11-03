@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Ban, Bookmark, FolderLock, Grid2X2, LockKeyhole, LogOut, MapPin, MoreHorizontal, Pencil, Plus, ShieldCheck, SlidersHorizontal, Trash2, Trophy, UsersRound } from 'lucide-react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import type { Folder } from '../data/model'
-import { canManage, newId, privateFolders, visiblePosts } from '../data/store'
+import { canManage, errorMessage, newId, privateFolders, profilePath, visiblePosts } from '../data/store'
 import { Avatar, Button, EmptyState, ErrorMessage, Field, IconButton, Modal, PageTitle, Tabs } from '../components/UI'
 import { FollowButton } from '../components/FollowButton'
 import { PostGrid } from '../components/PostCard'
@@ -38,21 +38,42 @@ export function BlockedPage() {
   return <>
     <PageTitle title="Cuentas bloqueadas" description="Las cuentas bloqueadas no pueden interactuar con vos. Solo vos ves esta lista." back={{ to: '/perfil', label: 'Volver al perfil' }} />
     {blocked.length ? <ul className="blocked-list">{blocked.map(person => <li key={person.id} className="blocked-item">
-      <Link className="artist-link" to={`/perfil/${person.id}`}><Avatar user={person} size="medium" /><span><strong>{person.name}</strong><small>@{person.handle}</small></span></Link>
+      <Link className="artist-link" to={profilePath(person)}><Avatar user={person} size="medium" /><span><strong>{person.name}</strong><small>@{person.handle}</small></span></Link>
       <BlockButton artist={person} /></li>)}</ul>
       : <EmptyState icon={Ban} title="No bloqueaste a nadie" description="Cuando bloquees una cuenta, va a aparecer acá para que puedas desbloquearla." />}
   </>
 }
 
 export function ProfilePage() {
-  const { state, user } = useDemo()
-  const { id } = useParams()
+  const { state, user, getProfile } = useDemo()
+  const { id, username } = useParams()
+  const location = useLocation()
   const [params, setParams] = useSearchParams()
+  const lookupKey = username ? `username:${username}` : id ? `id:${id}` : ''
+  const [profileRequest, setProfileRequest] = useState<{ key: string; error?: string }>({ key: '' })
+  const [retry, setRetry] = useState(0)
+  useEffect(() => {
+    if (!lookupKey) return
+    let active = true
+    void getProfile(username ? { username } : { id: id! }).then(() => {
+      if (active) setProfileRequest({ key: lookupKey })
+    }).catch(error => {
+      if (active) setProfileRequest({ key: lookupKey, error: errorMessage(error) })
+    })
+    return () => { active = false }
+  }, [getProfile, username, id, lookupKey, retry])
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [connections, setConnections] = useState<'seguidores' | 'seguidos' | null>(null)
-  const profile = state.users.find(candidate => candidate.id === (id ?? user?.id) && candidate.status === 'active')
+  const profile = state.users.find(candidate => (username ? candidate.handle.toLowerCase() === username.toLowerCase() : candidate.id === (id ?? user?.id)) && candidate.status === 'active')
+  if (!profile && lookupKey && profileRequest.key !== lookupKey) return <p role="status">Cargando perfil…</p>
+  if (profileRequest.key === lookupKey && profileRequest.error) return <>
+    <ErrorMessage message={profileRequest.error} />
+    <Button variant="secondary" onClick={() => setRetry(value => value + 1)}>Reintentar</Button>
+  </>
   if (!profile) return <EmptyState title="Este perfil no está disponible" description="Puede que el enlace no sea correcto o que el perfil ya no esté visible." action={<Link className="button button-secondary" to="/descubrir?tipo=artistas">Descubrir artistas</Link>} />
+  const canonicalPath = profilePath(profile)
+  if (location.pathname !== canonicalPath) return <Navigate to={`${canonicalPath}${location.search}`} replace />
   const own = user?.id === profile.id
   const requested = params.get('vista') ?? 'obras'
   const tab = own && requested === 'guardados' ? 'guardados' : 'obras'
@@ -69,10 +90,10 @@ export function ProfilePage() {
     <section className="profile-heading">
       <Avatar user={profile} size="large" />
       <div className="profile-identity"><h1>{profile.name}</h1><p className="meta">@{profile.handle}</p><p className="profile-disciplines">{profile.disciplines.join(' · ') || 'Un espacio para empezar a crear'}</p>
-        <div className="profile-counts"><span><strong>{publishedCount}</strong> {publishedCount === 1 ? 'obra' : 'obras'}</span>
+        {user && <div className="profile-counts"><span><strong>{publishedCount}</strong> {publishedCount === 1 ? 'obra' : 'obras'}</span>
           <button type="button" className="profile-count" aria-haspopup="dialog" onClick={() => setConnections('seguidores')}><strong>{followers.length}</strong> {followers.length === 1 ? 'seguidor' : 'seguidores'}</button>
           <button type="button" className="profile-count" aria-haspopup="dialog" onClick={() => setConnections('seguidos')}><strong>{following.length}</strong> {following.length === 1 ? 'seguido' : 'seguidos'}</button>
-        </div>
+        </div>}
       </div>
       <div className="profile-actions">{own ? <><Link className="button button-secondary" to="/perfil/editar"><Pencil size={17} aria-hidden="true" />Editar perfil</Link><IconButton icon={MoreHorizontal} label="Opciones de tu perfil" onClick={() => setMenuOpen(true)} /></> : <><FollowButton artist={profile} /><BlockButton artist={profile} /></>}</div>
     </section>
@@ -84,7 +105,9 @@ export function ProfilePage() {
     {requested !== tab && <p className="inline-notice"><LockKeyhole size={18} aria-hidden="true" />{requested === 'guardados' ? 'Los guardados son privados. En otros perfiles solo se muestran obras públicas.' : 'Esa pestaña no está disponible. Elegí una de las secciones del perfil.'}</p>}
     <Tabs label="Contenido del perfil" value={tab} onChange={value => setParams(value === 'guardados' ? { vista: value } : {}, { replace: true, preventScrollReset: true })}
       items={[{ value: 'obras', label: 'Obras', icon: Grid2X2 }, ...(own ? [{ value: 'guardados', label: 'Guardados', icon: Bookmark }] : [])]}>
-      {tab === 'obras' ? works.length ? <PostGrid posts={works} tiles /> : <EmptyState title={own ? 'Tu primera obra tiene un lugar acá' : 'Todavía no hay obras para mostrar'}
+      {!user ? <EmptyState title="Ingresá para ver las obras" description="Iniciá sesión para continuar."
+        action={<Link className="button button-primary" to={`/ingresar?volver=${encodeURIComponent(canonicalPath)}`}>Ingresar para ver las obras</Link>} />
+        : tab === 'obras' ? works.length ? <PostGrid posts={works} tiles /> : <EmptyState title={own ? 'Tu primera obra tiene un lugar acá' : 'Todavía no hay obras para mostrar'}
         description={own ? 'Compartí una imagen o un audio. También vale mostrar algo que todavía está en proceso.' : 'Cuando este artista publique, vas a encontrar sus creaciones en este espacio.'}
         action={own && <Link className="button button-primary" to="/publicar"><Plus size={18} aria-hidden="true" />Compartir una obra</Link>} />
         : <>
@@ -101,7 +124,7 @@ export function ProfilePage() {
       description={connections === 'seguidores' ? own ? 'Personas que te siguen.' : `Personas que siguen a ${profile.name}.` : own ? 'Personas que seguís.' : `Personas que sigue ${profile.name}.`}
       onClose={() => setConnections(null)}>
       {connectionList.length ? <ul className="connection-list">{connectionList.map(person => <li key={person.id}>
-        <Link className="artist-link" to={`/perfil/${person.id}`} onClick={() => setConnections(null)}>
+        <Link className="artist-link" to={profilePath(person)} onClick={() => setConnections(null)}>
           <Avatar user={person} size="medium" /><span><strong>{person.name}</strong> <small>@{person.handle}</small></span>
         </Link>
       </li>)}</ul> : <EmptyState icon={UsersRound}

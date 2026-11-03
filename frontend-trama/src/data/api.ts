@@ -162,6 +162,7 @@ async function rankedFeed(): Promise<string[]> {
 }
 
 export type Session = { token: string; userId: string }
+export type ProfileLookup = { username: string } | { id: string }
 
 export class ApiRepository {
   private state: DemoState = emptyState()
@@ -198,9 +199,13 @@ export class ApiRepository {
 
   async searchUsers(query: string): Promise<User[]> {
     const prefix = query.trim().replace(/^@/, '').trim()
-    if (!prefix) return []
     const users = await http<Json[]>('POST', '/api/usuarios/buscar', { busqueda: prefix })
     return users.map(user => this.toUser(user))
+  }
+
+  async getProfile(lookup: ProfileLookup): Promise<User> {
+    const path = 'username' in lookup ? `username/${encodeURIComponent(lookup.username.trim().toLowerCase())}` : encodeURIComponent(lookup.id)
+    return this.toUser(await http<Json>('GET', `/api/usuarios/${path}`))
   }
 
   logout() {

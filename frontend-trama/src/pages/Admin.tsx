@@ -5,7 +5,7 @@ import { CommandDialog, type Confirmation } from '../components/CommandDialog'
 import { Avatar, Badge, Button, EmptyState, ErrorMessage, IconButton, PageTitle, SearchField, SelectField, Tabs, statusLabels } from '../components/UI'
 import { useDemo } from '../context/DemoContext'
 import type { Report, User } from '../data/model'
-import { challengeStatus, errorMessage, normalize, toCsv, visiblePosts } from '../data/store'
+import { challengeStatus, errorMessage, normalize, profilePath, toCsv, visiblePosts } from '../data/store'
 import { backPath, formatDate, formatDateTime } from '../lib/format'
 
 const userStatuses = [{ value: 'todos', label: 'Todos los estados' }, { value: 'active', label: 'Activas' }, { value: 'suspended', label: 'Suspendidas' }, { value: 'deleted', label: 'Eliminadas' }]
@@ -72,7 +72,7 @@ export function AdminUsersPage() {
     <div className="filter-row"><SearchField label="Buscar perfiles" placeholder="Nombre, usuario o correo" value={query} onChange={value => update({ q: value })} /><SelectField label="Estado" value={status} options={userStatuses} onChange={event => update({ estado: event.target.value })} /></div>
     <p className="filter-summary" role="status">{users.length} perfiles</p>
     {users.length ? <AdminTable label="Perfiles" columns={['Perfil', 'Rol', 'Estado', 'Alta', 'Acciones']}>{users.map(member => <tr key={member.id}>
-      <th scope="row"><div className="table-person"><Avatar user={member} size="medium" /><div>{member.status === 'active' ? <Link to={`/perfil/${member.id}`}>{member.name}</Link> : <strong>{member.name}</strong>}<small>@{member.handle}</small><small>{member.email}</small>{member.id === user?.id && <small>Tu sesión actual</small>}</div></div></th>
+      <th scope="row"><div className="table-person"><Avatar user={member} size="medium" /><div>{member.status === 'active' ? <Link to={profilePath(member)}>{member.name}</Link> : <strong>{member.name}</strong>}<small>@{member.handle}</small><small>{member.email}</small>{member.id === user?.id && <small>Tu sesión actual</small>}</div></div></th>
       <td><Badge status={member.role} /></td><td><Badge status={member.status} /></td><td className="date-cell">{formatDate(member.joinedAt)}</td>
       <td><div className="table-actions">{member.status !== 'deleted' && <>
         {member.status === 'active' ? <IconButton icon={Ban} label={`Suspender a ${member.name}`} disabled={member.id === user?.id} onClick={() => changeStatus(member, 'suspended')} /> : <IconButton icon={RotateCcw} label={`Reactivar a ${member.name}`} onClick={() => changeStatus(member, 'active')} />}

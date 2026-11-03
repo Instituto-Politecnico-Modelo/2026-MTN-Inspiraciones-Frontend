@@ -3,7 +3,7 @@ import { ArrowLeft, Flag, Pencil, Send, Trash2, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import { reportReasons, type Post, type Report } from '../data/model'
-import { canManage, newId, visiblePosts } from '../data/store'
+import { canManage, newId, profilePath, visiblePosts } from '../data/store'
 import { backPath, formatDate, relativeDate } from '../lib/format'
 import { Avatar, Badge, Button, EmptyState, ErrorMessage, IconButton, Modal, PageTitle, SelectField, TextArea } from '../components/UI'
 import { ArtworkImage, AudioPlayer } from '../components/Media'
@@ -67,7 +67,7 @@ function WorkDetail({ post }: { post: Post }) {
         <div className="work-credit"><p>{post.credit}</p>{post.creditUrl && <a className="text-link" href={post.creditUrl} target="_blank" rel="noopener noreferrer">Ver imagen de referencia</a>}</div>
       </section>
       <section className="work-info">
-        <div className="work-author"><Link className="artist-link" to={`/perfil/${author.id}`}><Avatar user={author} size="medium" /><span><strong>{author.name}</strong><small>@{author.handle}</small></span></Link>{author.status === 'active' && <FollowButton artist={author} />}</div>
+        <div className="work-author"><Link className="artist-link" to={profilePath(author)}><Avatar user={author} size="medium" /><span><strong>{author.name}</strong><small>@{author.handle}</small></span></Link>{author.status === 'active' && <FollowButton artist={author} />}</div>
         <h1>{post.title}</h1><p className="meta">{post.discipline}{post.technique ? ` · ${post.technique}` : ''} · {formatDate(post.createdAt)}</p>
         {post.description && <p className="work-description">{post.description}</p>}
         {isPublic && <PostActions post={post} />}
@@ -78,7 +78,7 @@ function WorkDetail({ post }: { post: Post }) {
           {post.comments.length ? <ul className="comment-list">{post.comments.map(item => {
             const commenter = state.users.find(candidate => candidate.id === item.authorId)
             return <li key={item.id}><Avatar user={commenter ?? { name: 'Perfil no disponible', avatar: '' }} /><div className="comment-content"><div className="comment-heading">
-              {commenter?.status === 'active' ? <Link to={`/perfil/${commenter.id}`}><strong>{commenter.name}</strong></Link> : <strong>Perfil no disponible</strong>}<span>{relativeDate(item.createdAt)}</span></div><p>{item.text}</p></div>
+              {commenter?.status === 'active' ? <Link to={profilePath(commenter)}><strong>{commenter.name}</strong></Link> : <strong>Perfil no disponible</strong>}<span>{relativeDate(item.createdAt)}</span></div><p>{item.text}</p></div>
               {(item.authorId === user?.id || canManage(user)) && <IconButton icon={Trash2} label={`Eliminar comentario de ${commenter?.name ?? 'este perfil'}`} onClick={() => setConfirmation({ title: 'Eliminar comentario', description: 'El comentario se quitará de esta conversación local.', label: 'Eliminar comentario', dangerous: true, command: () => ({ type: 'delete-comment', postId: post.id, commentId: item.id }), success: 'Comentario eliminado.' })} />}
             </li>
           })}</ul> : <p className="muted">Todavía no hay comentarios.</p>}

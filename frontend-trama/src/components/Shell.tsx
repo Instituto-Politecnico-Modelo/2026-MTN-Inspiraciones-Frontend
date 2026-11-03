@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowUpRight, ChartNoAxesCombined, Compass, Flag, House, Images, Inbox, Info, LogOut, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
 import { Link, NavLink, Navigate, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
-import { canManage } from '../data/store'
+import { canManage, profilePath } from '../data/store'
 import { Avatar, EmptyState, Modal } from './UI'
 import { Brand } from './Brand'
 
@@ -60,14 +60,14 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
   const location = useLocation()
   const main = useRef<HTMLElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
-  const navigation = admin ? adminNavigation : userNavigation
+  const navigation = admin ? adminNavigation : userNavigation.map(item => item.path === '/perfil' && user ? { ...item, path: profilePath(user) } : item)
   useEffect(() => {
     main.current?.focus({ preventScroll: true })
     document.title = `${admin ? 'Administración · ' : ''}Trama`
   }, [location.pathname, admin])
 
   const links = (mobile = false) => (mobile && admin ? [adminNavigation[0], adminNavigation[2], adminNavigation[3]] : navigation).map(item =>
-    <NavLink key={item.path} to={item.path} className={({ isActive }) => isActive ? 'nav-item is-active' : 'nav-item'}>
+    <NavLink key={item.path} to={item.path} aria-label={item.label} title={item.label} className={({ isActive }) => isActive ? 'nav-item is-active' : 'nav-item'}>
       <item.icon size={22} strokeWidth={1.8} aria-hidden="true" /><span>{item.label}</span>
     </NavLink>)
   const publishLink = <Link key="publicar" className="nav-publish" to="/publicar" aria-label="Publicar una obra" title="Publicar una obra"><Plus size={22} strokeWidth={2} aria-hidden="true" /><span>Publicar</span></Link>
@@ -80,12 +80,12 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
       {admin && <span className="admin-marker">Administración</span>}
       <nav className="primary-nav" aria-label={admin ? 'Administración' : 'Principal'}>{links()}{!admin && <Link className="nav-publish nav-publish-side" to="/publicar" aria-label="Publicar una obra" title="Publicar una obra"><Plus size={22} strokeWidth={2} aria-hidden="true" /><span>Publicar</span></Link>}</nav>
       <div className="sidebar-bottom">
-        {admin ? <Link className="nav-item" to="/inicio"><ArrowUpRight size={21} aria-hidden="true" /><span>Ver comunidad</span></Link>
-          : canManage(user) && <Link className="nav-item" to="/admin/resumen"><ShieldCheck size={21} aria-hidden="true" /><span>Administración</span></Link>}
-        <Link className="nav-item" to="/acerca"><Info size={21} aria-hidden="true" /><span>Acerca de Trama</span></Link>
+        {admin ? <Link className="nav-item" to="/inicio" aria-label="Ver comunidad" title="Ver comunidad"><ArrowUpRight size={21} aria-hidden="true" /><span>Ver comunidad</span></Link>
+          : canManage(user) && <Link className="nav-item" to="/admin/resumen" aria-label="Administración" title="Administración"><ShieldCheck size={21} aria-hidden="true" /><span>Administración</span></Link>}
+        <Link className="nav-item" to="/acerca" aria-label="Acerca de Trama" title="Acerca de Trama"><Info size={21} aria-hidden="true" /><span>Acerca de Trama</span></Link>
         {user ? <>
-          <Link className="sidebar-profile" to="/perfil"><Avatar user={user} size="medium" /><span><strong>{user.name}</strong><small>@{user.handle}</small></span></Link>
-          <Link className="nav-item logout-link" to="/salir"><LogOut size={20} aria-hidden="true" /><span>Cerrar sesión</span></Link>
+          <Link className="sidebar-profile" to={profilePath(user)}><Avatar user={user} size="medium" /><span><strong>{user.name}</strong><small>@{user.handle}</small></span></Link>
+          <Link className="nav-item logout-link" to="/salir" aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={20} aria-hidden="true" /><span>Cerrar sesión</span></Link>
         </> : <Link className="button button-secondary sidebar-login" to="/ingresar">Ingresar</Link>}
       </div>
     </aside>

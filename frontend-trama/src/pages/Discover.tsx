@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { disciplines } from '../data/model'
 import { places } from '../data/seed'
-import { errorMessage, normalize, searchPosts, visiblePosts } from '../data/store'
+import { errorMessage, normalize, profilePath, searchPosts, visiblePosts } from '../data/store'
 import { Avatar, Button, EmptyState, ErrorMessage, Modal, PageTitle, SearchField, SelectField, Tabs } from '../components/UI'
 import { PostGrid } from '../components/PostCard'
 import { FollowButton } from '../components/FollowButton'
@@ -27,7 +27,7 @@ export function DiscoverPage() {
   const [searchError, setSearchError] = useState('')
   const [searching, setSearching] = useState(false)
   useEffect(() => {
-    if (tab !== 'artistas' || !artistQuery || !viewerId) return
+    if (tab !== 'artistas' || !viewerId) return
     let active = true
     const timeout = setTimeout(() => {
       setSearchError('')
@@ -68,7 +68,7 @@ export function DiscoverPage() {
     <PageTitle title="Descubrir" />
     <div className="discover-search"><SearchField value={query} onChange={value => update({ q: value })} label="Buscar en Descubrir" placeholder={tab === 'musica' ? 'Buscá música, samples o artistas' : tab === 'lugares' ? 'Buscá un espacio o un barrio' : 'Buscá obras, técnicas y artistas'} /></div>
     {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras o Artistas." />}
-    {tab === 'artistas' && artistQuery && searchError && <ErrorMessage message={searchError} />}
+    {tab === 'artistas' && searchError && <ErrorMessage message={searchError} />}
     <Tabs items={tabs} value={tab} label="Qué querés descubrir" onChange={value => update({ tipo: value, disciplina: '', tecnica: '', zona: '' })}>
       {tab !== 'lugares' ? <>
         <div className="filter-row">
@@ -77,9 +77,9 @@ export function DiscoverPage() {
           {tab !== 'artistas' && <SelectField label="Orden" value={order} onChange={event => update({ orden: event.target.value })} options={[{ value: 'seleccion', label: 'Selección' }, { value: 'recientes', label: 'Más recientes' }, { value: 'titulo', label: 'Por título' }]} />}
           {!!activeFilters && <Button variant="ghost" onClick={() => update({ disciplina: '', tecnica: '' })}>Limpiar filtros</Button>}
         </div>
-        <p className="filter-summary" role="status">{tab === 'artistas' ? searching && artistQuery ? 'Buscando artistas…' : `${artists.length} artistas` : `${posts.length} ${posts.length === 1 ? 'resultado' : 'resultados'}`}{query ? ` para «${query}»` : ''}{activeFilters ? ` · ${activeFilters} ${activeFilters === 1 ? 'filtro activo' : 'filtros activos'}` : ''}</p>
+        <p className="filter-summary" role="status">{tab === 'artistas' ? searching ? 'Buscando artistas…' : `${artists.length} artistas` : `${posts.length} ${posts.length === 1 ? 'resultado' : 'resultados'}`}{query ? ` para «${query}»` : ''}{activeFilters ? ` · ${activeFilters} ${activeFilters === 1 ? 'filtro activo' : 'filtros activos'}` : ''}</p>
         {tab === 'artistas' ? artists.length ? <div className="artist-grid">{artists.map(artist => <article className="artist-card" key={artist.id}>
-          <Link to={`/perfil/${artist.id}`}><Avatar user={artist} size="large" /><h2>{artist.name}</h2><p className="meta">@{artist.handle}</p></Link>
+          <Link to={profilePath(artist)}><Avatar user={artist} size="large" /><h2>{artist.name}</h2><p className="meta">@{artist.handle}</p></Link>
           <p className="artist-disciplines">{artist.disciplines.join(' · ')}</p><p>{artist.bio}</p><FollowButton artist={artist} />
         </article>)}</div> : empty : posts.length ? <PostGrid posts={posts} compact /> : empty}
       </> : <>

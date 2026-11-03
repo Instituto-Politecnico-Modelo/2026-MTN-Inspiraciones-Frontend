@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, CheckCircle2, LoaderCircle, X } from 'lucide-react'
-import { ApiRepository } from '../data/api'
+import { ApiRepository, type ProfileLookup } from '../data/api'
 import { errorMessage, newId } from '../data/store'
 import type { Command, DemoState, User } from '../data/model'
 import { Brand } from '../components/Brand'
@@ -16,6 +16,7 @@ export type Backend = {
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<string>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
   searchUsers?: (query: string) => Promise<User[]>
+  getProfile?: (lookup: ProfileLookup) => Promise<User>
   logout: () => void
   resolveId: (id: string) => string
 }
@@ -27,6 +28,7 @@ type Context = {
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<User>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
   searchUsers: (query: string) => Promise<void>
+  getProfile: (lookup: ProfileLookup) => Promise<void>
   logout: () => void
   resolveId: (id: string) => string
   notify: (text: string, kind?: Notice['kind']) => void
@@ -88,16 +90,22 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   const register = useCallback(async (input: { email: string; username: string; nombreCompleto: string; password: string }) => enter(await repository.register(input)), [enter, repository])
   const appeal = useCallback((input: { email: string; password: string; mensaje: string }) => repository.appeal(input), [repository])
 
-  const searchUsers = useCallback(async (query: string) => {
-    if (!repository.searchUsers) return
-    const users = await repository.searchUsers(query)
+  const mergeUsers = useCallback((users: User[]) => {
     setState(previous => {
       if (!previous) return previous
       const merged = new Map(previous.users.map(user => [user.id, user]))
       users.forEach(user => merged.set(user.id, user))
       return { ...previous, users: [...merged.values()] }
     })
-  }, [repository])
+  }, [])
+
+  const searchUsers = useCallback(async (query: string) => {
+    if (repository.searchUsers) mergeUsers(await repository.searchUsers(query))
+  }, [repository, mergeUsers])
+
+  const getProfile = useCallback(async (lookup: ProfileLookup) => {
+    if (repository.getProfile) mergeUsers([await repository.getProfile(lookup)])
+  }, [repository, mergeUsers])
 
   const logout = useCallback(() => {
     repository.logout()
@@ -115,7 +123,7 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   </main>
 
   const user = state.users.find(candidate => candidate.id === userId && candidate.status !== 'deleted') ?? null
-  return <DemoContext.Provider value={{ state, user, execute, login, register, appeal, searchUsers, logout, resolveId: repository.resolveId, notify }}>
+  return <DemoContext.Provider value={{ state, user, execute, login, register, appeal, searchUsers, getProfile, logout, resolveId: repository.resolveId, notify }}>
     {children}
     {notice && <div className={`toast toast-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
       {notice.kind === 'error' ? <AlertCircle size={20} aria-hidden="true" /> : <CheckCircle2 size={20} aria-hidden="true" />}

@@ -54,7 +54,7 @@ export function AccessPage({ register = false }: { register?: boolean }) {
         <form className="form-stack" onSubmit={event => void submit(event)}>
           {register && <>
             <Field label="Nombre visible" value={name} onChange={event => setName(event.target.value)} autoComplete="nickname" required minLength={2} maxLength={80} placeholder="Cómo te gusta que te llamen" />
-            <Field label="Nombre de usuario" value={handle} onChange={event => setHandle(event.target.value.toLowerCase())} autoComplete="username" required pattern="[a-z0-9._]{3,10}" maxLength={10} hint="Entre 3 y 10 letras, números, puntos o guiones bajos." placeholder="tu.nombre" />
+            <Field label="Nombre de usuario" value={handle} onChange={event => setHandle(event.target.value.toLowerCase())} autoComplete="username" required pattern="[a-z0-9._\-]{3,50}" maxLength={50} hint="Entre 3 y 50 letras, números, puntos, guiones o guiones bajos." placeholder="tu.nombre" />
           </>}
           <Field label="Correo" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" required maxLength={254} />
           <div className="password-field">

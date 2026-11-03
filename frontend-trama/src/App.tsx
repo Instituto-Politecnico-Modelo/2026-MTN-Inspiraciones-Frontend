@@ -80,6 +80,7 @@ export function createAppRoutes(repository?: Backend): RouteObject[] {
           { path: 'obra/:id/editar', element: <RequireAccount><PublishPage /></RequireAccount> },
           { path: 'apelacion', element: <AppealPage /> },
           { path: 'acerca', lazy: async () => ({ Component: (await import('./pages/About')).AboutPage }) },
+          { path: ':username', element: <ProfilePage /> },
           { path: '*', element: <MissingPage /> },
         ],
       },
