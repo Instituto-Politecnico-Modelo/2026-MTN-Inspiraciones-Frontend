@@ -99,6 +99,23 @@ describe('integracion de rutas', () => {
     expect(screen.getByRole('tab', { name: 'Para vos' })).toHaveAttribute('aria-selected', 'true')
   })
 
+  it('ofrece notificaciones a las cuentas que iniciaron sesión', async () => {
+    openRoute('/inicio', 'mora')
+    await screen.findByRole('heading', { name: 'Inicio' })
+    expect(screen.getByRole('button', { name: 'Notificaciones' })).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: 'Notificaciones' }))
+    expect(screen.getByRole('dialog', { name: 'Notificaciones' })).toBeVisible()
+    expect(screen.getByRole('checkbox', { name: 'Notificaciones de este dispositivo' })).not.toBeChecked()
+  })
+
+  it('elimina el dispositivo de notificaciones al cerrar sesion', async () => {
+    localStorage.setItem('trama-push-device', JSON.stringify({ userId: 'mora', token: 'device-test' }))
+    openRoute('/salir', 'mora')
+    await screen.findByRole('heading', { name: 'Ingresar' })
+    expect(localStorage.getItem('trama-push-device')).toBeNull()
+    localStorage.clear()
+  })
+
   it('protege Publicar y conserva el destino solicitado', async () => {
     const destination = '/publicar?desafio=consigna-local'
     const current = openRoute(destination)

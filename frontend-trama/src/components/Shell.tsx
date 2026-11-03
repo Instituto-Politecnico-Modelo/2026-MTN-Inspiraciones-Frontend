@@ -5,6 +5,7 @@ import { useDemo } from '../context/DemoContext'
 import { canManage, profilePath } from '../data/store'
 import { Avatar, EmptyState, Modal } from './UI'
 import { Brand } from './Brand'
+import { Notifications } from './Notifications'
 
 export const userNavigation = [
   { path: '/inicio', label: 'Inicio', icon: House },
@@ -93,6 +94,7 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
       <header className="site-header">
         <Link className="mobile-brand" to={admin ? '/admin/resumen' : '/inicio'} aria-label="Trama, ir al inicio"><Brand /></Link>
         <div className="header-actions">
+          {user?.status === 'active' && <Notifications key={user.id} />}
           {admin && <Link className="button button-secondary" to="/inicio" aria-label="Comunidad" title="Ver comunidad"><ArrowUpRight size={19} aria-hidden="true" /><span className="desktop-label">Comunidad</span></Link>}
         </div>
       </header>

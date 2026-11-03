@@ -84,6 +84,10 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .modal-heading .icon-button { margin-right: -8px; margin-top: -4px; }
 .modal > .muted { margin-bottom: 24px; }
 .modal form { margin-top: 16px; }
+.notification-list { list-style: none; padding: 0; margin: 20px 0 0; }
+.notification-list li + li { border-top: 1px solid var(--border); }
+.notification-list a { display: block; padding-block: 14px; overflow-wrap: anywhere; }
+.notification-list p { color: var(--muted); font-size: .875rem; margin-top: 4px; }
 .toast { position: fixed; bottom: 24px; left: calc(50% + var(--sidebar) / 2); transform: translateX(-50%); z-index: 60; width: max-content; max-width: min(620px, calc(100% - 32px)); display: flex; align-items: center; gap: 12px; padding: 10px 8px 10px 16px; border: 1px solid var(--border-control); border-radius: var(--control-radius); background: var(--surface); box-shadow: 0 4px 24px #2023271a; font-size: .875rem; }
 .toast > svg { color: var(--success); flex-shrink: 0; }
 .toast-error { border-color: var(--error); }

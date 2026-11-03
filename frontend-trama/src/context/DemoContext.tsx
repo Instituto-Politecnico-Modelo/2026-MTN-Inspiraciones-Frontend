@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, CheckCircle2, LoaderCircle, X } from 'lucide-react'
-import { ApiRepository, type ProfileLookup } from '../data/api'
+import { ApiRepository, getToken, type ProfileLookup } from '../data/api'
+import { disableNotifications } from '../data/push'
 import { errorMessage, newId } from '../data/store'
 import type { Command, DemoState, User } from '../data/model'
 import { Brand } from '../components/Brand'
@@ -86,8 +87,14 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
     return candidate
   }, [repository])
 
-  const login = useCallback(async (email: string, password: string) => enter(await repository.login(email, password)), [enter, repository])
-  const register = useCallback(async (input: { email: string; username: string; nombreCompleto: string; password: string }) => enter(await repository.register(input)), [enter, repository])
+  const login = useCallback(async (email: string, password: string) => {
+    await disableNotifications(getToken() ?? '').catch(() => undefined)
+    return enter(await repository.login(email, password))
+  }, [enter, repository])
+  const register = useCallback(async (input: { email: string; username: string; nombreCompleto: string; password: string }) => {
+    await disableNotifications(getToken() ?? '').catch(() => undefined)
+    return enter(await repository.register(input))
+  }, [enter, repository])
   const appeal = useCallback((input: { email: string; password: string; mensaje: string }) => repository.appeal(input), [repository])
 
   const mergeUsers = useCallback((users: User[]) => {
@@ -110,8 +117,10 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   }, [repository, mergeUsers])
 
   const logout = useCallback(() => {
+    void disableNotifications(getToken() ?? '').catch(() => undefined)
     repository.logout()
     setUserId(null)
+    setNotice(null)
     void refresh().catch(error => console.error('[Trama] No se pudo actualizar tras cerrar sesión.', error))
   }, [refresh, repository])
 

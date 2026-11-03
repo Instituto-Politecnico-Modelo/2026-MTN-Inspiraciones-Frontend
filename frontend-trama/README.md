@@ -29,6 +29,7 @@ En el entorno `testing`, ambos servicios usan el mismo dominio HTTPS:
 | --- | --- | --- | --- | --- |
 | Frontend | `/` | `80` | `/` | Desactivado |
 | API | `/api` | `8080` | `/` | Desactivado |
+| Push | `/api/push-notifications` | `3001` | `/` | Desactivado |
 
 Dokploy envia `/api` directamente al backend, conservando el prefijo que
 esperan sus endpoints. La ruta debe ser **`/api` en minusculas**, no `/API`.
@@ -39,6 +40,36 @@ Si el registro responde `404` con "El recurso ya no esta disponible", comprobar
 la ruta del dominio del servicio API: si no coincide, la solicitud llega al
 Nginx del frontend, que rechaza `/api`. No hace falta reconstruir el frontend
 para corregir esa ruta en Dokploy.
+
+## Notificaciones
+
+La campana esta disponible para cuentas activas. La activacion solicita permiso
+al navegador y registra el token FCM con el JWT de la cuenta. Las notificaciones
+recibidas con Trama abierta aparecen como avisos y en el dialogo de la campana;
+en segundo plano, `public/push-sw.js` muestra la notificacion del sistema.
+El dialogo conserva solo los avisos de la sesion, no un historial del servidor.
+Al salir o cambiar de cuenta se desactiva la suscripcion local y se solicita la
+baja del token, incluso si falla la conexion con el servidor.
+
+Requiere HTTPS (o localhost) y el servicio Push en el mismo origen. El proxy de
+desarrollo y preview envia `/api/push-notifications` a `localhost:3001`, antes
+del proxy general a Spring. El SDK de Firebase se carga solo al activar o
+reconectar un dispositivo, no al abrir Inicio por primera vez.
+
+Push expone `GET /api/push-notifications/config` con estos campos publicos:
+`apiKey`, `appId`, `projectId`, `messagingSenderId` y `vapidKey`. Configurar en
+ese servicio `FIREBASE_WEB_API_KEY`, `FIREBASE_WEB_APP_ID`, `FIREBASE_PROJECT_ID`,
+`FIREBASE_MESSAGING_SENDER_ID` y `FIREBASE_VAPID_KEY` del mismo proyecto Firebase.
+No colocar la clave privada de Firebase Admin en el frontend.
+
+El circuito de likes y comentarios usa `EVENTOS_MODULE_ENABLED=true`,
+`EVENTOS_MODULE_URL` (URL privada de Eventos) y `EVENTOS_MODULE_API_KEY` en
+Spring; la clave debe coincidir con `EVENTS_API_KEY` de Eventos. Eventos y Push
+deben compartir `REDIS_URL`. No requiere habilitar el outbox experimental.
+
+Antes de reiniciar Spring en Dokploy, respaldar los archivos de imagen y
+configurar su almacenamiento persistente. Cambiar variables no aplica la
+configuracion a procesos que ya estan ejecutandose.
 
 ## Sesion y datos
 
