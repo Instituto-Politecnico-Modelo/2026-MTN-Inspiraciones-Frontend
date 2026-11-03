@@ -1,8 +1,8 @@
 # Trama
 
 Comunidad de artistas con publicación de imágenes y audio, descubrimiento,
-carpetas privadas, desafíos y administración. La aplicación vigente es una
-**demo local persistente, sin backend ni autenticación real**.
+carpetas privadas, desafíos y administración. La aplicación se conecta a la
+**API Spring Boot de `2026-MTN-Inspiraciones-Api`**, incluida la autenticación.
 
 ## Estructura
 
@@ -19,7 +19,8 @@ retirados del árbol actual. Su historia permanece en Git.
 
 ## Ejecutar
 
-Requiere **Node.js >=24.15.0**. Desde la raíz del repositorio:
+Requiere **Node.js >=24.15.0** y el backend en `http://localhost:8080`.
+Desde la raíz del repositorio:
 
 ```sh
 npm --prefix frontend-trama ci --ignore-scripts
@@ -30,9 +31,8 @@ Abrir <http://127.0.0.1:5180/>. En PowerShell se puede usar `npm.cmd` si la
 política de ejecución bloquea `npm`. Si el puerto está ocupado, añadir
 `-- --port 5181` al comando de desarrollo.
 
-En `/ingresar`, **Como artista** y **Como admin** permiten recorrer ambos roles.
-Los datos se guardan en el navegador; `/acerca` permite cambiar de perfil y
-reiniciar la demo con confirmación. No usar credenciales ni datos personales reales.
+El ingreso y el registro usan la API real. El servidor de desarrollo reenvía
+`/api` al backend; los datos se guardan en ese servicio.
 
 La guía funcional, los recursos y los límites están en
 [frontend-trama/README.md](frontend-trama/README.md).
@@ -74,11 +74,24 @@ lectura de paquetes. El environment `testing` conserva estos secrets:
 | `DOKPLOY_APPLICATION_ID` | Identificador de la aplicación en Dokploy. |
 
 El workflow usa `GITHUB_TOKEN` para publicar en GHCR. Trama no necesita los
-antiguos argumentos `VITE_API_URL`, mocks, OAuth o geolocalización.
+antiguos argumentos de compilación `VITE_API_URL`, mocks, OAuth o geolocalización.
+En el entorno `testing`, **Domains** publica ambos servicios en el mismo host
+HTTPS `dev-inspiraciones.policloudservices.ipm.edu.ar`:
+
+| Servicio | Path | Container Port | Internal Path | Strip Path |
+| --- | --- | --- | --- | --- |
+| Frontend | `/` | `80` | `/` | Desactivado |
+| API | `/api` | `8080` | `/` | Desactivado |
+
+La ruta del backend debe ser `/api` en minúsculas, no `/API`. Dokploy envía las
+peticiones directamente a la API, conservando el prefijo `/api`. No se necesita
+`API_UPSTREAM` ni reconstruir el frontend para corregir esta ruta.
 
 La imagen utiliza Node 24.21.0 para compilar y Nginx para servir el resultado.
 Incluye `/healthz`, retorno al HTML de la SPA para rutas de navegación y respuestas
-404 para recursos inexistentes y solicitudes a `/api`. No incorpora un backend.
+404 para recursos inexistentes y solicitudes a `/api` que lleguen al frontend.
+No incorpora un backend: debe estar desplegado por separado. Un 404 de Nginx
+durante el registro indica que hay que revisar el enrutamiento del servicio API.
 El éxito del job significa que Dokploy aceptó la solicitud; el resultado final
 del despliegue se consulta en su panel.
 
@@ -86,13 +99,12 @@ Prueba local, con el motor de Docker ejecutándose:
 
 ```sh
 docker build -t trama-frontend ./frontend-trama
-docker run --rm -p 127.0.0.1:8080:80 trama-frontend
+docker run --rm -p 127.0.0.1:8081:80 trama-frontend
 ```
 
-Abrir <http://127.0.0.1:8080/> o consultar `/healthz` en ese puerto. Durante la
-limpieza del repositorio el motor de Docker no estaba disponible: la construcción
-y ejecución del contenedor quedan pendientes de comprobar. No se publicó ni
-desplegó ninguna imagen como parte de esta limpieza.
+Abrir <http://127.0.0.1:8081/> o consultar `/healthz` en ese puerto.
+Este contenedor aislado no conecta `/api`: para los flujos completos usar el
+servidor de desarrollo con el backend o el enrutamiento de Dokploy indicado.
 
 ## Continuar el trabajo
 

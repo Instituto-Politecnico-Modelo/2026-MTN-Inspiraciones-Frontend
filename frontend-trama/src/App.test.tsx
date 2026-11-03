@@ -188,6 +188,67 @@ describe('integracion de rutas', () => {
     expect(counts?.children[2]).toHaveTextContent(/^2 seguidos$/)
   })
 
+  it('perfil: abre sus seguidos y permite visitar un perfil desde la lista', async () => {
+    const user = userEvent.setup()
+    const current = openRoute('/perfil', 'mora')
+    await user.click(await screen.findByRole('button', { name: '2 seguidos' }))
+    const dialog = screen.getByRole('dialog', { name: 'Seguidos' })
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(2)
+    const state = await repository.load()
+    for (const id of ['lara', 'mateo']) {
+      const person = state.users.find(candidate => candidate.id === id)!
+      const link = within(dialog).getByRole('link', { name: `${person.name} @${person.handle}` })
+      expect(link).toHaveAttribute('href', `/perfil/${id}`)
+    }
+    expect(within(dialog).queryByRole('link', { name: /Julia Pardo/ })).not.toBeInTheDocument()
+    const lara = state.users.find(candidate => candidate.id === 'lara')!
+    await user.click(within(dialog).getByRole('link', { name: `${lara.name} @${lara.handle}` }))
+    expect(await screen.findByRole('heading', { name: lara.name, level: 1 })).toBeVisible()
+    expect(current.state.location.pathname).toBe('/perfil/lara')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('perfil: abre sus seguidores con teclado y devuelve el foco al cerrar', async () => {
+    const user = userEvent.setup()
+    openRoute('/perfil', 'mora')
+    const trigger = await screen.findByRole('button', { name: '1 seguidor' })
+    trigger.focus()
+    await user.keyboard('{Enter}')
+    const dialog = screen.getByRole('dialog', { name: 'Seguidores' })
+    const state = await repository.load()
+    const follower = state.users.find(candidate => candidate.id === 'julia')!
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(1)
+    expect(within(dialog).getByRole('link', { name: `${follower.name} @${follower.handle}` })).toHaveAttribute('href', '/perfil/julia')
+    await user.click(within(dialog).getByRole('button', { name: 'Cerrar diálogo' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+    await user.click(trigger)
+    fireEvent(screen.getByRole('dialog', { name: 'Seguidores' }), new Event('cancel', { cancelable: true }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it.each([
+    { button: '0 seguidores', title: 'Seguidores', empty: 'Todavía no tenés seguidores' },
+    { button: '0 seguidos', title: 'Seguidos', empty: 'Todavía no seguís a nadie' },
+  ])('perfil: muestra un estado vacio al abrir $title', async ({ button, title, empty }) => {
+    const user = userEvent.setup()
+    openRoute('/perfil', 'nico')
+    await user.click(await screen.findByRole('button', { name: button }))
+    const dialog = screen.getByRole('dialog', { name: title })
+    expect(within(dialog).getByRole('heading', { name: empty })).toBeVisible()
+    expect(within(dialog).queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('perfil: muestra los seguidores de otro artista sin confundirlos con los propios', async () => {
+    const user = userEvent.setup()
+    openRoute('/perfil/lara', 'mora')
+    await user.click(await screen.findByRole('button', { name: '1 seguidor' }))
+    const dialog = screen.getByRole('dialog', { name: 'Seguidores' })
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(1)
+    expect(within(dialog).getByRole('link', { name: /Mora Vidal @/ })).toHaveAttribute('href', '/perfil/mora')
+  })
+
   it('admin: muestra cantidades en singular para una apelacion pendiente', async () => {
     openRoute('/admin/resumen', 'admin')
     expect(await screen.findByRole('link', { name: /^1 apelaci.n pendiente$/ })).toBeVisible()

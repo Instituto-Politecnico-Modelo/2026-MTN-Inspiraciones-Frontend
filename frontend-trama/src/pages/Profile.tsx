@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Ban, Bookmark, FolderLock, Grid2X2, LockKeyhole, LogOut, MapPin, MoreHorizontal, Pencil, Plus, ShieldCheck, SlidersHorizontal, Trash2, Trophy } from 'lucide-react'
+import { Ban, Bookmark, FolderLock, Grid2X2, LockKeyhole, LogOut, MapPin, MoreHorizontal, Pencil, Plus, ShieldCheck, SlidersHorizontal, Trash2, Trophy, UsersRound } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import type { Folder } from '../data/model'
@@ -50,6 +50,7 @@ export function ProfilePage() {
   const [params, setParams] = useSearchParams()
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [connections, setConnections] = useState<'seguidores' | 'seguidos' | null>(null)
   const profile = state.users.find(candidate => candidate.id === (id ?? user?.id) && candidate.status === 'active')
   if (!profile) return <EmptyState title="Este perfil no está disponible" description="Puede que el enlace no sea correcto o que el perfil ya no esté visible." action={<Link className="button button-secondary" to="/descubrir?tipo=artistas">Descubrir artistas</Link>} />
   const own = user?.id === profile.id
@@ -59,13 +60,19 @@ export function ProfilePage() {
   const works = own ? state.posts.filter(post => post.authorId === profile.id && post.status !== 'deleted') : publicWorks.filter(post => post.authorId === profile.id)
   const folders = privateFolders(state, profile.id, user?.id ?? null)
   const publishedCount = publicWorks.filter(post => post.authorId === profile.id).length
-  const followers = state.follows.filter(follow => follow.followingId === profile.id).length
-  const following = state.follows.filter(follow => follow.followerId === profile.id).length
+  const followerIds = new Set(state.follows.filter(follow => follow.followingId === profile.id).map(follow => follow.followerId))
+  const followingIds = new Set(state.follows.filter(follow => follow.followerId === profile.id).map(follow => follow.followingId))
+  const followers = state.users.filter(person => person.status === 'active' && followerIds.has(person.id))
+  const following = state.users.filter(person => person.status === 'active' && followingIds.has(person.id))
+  const connectionList = connections === 'seguidores' ? followers : following
   return <>
     <section className="profile-heading">
       <Avatar user={profile} size="large" />
       <div className="profile-identity"><h1>{profile.name}</h1><p className="meta">@{profile.handle}</p><p className="profile-disciplines">{profile.disciplines.join(' · ') || 'Un espacio para empezar a crear'}</p>
-        <div className="profile-counts"><span><strong>{publishedCount}</strong> {publishedCount === 1 ? 'obra' : 'obras'}</span><span><strong>{followers}</strong> {followers === 1 ? 'seguidor' : 'seguidores'}</span><span><strong>{following}</strong> {following === 1 ? 'seguido' : 'seguidos'}</span></div>
+        <div className="profile-counts"><span><strong>{publishedCount}</strong> {publishedCount === 1 ? 'obra' : 'obras'}</span>
+          <button type="button" className="profile-count" aria-haspopup="dialog" onClick={() => setConnections('seguidores')}><strong>{followers.length}</strong> {followers.length === 1 ? 'seguidor' : 'seguidores'}</button>
+          <button type="button" className="profile-count" aria-haspopup="dialog" onClick={() => setConnections('seguidos')}><strong>{following.length}</strong> {following.length === 1 ? 'seguido' : 'seguidos'}</button>
+        </div>
       </div>
       <div className="profile-actions">{own ? <><Link className="button button-secondary" to="/perfil/editar"><Pencil size={17} aria-hidden="true" />Editar perfil</Link><IconButton icon={MoreHorizontal} label="Opciones de tu perfil" onClick={() => setMenuOpen(true)} /></> : <><FollowButton artist={profile} /><BlockButton artist={profile} /></>}</div>
     </section>
@@ -90,6 +97,17 @@ export function ProfilePage() {
           })}</div> : <EmptyState icon={FolderLock} title="Dale un lugar a lo que te inspira" description="Creá carpetas privadas y guardá obras con el marcador que aparece en cada publicación." action={<Button onClick={() => setCreatingFolder(true)}>Crear mi primera carpeta</Button>} />}
         </>}
     </Tabs>
+    {connections && <Modal open title={connections === 'seguidores' ? 'Seguidores' : 'Seguidos'}
+      description={connections === 'seguidores' ? own ? 'Personas que te siguen.' : `Personas que siguen a ${profile.name}.` : own ? 'Personas que seguís.' : `Personas que sigue ${profile.name}.`}
+      onClose={() => setConnections(null)}>
+      {connectionList.length ? <ul className="connection-list">{connectionList.map(person => <li key={person.id}>
+        <Link className="artist-link" to={`/perfil/${person.id}`} onClick={() => setConnections(null)}>
+          <Avatar user={person} size="medium" /><span><strong>{person.name}</strong> <small>@{person.handle}</small></span>
+        </Link>
+      </li>)}</ul> : <EmptyState icon={UsersRound}
+        title={connections === 'seguidores' ? own ? 'Todavía no tenés seguidores' : 'Todavía no tiene seguidores' : own ? 'Todavía no seguís a nadie' : 'Todavía no sigue a nadie'}
+        description={connections === 'seguidores' ? 'Cuando alguien siga este perfil, va a aparecer acá.' : 'Las personas que siga este perfil van a aparecer acá.'} />}
+    </Modal>}
     {creatingFolder && <FolderNameDialog onClose={() => setCreatingFolder(false)} />}
     {menuOpen && <Modal open title="Tu perfil" onClose={() => setMenuOpen(false)}><nav className="profile-menu">
       <Link className="nav-item" to="/cuestionario"><SlidersHorizontal size={21} aria-hidden="true" />Editar intereses</Link>

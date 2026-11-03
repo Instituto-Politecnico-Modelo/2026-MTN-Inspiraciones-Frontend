@@ -249,7 +249,15 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .profile-identity { min-width: 0; }
 .profile-identity > .meta { margin-top: 4px; }
 .profile-disciplines { margin-top: 12px; color: var(--muted); font-size: .875rem; }
-.profile-counts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 12px; font-size: .875rem; }
+.profile-counts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; margin-top: 12px; font-size: .875rem; }
+.profile-count { min-height: 44px; padding: 0; border: 0; background: transparent; font-size: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.profile-count:hover { color: var(--action); }
+.connection-list { list-style: none; margin: 0; padding: 0; }
+.connection-list > li + li { border-top: 1px solid var(--border); }
+.connection-list .artist-link { flex-wrap: nowrap; gap: 12px; margin: 0; padding-block: 12px; min-height: 60px; }
+.connection-list .artist-link > span:not(.avatar) { min-width: 0; overflow-wrap: anywhere; }
+.connection-list strong, .connection-list small { display: block; }
+.connection-list strong { color: var(--text); }
 .profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .profile-bio { max-width: 720px; margin-block: 24px 32px; }
 .profile-bio > p { white-space: pre-line; }

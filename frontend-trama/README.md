@@ -20,6 +20,26 @@ El servidor de desarrollo y `preview` redirigen `/api` a la API mediante el prox
 de `vite.config.ts` (la API no define CORS). En produccion, servir `/api` y el
 frontend bajo el mismo origen.
 
+## Desplegar en Dokploy
+
+En el entorno `testing`, ambos servicios usan el mismo dominio HTTPS:
+`dev-inspiraciones.policloudservices.ipm.edu.ar`. En **Domains**, configurar:
+
+| Servicio | Path | Container Port | Internal Path | Strip Path |
+| --- | --- | --- | --- | --- |
+| Frontend | `/` | `80` | `/` | Desactivado |
+| API | `/api` | `8080` | `/` | Desactivado |
+
+Dokploy envia `/api` directamente al backend, conservando el prefijo que
+esperan sus endpoints. La ruta debe ser **`/api` en minusculas**, no `/API`.
+El backend debe estar desplegado por separado; esta imagen no lo incluye.
+No hace falta configurar `API_UPSTREAM` ni `VITE_API_URL` con este enrutamiento.
+
+Si el registro responde `404` con "El recurso ya no esta disponible", comprobar
+la ruta del dominio del servicio API: si no coincide, la solicitud llega al
+Nginx del frontend, que rechaza `/api`. No hace falta reconstruir el frontend
+para corregir esa ruta en Dokploy.
+
 ## Sesion y datos
 
 - Ingreso, registro y apelaciones usan los endpoints reales de autenticacion.
@@ -37,6 +57,13 @@ frontend bajo el mismo origen.
 - La API no informa que obras reaccionó el usuario; los "me gusta" propios se
   recuerdan en el navegador.
 - El nombre de usuario admite hasta 10 caracteres.
+
+## Perfil
+
+Los contadores de seguidores y seguidos abren una ventana con las cuentas
+activas de cada lista. Cada fila muestra avatar, nombre y @usuario, y permite
+visitar el perfil. Si la lista esta vacia, se muestra un mensaje explicativo.
+La ventana se cierra con su boton de cierre o con Escape.
 
 ## Pruebas
 
