@@ -40,20 +40,21 @@ describe('integracion de rutas', () => {
     Object.assign(repository, { searchUsers })
     openRoute('/descubrir?tipo=artistas', 'mora')
 
-    expect(await screen.findByRole('link', { name: /Artista Remota/ })).toHaveAttribute('href', '/remota')
+    expect(await screen.findByRole('link', { name: /Artista Remota/ })).toHaveAttribute('href', '/user/remota')
     expect(searchUsers).toHaveBeenCalledWith('')
   })
 
-  it('abre un perfil remoto por nombre de usuario desde una sesión nueva', async () => {
+  it.each(['/user/remota', '/remota'])('abre un perfil remoto desde una sesión nueva en %s', async path => {
     const state = await repository.load()
     const remote = { ...state.users.find(user => user.id === 'mora')!, id: 'remote-user', name: 'Artista Remota', handle: 'remota' }
     const getProfile = vi.fn().mockResolvedValue(remote)
     Object.assign(repository, { getProfile })
-    openRoute('/remota')
+    const current = openRoute(path)
 
     expect(await screen.findByRole('heading', { name: 'Artista Remota', level: 1 })).toBeVisible()
     expect(getProfile).toHaveBeenCalledWith({ username: 'remota' })
-    expect(screen.getByRole('link', { name: 'Ingresar para ver las obras' })).toHaveAttribute('href', '/ingresar?volver=%2Fremota')
+    await waitFor(() => expect(current.state.location.pathname).toBe('/user/remota'))
+    expect(screen.getByRole('link', { name: 'Ingresar para ver las obras' })).toHaveAttribute('href', '/ingresar?volver=%2Fuser%2Fremota')
     expect(screen.queryByText('Todavía no hay obras para mostrar')).not.toBeInTheDocument()
   })
 
@@ -249,7 +250,7 @@ describe('integracion de rutas', () => {
   it('redirige los enlaces anteriores al nombre de usuario conservando la pestaña', async () => {
     const current = openRoute('/perfil/mora?vista=guardados', 'mora')
     await screen.findByRole('heading', { name: 'Mora Vidal', level: 1 })
-    await waitFor(() => expect(current.state.location.pathname).toBe('/moravidal'))
+    await waitFor(() => expect(current.state.location.pathname).toBe('/user/moravidal'))
     expect(current.state.location.search).toBe('?vista=guardados')
   })
 
@@ -263,13 +264,13 @@ describe('integracion de rutas', () => {
     for (const id of ['lara', 'mateo']) {
       const person = state.users.find(candidate => candidate.id === id)!
       const link = within(dialog).getByRole('link', { name: `${person.name} @${person.handle}` })
-      expect(link).toHaveAttribute('href', `/${person.handle}`)
+      expect(link).toHaveAttribute('href', `/user/${person.handle}`)
     }
     expect(within(dialog).queryByRole('link', { name: /Julia Pardo/ })).not.toBeInTheDocument()
     const lara = state.users.find(candidate => candidate.id === 'lara')!
     await user.click(within(dialog).getByRole('link', { name: `${lara.name} @${lara.handle}` }))
     expect(await screen.findByRole('heading', { name: lara.name, level: 1 })).toBeVisible()
-    expect(current.state.location.pathname).toBe(`/${lara.handle}`)
+    expect(current.state.location.pathname).toBe(`/user/${lara.handle}`)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
@@ -283,7 +284,7 @@ describe('integracion de rutas', () => {
     const state = await repository.load()
     const follower = state.users.find(candidate => candidate.id === 'julia')!
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(1)
-    expect(within(dialog).getByRole('link', { name: `${follower.name} @${follower.handle}` })).toHaveAttribute('href', `/${follower.handle}`)
+    expect(within(dialog).getByRole('link', { name: `${follower.name} @${follower.handle}` })).toHaveAttribute('href', `/user/${follower.handle}`)
     await user.click(within(dialog).getByRole('button', { name: 'Cerrar diálogo' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(trigger).toHaveFocus()
@@ -311,7 +312,7 @@ describe('integracion de rutas', () => {
     await user.click(await screen.findByRole('button', { name: '1 seguidor' }))
     const dialog = screen.getByRole('dialog', { name: 'Seguidores' })
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(1)
-    expect(within(dialog).getByRole('link', { name: /Mora Vidal @/ })).toHaveAttribute('href', '/moravidal')
+    expect(within(dialog).getByRole('link', { name: /Mora Vidal @/ })).toHaveAttribute('href', '/user/moravidal')
   })
 
   it('admin: muestra cantidades en singular para una apelacion pendiente', async () => {

@@ -9,15 +9,9 @@ export { createSeed } from './seed'
 export const newId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`
 export const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
-const reservedProfilePaths = new Set([
-  'ingresar', 'registro', 'recuperar', 'salir', 'admin', 'inicio', 'descubrir', 'desafios',
-  'perfil', 'carpeta', 'cuestionario', 'publicar', 'obra', 'apelacion', 'acerca', 'api',
-  'assets', 'media', 'marca', 'fonts', 'licenses', 'healthz', 'favicon.ico', 'index.html', 'robots.txt', 'sitemap.xml',
-])
-
 export function profilePath(user: Pick<User, 'id' | 'handle'>) {
   const username = user.handle.trim().toLowerCase()
-  return !username || reservedProfilePaths.has(username) ? `/perfil/${encodeURIComponent(user.id)}` : `/${encodeURIComponent(username)}`
+  return username ? `/user/${encodeURIComponent(username)}` : `/perfil/${encodeURIComponent(user.id)}`
 }
 
 export function errorMessage(error: unknown): string {

@@ -97,12 +97,14 @@ del despliegue se consulta en su panel.
 
 ### Perfiles y publicaciones
 
-Los enlaces de perfiles usan `/nombre-de-usuario`. Los enlaces anteriores
-`/perfil` y `/perfil/:id` siguen funcionando y redirigen al nombre actual.
+Los enlaces de perfiles usan `/user/nombre-de-usuario`. Los enlaces anteriores
+`/nombre-de-usuario`, `/perfil` y `/perfil/:id` siguen funcionando y redirigen
+a la nueva ruta, conservando los parametros de la pestaña seleccionada.
 Los nombres admiten entre 3 y 50 letras ASCII, numeros, puntos, guiones y guiones
 bajos; la API controla la unicidad sin distinguir mayusculas y minusculas y
 reserva los nombres de las rutas de la aplicacion. Las cuentas antiguas con
-un nombre reservado conservan su enlace por ID.
+un nombre reservado tambien usan `/user/nombre-de-usuario`, sin colisionar con
+esas rutas.
 
 Descubrir > Artistas consulta el directorio compartido aun sin escribir una
 busqueda (hasta 100 cuentas activas). La busqueda encuentra coincidencias dentro
