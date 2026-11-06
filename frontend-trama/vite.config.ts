@@ -2,8 +2,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 const proxy = {
-  '/api/push-notifications': { target: 'http://localhost:3001', changeOrigin: true },
-  '/api': { target: 'http://localhost:8080', changeOrigin: true },
+  '/api/push-notifications': { target: process.env.PUSH_NOTIFICATIONS_URL || 'http://localhost:3001', changeOrigin: true },
+  '/api': { target: process.env.API_PROXY_TARGET || 'http://localhost:8080', changeOrigin: true },
 }
 
 export default defineConfig({

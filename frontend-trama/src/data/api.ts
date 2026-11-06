@@ -111,6 +111,24 @@ async function http<T = Json>(method: string, path: string, body?: unknown, form
   return payload as T
 }
 
+export type ExcelReport = { id: string; tipoReporte: string; estado: string; motivoError?: string | null }
+const excelReportsPath = '/api/admin/reportes/excel'
+export const excelReports = {
+  request: (tipoReporte: string, fechaInicio: string, fechaFin: string) =>
+    http<ExcelReport>('POST', excelReportsPath, { tipoReporte, rangoDeFechas: { fechaInicio, fechaFin } }),
+  status: (id: string) => http<ExcelReport>('GET', `${excelReportsPath}/${encodeURIComponent(id)}`),
+  history: () => http<{ items: (Omit<ExcelReport, 'id'> & { solicitudId: string })[] }>('GET', `${excelReportsPath}/historial`),
+  async download(id: string) {
+    const token = getToken()
+    if (!token) throw new Error('Iniciá sesión como administrador para descargar el Excel.')
+    const response = await fetch(`${BASE}${excelReportsPath}/${encodeURIComponent(id)}/descarga`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) throw new Error('No pudimos descargar el Excel. Volvé a intentar.')
+    return response.blob()
+  },
+}
+
 const items = <T,>(page: Page<T> | T[] | undefined): T[] => Array.isArray(page) ? page : page?.items ?? page?.contenido ?? []
 
 async function allPages<T>(path: string): Promise<T[]> {
