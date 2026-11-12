@@ -12,6 +12,14 @@ export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly code = '') { super(message) }
 }
 
+export type MusicalResource = { id: number; tipoRecurso: 'cancion' | 'sample'; titulo: string; artista?: string; letraCompleta?: string; urlExterna?: string; licencia?: string }
+export const musicalResources = {
+  list: (id: string) => http<MusicalResource[]>('GET', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`),
+  resolve: (body: { tipoRecurso: string; titulo?: string; artista?: string; id?: number }) => http<MusicalResource>('POST', '/api/recursos-musicales', body),
+  link: (id: string, item: MusicalResource) => http('PUT', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`, { tipoRecurso: item.tipoRecurso, id: item.id }),
+  remove: (id: string, item: MusicalResource) => http('DELETE', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones/${item.tipoRecurso}/${item.id}`),
+}
+
 type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 type Page<T> = { items?: T[]; contenido?: T[]; nextCursor?: string | null; siguienteCursor?: string | null }
 

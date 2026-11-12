@@ -142,7 +142,13 @@ function ReviewPage({ appeal = false }: { appeal?: boolean }) {
   const post = 'postId' in record ? state.posts.find(candidate => candidate.id === record.postId) : undefined
   const resolve = (approve: boolean) => setConfirmation({
     title: appeal ? approve ? 'Aceptar esta apelación' : 'Rechazar esta apelación' : approve ? 'Aceptar este reporte' : 'Desestimar este reporte',
-    description: appeal ? approve ? 'La cuenta será reactivada. La resolución quedará registrada y no se podrá volver a resolver esta apelación.' : 'La cuenta conservará su estado. La persona podrá consultar el motivo de esta resolución.' : approve ? 'La obra será ocultada, salvo que ya haya sido eliminada. Esta revisión quedará resuelta.' : 'No se cambiará el estado de la publicación. El reporte quedará resuelto.',
+    description: appeal
+      ? approve
+        ? 'La cuenta será reactivada. La resolución quedará registrada y no se podrá volver a resolver esta apelación.'
+        : 'La cuenta conservará su estado. La persona podrá consultar el motivo de esta resolución.'
+      : approve
+        ? 'El contenido denunciado será ocultado, salvo que ya no esté disponible. Esta revisión quedará resuelta.'
+        : 'No se cambiará el estado de la publicación. El reporte quedará resuelto.',
     label: appeal ? approve ? 'Aceptar apelación' : 'Rechazar apelación' : approve ? 'Aceptar reporte' : 'Desestimar reporte', reason: true, dangerous: !appeal && approve,
     command: note => appeal ? { type: 'review-appeal', appealId: record.id, status: approve ? 'approved' : 'rejected', note } : { type: 'review-report', reportId: record.id, status: approve ? 'accepted' : 'dismissed', note },
     success: 'La resolución quedó registrada.',
