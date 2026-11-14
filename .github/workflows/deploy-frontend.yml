@@ -49,8 +49,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ steps.image.outputs.name }}:latest
-            ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+            ${{ steps.image.outputs.name }}:dev
+            ${{ steps.image.outputs.name }}:dev-sha-${{ github.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -69,6 +69,7 @@ jobs:
           DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
           DOKPLOY_APPLICATION_ID: ${{ secrets.DOKPLOY_APPLICATION_ID }}
+          EXPECTED_IMAGE: ghcr.io/${{ github.repository }}:dev
         run: |
           set -euo pipefail
 
@@ -80,6 +81,23 @@ jobs:
             echo "::error::DOKPLOY_URL must use HTTPS to protect the API key."
             exit 1
           fi
+
+          # Reject a different service, environment or provider before requesting a deploy.
+          : "${EXPECTED_IMAGE:?Missing expected image}"
+          metadata=$(curl --fail --silent --show-error \
+            --connect-timeout 15 --max-time 60 \
+            --get "${DOKPLOY_URL%/}/api/application.one" \
+            --header "x-api-key: $DOKPLOY_API_KEY" \
+            --data-urlencode "applicationId=$DOKPLOY_APPLICATION_ID")
+          jq --exit-status \
+            --arg id 'eRDil3bftJ2Z0YORZZuqH' \
+            --arg environment 'iHPH9mt5Wrk3DJ_L78qr2' \
+            --arg image "${EXPECTED_IMAGE,,}" \
+            '.applicationId == $id and .environmentId == $environment and .sourceType == "docker" and .dockerImage == $image' \
+            <<< "$metadata" > /dev/null || {
+              echo "::error::Frontend testing must use the Docker provider and the expected :dev image. No deployment requested."
+              exit 1
+            }
 
           payload=$(jq -n --arg applicationId "$DOKPLOY_APPLICATION_ID" \
             '{applicationId: $applicationId}')
