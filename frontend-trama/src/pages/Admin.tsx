@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ArrowRight, Ban, Check, Download, Eye, EyeOff, Flag, RotateCcw, ShieldCheck, Trash2, X } from 'lucide-react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { CommandDialog, type Confirmation } from '../components/CommandDialog'
 import { Avatar, Badge, Button, EmptyState, ErrorMessage, IconButton, PageTitle, SearchField, SelectField, Tabs, statusLabels } from '../components/UI'
 import { useDemo } from '../context/DemoContext'
-import { excelReports, getToken, type ExcelReport } from '../data/api'
+import { adminActivity, getToken, type AdminActivityPage } from '../data/api'
+import { ExcelReportsPanel } from '../components/ExcelReports'
 import type { Report, User } from '../data/model'
 import { challengeStatus, errorMessage, normalize, profilePath, toCsv, visiblePosts } from '../data/store'
 import { backPath, formatDate, formatDateTime } from '../lib/format'
@@ -215,71 +216,27 @@ export function AdminAccessPage() {
   </>
 }
 
-const excelTypes = [
-  { value: 'DESAFIOS', label: 'Desafíos' },
-  { value: 'MODERACION', label: 'Moderación' },
-  { value: 'ACTIVIDAD_USUARIOS', label: 'Actividad de usuarios' },
-  { value: 'RANKING_INSPIRACION', label: 'Ranking de inspiración' },
-]
-
-function ExcelReportsPanel() {
-  const [type, setType] = useState(excelTypes[0].value)
-  const [start, setStart] = useState('')
-  const [end, setEnd] = useState('')
-  const [latest, setLatest] = useState<ExcelReport>()
-  const [history, setHistory] = useState<ExcelReport[]>()
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState('')
-  const run = async (action: () => Promise<void>) => {
-    setPending(true)
-    setError('')
-    try { await action() }
-    catch (failure) { setError(errorMessage(failure)) }
-    finally { setPending(false) }
-  }
-  const download = async (id: string) => {
-    const url = URL.createObjectURL(await excelReports.download(id))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `trama-reporte-${id}.xlsx`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }
-  const reports = latest ? [latest, ...((history ?? []).filter(report => report.id !== latest.id))] : (history ?? [])
-  return <section aria-labelledby="excel-reports">
-    <h2 id="excel-reports">Reportes Excel</h2>
-    <form className="filter-row" onSubmit={event => {
-      event.preventDefault()
-      void run(async () => setLatest(await excelReports.request(type, start, end)))
-    }}>
-      <SelectField label="Tipo de reporte Excel" value={type} options={excelTypes} onChange={event => setType(event.target.value)} />
-      <label>Desde <input type="date" required value={start} onChange={event => setStart(event.target.value)} /></label>
-      <label>Hasta <input type="date" required min={start || undefined} value={end} onChange={event => setEnd(event.target.value)} /></label>
-      <Button type="submit" disabled={pending}>Solicitar Excel</Button>
-    </form>
-    <Button variant="secondary" disabled={pending} onClick={() => void run(async () => {
-      const result = await excelReports.history()
-      setHistory(result.items.map(({ solicitudId, ...report }) => ({ ...report, id: solicitudId })))
-      if (latest) setLatest(await excelReports.status(latest.id))
-    })}>Actualizar historial y estado</Button>
-    <ErrorMessage message={error} />
-    {reports.length ? <AdminTable label="Solicitudes de Excel" columns={['Reporte', 'Estado', 'Descarga']}>
-      {reports.map(report => <tr key={report.id}>
-        <th scope="row">{excelTypes.find(option => option.value === report.tipoReporte)?.label ?? report.tipoReporte}</th>
-        <td>{report.estado === 'CON_ERROR' ? (report.motivoError ?? 'Error de generación') : report.estado}</td>
-        <td>{report.estado === 'GENERADO' && <Button variant="secondary" disabled={pending} onClick={() => void run(() => download(report.id))}>Descargar Excel</Button>}</td>
-      </tr>)}
-    </AdminTable> : history && <p role="status">El historial todavía está vacío.</p>}
-  </section>
-}
-
 export function AdminReportsPage() {
   const { state } = useDemo()
   const { query, params, update } = useFilters()
   const [error, setError] = useState('')
+  const live = Boolean(getToken())
+  const [activity,setActivity] = useState<AdminActivityPage>()
+  const [activityLoading,setActivityLoading] = useState(live)
+  const [activityError,setActivityError] = useState('')
+  const loadActivity = useCallback(async (page = 0) => {
+    setActivityLoading(true)
+    try {
+      const result = await adminActivity.page(page)
+      setActivity(previous=>({...result,items:[...new Map([...(page===0?[]:previous?.items??[]),...result.items].map(item=>[item.id,item])).values()]}))
+      setActivityError('')
+    } catch(failure) {setActivityError(errorMessage(failure))}
+    finally {setActivityLoading(false)}
+  },[])
+  useEffect(()=>{if(live)void loadActivity()},[live,loadActivity])
   const author = (id: string) => state.users.find(member => member.id === id)?.name ?? 'Perfil no disponible'
   const datasets: Record<string, { label: string; columns: string[]; rows: (string | number)[][] }> = {
-    actividad: { label: 'Actividad administrativa', columns: ['Fecha', 'Responsable', 'Decisión', 'Referencia'], rows: state.audit.slice().reverse().map(entry => [formatDateTime(entry.createdAt), author(entry.actorId), entry.label, entry.targetId]) },
+    actividad: { label: 'Actividad administrativa', columns: ['Fecha', 'Responsable', 'Decisión', 'Referencia'], rows: (live?activity?.items??[]:state.audit.slice().reverse()).map(entry => [formatDateTime(entry.createdAt), author(entry.actorId), entry.label, entry.targetId]) },
     usuarios: { label: 'Perfiles', columns: ['Nombre', 'Usuario', 'Rol', 'Estado', 'Alta'], rows: state.users.map(member => [member.name, member.handle, statusLabels[member.role], statusLabels[member.status], formatDate(member.joinedAt)]) },
     publicaciones: { label: 'Publicaciones', columns: ['Título', 'Autoría', 'Medio', 'Estado', 'Me gusta', 'Comentarios'], rows: state.posts.map(post => [post.title, author(post.authorId), post.kind === 'image' ? 'Imagen' : 'Audio', post.status === 'published' && !state.users.some(member => member.id === post.authorId && member.status === 'active') ? 'Cuenta no activa' : statusLabels[post.status], post.likes.length, post.comments.length]) },
     desafios: { label: 'Desafíos', columns: ['Consigna', 'Estado', 'Inicio', 'Cierre'], rows: state.challenges.map(challenge => [challenge.title, statusLabels[challengeStatus(challenge)], formatDateTime(challenge.startsAt), formatDateTime(challenge.endsAt)]) },
@@ -306,7 +263,9 @@ export function AdminReportsPage() {
   return <><PageTitle title="Reportes y actividad" description="Datos actuales de la comunidad, sin métricas estimadas." actions={<Button variant="secondary" onClick={download} disabled={!rows.length}><Download size={18} aria-hidden="true" />Exportar CSV</Button>} />
     {getToken() && <ExcelReportsPanel />}
     <div className="filter-row"><SelectField label="Contenido" value={selection} options={Object.entries(datasets).map(([value, data]) => ({ value, label: data.label }))} onChange={event => update({ datos: event.target.value, q: '' })} /><SearchField label="Filtrar filas del reporte" value={query} onChange={value => update({ q: value })} /></div>
-    <p className="filter-summary" role="status">{rows.length} filas · La exportación incluye esta selección. Fechas de Buenos Aires (UTC−3).</p><ErrorMessage message={error} />
-    {rows.length ? <AdminTable label={dataset.label} columns={dataset.columns}>{rows.map((row, index) => <tr key={index}>{row.map((cell, column) => column === 0 ? <th scope="row" key={column}>{cell}</th> : <td key={column}>{cell}</td>)}</tr>)}</AdminTable> : <EmptyState title="No hay datos en esta selección" description="Elegí otro contenido o quitá el filtro. La actividad aparece después de realizar decisiones administrativas." />}
+    <p className="filter-summary" role="status">{selection==='actividad'&&activityLoading?'Cargando actividad…':`${rows.length} filas · La exportación incluye esta selección. Fechas de Buenos Aires (UTC−3).`}</p><ErrorMessage message={error} />
+    {selection==='actividad'&&live&&<><ErrorMessage message={activityError}/><Button variant="secondary" disabled={activityLoading} onClick={()=>void loadActivity()}>Actualizar actividad</Button></>}
+    {rows.length ? <AdminTable label={dataset.label} columns={dataset.columns}>{rows.map((row, index) => <tr key={index}>{row.map((cell, column) => column === 0 ? <th scope="row" key={column}>{cell}</th> : <td key={column}>{cell}</td>)}</tr>)}</AdminTable> : !(selection==='actividad'&&live&&(activityLoading||activityError))&&<EmptyState title="No hay datos en esta selección" description="Elegí otro contenido o quitá el filtro." />}
+    {selection==='actividad'&&live&&activity&&<><p className="field-hint">{activity.items.length} de {activity.totalItems} acciones cargadas.</p>{activity.nextPage!==null&&<Button variant="secondary" disabled={activityLoading} onClick={()=>void loadActivity(activity.nextPage!)}>Cargar más actividad</Button>}</>}
   </>
 }

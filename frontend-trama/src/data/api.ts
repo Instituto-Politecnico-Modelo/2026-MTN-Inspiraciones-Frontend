@@ -132,13 +132,15 @@ async function http<T = Json>(method: string, path: string, body?: unknown, form
   return payload as T
 }
 
-export type ExcelReport = { id: string; tipoReporte: string; estado: string; motivoError?: string | null }
+export type ExcelReport = { id: string; tipoReporte: string; estado: string; motivoError?: string | null; rangoDeFechas?: { fechaInicio: string; fechaFin: string }; fechaGeneracion?: string }
+export type AdminActivityPage = { items: DemoState['audit']; totalItems: number; nextPage: number | null }
+export const adminActivity = { page: (pagina = 0) => http<AdminActivityPage>('GET', `/api/admin/actividad?pagina=${pagina}&tamanio=50`) }
 const excelReportsPath = '/api/admin/reportes/excel'
 export const excelReports = {
   request: (tipoReporte: string, fechaInicio: string, fechaFin: string) =>
     http<ExcelReport>('POST', excelReportsPath, { tipoReporte, rangoDeFechas: { fechaInicio, fechaFin } }),
   status: (id: string) => http<ExcelReport>('GET', `${excelReportsPath}/${encodeURIComponent(id)}`),
-  history: () => http<{ items: (Omit<ExcelReport, 'id'> & { solicitudId: string })[] }>('GET', `${excelReportsPath}/historial`),
+  history: (pagina = 1) => http<{ items: (Omit<ExcelReport, 'id'> & { solicitudId: string })[]; pagina: number; tamanioPagina: number; totalItems: number }>('GET', `${excelReportsPath}/historial?pagina=${pagina}&tamanioPagina=20`),
   async download(id: string) {
     const token = getToken()
     if (!token) throw new Error('Iniciá sesión como administrador para descargar el Excel.')
