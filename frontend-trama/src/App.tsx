@@ -3,6 +3,7 @@ import { Navigate, Outlet, useRouteError, type RouteObject } from 'react-router-
 import { Brand } from './components/Brand'
 import { RequireAccount, RequireAdmin, SiteLayout } from './components/Shell'
 import { Button } from './components/UI'
+import { NotificationSettingsPage, NotificationsPage } from './components/Notifications'
 import { DemoProvider, type Backend } from './context/DemoContext'
 import { AccessPage, LogoutPage, RecoveryPage } from './pages/Access'
 import { AppealPage, ChallengeDetailPage, ChallengesPage, MyProposalsPage, ProposeChallengePage } from './pages/Challenges'
@@ -65,6 +66,8 @@ export function createAppRoutes(repository?: Backend): RouteObject[] {
           { index: true, element: <Navigate to="/inicio" replace /> },
           { path: 'inicio', element: <HomePage /> },
           { path: 'descubrir', element: <DiscoverPage /> },
+          { path: 'notificaciones', element: <RequireAccount><NotificationsPage /></RequireAccount> },
+          { path: 'notificaciones/configuracion', element: <RequireAccount><NotificationSettingsPage /></RequireAccount> },
           { path: 'desafios', element: <ChallengesPage /> },
           { path: 'desafios/proponer', element: <RequireAccount><ProposeChallengePage /></RequireAccount> },
           { path: 'desafios/mis-propuestas', element: <RequireAccount><MyProposalsPage /></RequireAccount> },

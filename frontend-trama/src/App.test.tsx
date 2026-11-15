@@ -105,7 +105,15 @@ describe('integracion de rutas', () => {
     expect(screen.getByRole('button', { name: 'Notificaciones' })).toBeVisible()
     await userEvent.click(screen.getByRole('button', { name: 'Notificaciones' }))
     expect(screen.getByRole('dialog', { name: 'Notificaciones' })).toBeVisible()
-    expect(screen.getByRole('checkbox', { name: 'Notificaciones de este dispositivo' })).not.toBeChecked()
+    expect(screen.getByRole('link', { name: 'Ir a configuración' })).toHaveAttribute('href', '/notificaciones/configuracion')
+    expect(screen.queryByRole('checkbox', { name: 'Notificaciones de este dispositivo' })).not.toBeInTheDocument()
+  })
+
+  it('abre la bandeja protegida sin confundirla con un perfil público', async () => {
+    openRoute('/notificaciones', 'mora')
+    expect(await screen.findByRole('heading', { name: 'Notificaciones', level: 1 })).toBeVisible()
+    expect(await screen.findByText('No hay notificaciones nuevas')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Ir a configuración' })).toHaveAttribute('href', '/notificaciones/configuracion')
   })
 
   it('elimina el dispositivo de notificaciones al cerrar sesion', async () => {

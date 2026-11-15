@@ -20,6 +20,19 @@ export const musicalResources = {
   remove: (id: string, item: MusicalResource) => http('DELETE', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones/${item.tipoRecurso}/${item.id}`),
 }
 
+export type InboxNotice = { id: string; tipo: string; titulo: string; mensaje: string; publicacionId?: string | null; createdAt: string }
+const inboxPath = '/api/usuarios/me/notificaciones/bandeja'
+export const notificationInbox = {
+  list: () => getToken() ? http<InboxNotice[]>('GET', inboxPath) : Promise.resolve([]),
+  read: (id: string) => http<void>('PUT', `${inboxPath}/${encodeURIComponent(id)}/leida`),
+  readAll: () => http<void>('PUT', `${inboxPath}/leidas`),
+}
+export type NotificationPreference = { tipoEvento: 'LIKE' | 'COMMENT'; activo: boolean }
+export const notificationPreferences = {
+  list: () => http<{ preferencias: NotificationPreference[] }>('GET', '/api/push-notifications/preferences'),
+  save: (preferencias: NotificationPreference[]) => http('PUT', '/api/push-notifications/preferences', { preferencias }),
+}
+
 type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 type Page<T> = { items?: T[]; contenido?: T[]; nextCursor?: string | null; siguienteCursor?: string | null }
 
