@@ -41,6 +41,17 @@ la ruta del dominio del servicio API: si no coincide, la solicitud llega al
 Nginx del frontend, que rechaza `/api`. No hace falta reconstruir el frontend
 para corregir esa ruta en Dokploy.
 
+## Mapa de lugares (OpenStreetMap)
+
+El mapa usa Leaflet con teselas de OpenStreetMap: no requiere cuenta, clave ni
+facturacion. La atribucion "© OpenStreetMap contributors" debe permanecer visible
+y el uso debe ser moderado (ver la politica de uso de teselas de OSM). La URL de
+teselas se puede cambiar con `VITE_MAP_TILES_URL` (ver `.env.example`; copiar a
+`.env.local`, que no se versiona) para pasar a otro proveedor si el trafico crece.
+En Dokploy se define como **Build Argument** porque Vite la incrusta al compilar.
+Si las teselas no cargan, el mapa se informa como no disponible y la lista sigue
+disponible.
+
 ## Notificaciones
 
 La campana esta disponible para cuentas activas. La activacion solicita permiso

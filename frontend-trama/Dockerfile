@@ -6,6 +6,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
 COPY . .
+# Vite incrusta VITE_* al compilar: la URL de teselas debe llegar como build arg.
+ARG VITE_MAP_TILES_URL
+ENV VITE_MAP_TILES_URL=$VITE_MAP_TILES_URL
 RUN npm run build
 
 FROM nginx:stable-alpine AS runtime
