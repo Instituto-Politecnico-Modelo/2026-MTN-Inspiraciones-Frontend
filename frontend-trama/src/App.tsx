@@ -10,6 +10,7 @@ import { AppealPage, ChallengeDetailPage, ChallengesPage, MyProposalsPage, Propo
 import { DiscoverPage } from './pages/Discover'
 import { EditProfilePage, PublishPage } from './pages/Editors'
 import { HomePage } from './pages/Home'
+import { LocationSettingsPage } from './pages/LocationSettings'
 import { OnboardingPage } from './pages/Onboarding'
 import { BlockedPage, FolderPage, ProfilePage } from './pages/Profile'
 import { MissingPage, WorkPage } from './pages/Work'
@@ -66,6 +67,8 @@ export function createAppRoutes(repository?: Backend): RouteObject[] {
           { index: true, element: <Navigate to="/inicio" replace /> },
           { path: 'inicio', element: <HomePage /> },
           { path: 'descubrir', element: <DiscoverPage /> },
+          { path: 'mapa', lazy: async () => ({ Component: (await import('./pages/Places')).PlacesPage }) },
+          { path: 'ubicacion/configuracion', element: <RequireAccount><LocationSettingsPage /></RequireAccount> },
           { path: 'notificaciones', element: <RequireAccount><NotificationsPage /></RequireAccount> },
           { path: 'notificaciones/configuracion', element: <RequireAccount><NotificationSettingsPage /></RequireAccount> },
           { path: 'desafios', element: <ChallengesPage /> },

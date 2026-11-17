@@ -3,6 +3,8 @@ import { MapPin, SlidersHorizontal } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { disciplines, type User } from '../data/model'
+import { placesApi } from '../data/api'
+import type { CatalogDiscipline } from '../data/places'
 import { places } from '../data/seed'
 import { errorMessage, normalize, profilePath, searchPosts, visiblePosts } from '../data/store'
 import { Avatar, Button, EmptyState, ErrorMessage, Modal, PageTitle, SearchField, SelectField, Tabs } from '../components/UI'
@@ -27,6 +29,12 @@ export function DiscoverPage() {
   const [searchError, setSearchError] = useState('')
   const [searching, setSearching] = useState(false)
   const [artistResults, setArtistResults] = useState<User[]>([])
+  const [catalog, setCatalog] = useState<CatalogDiscipline[]>([])
+  useEffect(() => {
+    let active = true
+    placesApi.catalog().then(items => { if (active) setCatalog(items) }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
   useEffect(() => {
     if (tab !== 'artistas' || !viewerId) return
     let active = true
@@ -58,12 +66,18 @@ export function DiscoverPage() {
   const artists = (viewerId ? artistResults : state.users).filter(user => user.role === 'artist' && user.status === 'active' && (!discipline || user.disciplines.some(value => value === discipline)) && normalize(`${user.name} ${user.handle} ${user.bio} ${user.disciplines.join(' ')}`).includes(normalize(artistQuery)))
   const filteredPlaces = places.filter(place => (!area || place.area === area) && normalize(`${place.name} ${place.area} ${place.kind}`).includes(normalize(query)))
   const mapPlace = filteredPlaces.find(place => place.id === selectedPlace) ?? filteredPlaces[0]
-  const techniqueOptions = Array.from(new Set(visiblePosts(state).filter(post => post.kind === (tab === 'musica' ? 'audio' : 'image')).map(post => post.technique).filter(Boolean)))
+  const legacyTechniques = Array.from(new Set(visiblePosts(state).filter(post => post.kind === (tab === 'musica' ? 'audio' : 'image')).map(post => post.technique).filter(Boolean)))
+  // Con una disciplina elegida, las técnicas válidas son las de su catálogo; sin ella se conservan las de las obras.
+  const techniquesOf = (value: string) => (tab !== 'musica' && value ? catalog.find(item => normalize(item.nombre) === normalize(value))?.tecnicas.map(item => item.nombre) : undefined) ?? legacyTechniques
+  const changeDiscipline = (value: string, mobile: boolean) => {
+    const keepsTechnique = !catalog.length || !value || techniquesOf(value).includes(mobile ? draftTechnique : technique)
+    if (mobile) { setDraftDiscipline(value); if (!keepsTechnique) setDraftTechnique('') } else update({ disciplina: value, ...(keepsTechnique ? {} : { tecnica: '' }) })
+  }
   const filters = (mobile = false) => <>
-    {tab !== 'musica' && <SelectField label="Disciplina" value={mobile ? draftDiscipline : discipline} onChange={event => mobile ? setDraftDiscipline(event.target.value) : update({ disciplina: event.target.value })}
+    {tab !== 'musica' && <SelectField label="Disciplina" value={mobile ? draftDiscipline : discipline} onChange={event => changeDiscipline(event.target.value, mobile)}
       options={[{ value: '', label: 'Todas las disciplinas' }, ...disciplines.map(value => ({ value, label: value }))]} />}
     {tab !== 'artistas' && <SelectField label={tab === 'musica' ? 'Tipo de audio' : 'Técnica'} value={mobile ? draftTechnique : technique} onChange={event => mobile ? setDraftTechnique(event.target.value) : update({ tecnica: event.target.value })}
-      options={[{ value: '', label: 'Todos' }, ...techniqueOptions.map(value => ({ value, label: value === 'Síntesis' ? 'Piezas musicales' : value === 'Sample' ? 'Samples' : value }))]} />}
+      options={[{ value: '', label: 'Todos' }, ...techniquesOf(mobile ? draftDiscipline : discipline).map(value => ({ value, label: value === 'Síntesis' ? 'Piezas musicales' : value === 'Sample' ? 'Samples' : value }))]} />}
   </>
   const empty = <EmptyState title="Todavía no encontramos coincidencias" description="Probá con otras palabras o quitá los filtros para ampliar tu búsqueda."
     action={<Button variant="secondary" onClick={() => activeFilters || area ? update({ disciplina: '', tecnica: '', zona: '' }) : update({ q: '' })}>{activeFilters || area ? 'Quitar filtros' : 'Limpiar búsqueda'}</Button>} />

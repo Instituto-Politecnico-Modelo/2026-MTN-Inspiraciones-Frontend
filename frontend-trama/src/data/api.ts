@@ -2,6 +2,7 @@ import type {
   Appeal, Challenge, Command, DemoState, Discipline, Folder, Post, Proposal, Report, User,
 } from './model'
 import { disciplines, inspirationTypes, reportReasons } from './model'
+import type { CatalogDiscipline, Coordinates, LocationPreference } from './places'
 
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 const TOKEN_KEY = 'trama-token'
@@ -35,6 +36,35 @@ export const notificationPreferences = {
 
 type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 type Page<T> = { items?: T[]; contenido?: T[]; nextCursor?: string | null; siguienteCursor?: string | null }
+
+export type MapQuery = {
+  criterio: { modo: 'RADIO'; centro: Coordinates; radioKm: number } | { modo: 'ZONA'; sur: number; norte: number; oeste: number; este: number }
+  disciplina?: string; tecnica?: string; tags?: string[]; cursor?: string | null; limite?: number
+}
+export type MapPublication = { id: string; contenido?: string; fotoUrl?: string | null; ubicacion?: Coordinates | null; [key: string]: unknown }
+export type MapPage = { items: { publicacion: MapPublication; distanciaKm?: number }[]; nextCursor: string | null }
+const preferencePath = '/api/usuarios/me/preferencia-ubicacion'
+// Las coordenadas de consulta viajan solo en el cuerpo (NFR-004); nunca en la URL.
+export const placesApi = {
+  catalog: () => http<{ items: CatalogDiscipline[] }>('GET', '/api/catalogo/disciplinas').then(response => response.items),
+  query: (body: MapQuery) => http<MapPage>('POST', '/api/mapa/publicaciones/consulta', body),
+  detail: (id: string) => http<Json>('GET', `/api/mapa/publicaciones/${encodeURIComponent(id)}`),
+  preference: {
+    get: () => http<{ estado: LocationPreference }>('GET', preferencePath).then(response => response.estado),
+    set: (estado: 'ACTIVADA' | 'DESACTIVADA') => http<{ estado: LocationPreference }>('PUT', preferencePath, { estado }).then(response => response.estado),
+    claimNotice: () => http<{ mostrar: boolean }>('POST', `${preferencePath}/aviso-inicial`).then(response => response.mostrar),
+  },
+}
+
+const plain = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+// Traduce la disciplina y técnica del formulario a los códigos del catálogo; sin coincidencia no se clasifica.
+async function classificationOf(discipline: string, technique: string) {
+  const catalog = await placesApi.catalog().catch(() => [] as CatalogDiscipline[])
+  const found = catalog.find(item => plain(item.nombre) === plain(discipline) || plain(item.codigo) === plain(discipline))
+  if (!found) return null
+  const match = technique ? found.tecnicas.find(item => plain(item.nombre) === plain(technique) || plain(item.codigo) === plain(technique)) : undefined
+  return { disciplina: found.codigo, tecnica: match?.codigo ?? null }
+}
 
 export const assetUrl = (url: string | null | undefined) => !url ? '' : url.startsWith('/') ? `${BASE}${url}` : url
 
@@ -467,6 +497,8 @@ export class ApiRepository {
       status, createdAt: raw.createdAt as string, likes,
       comments: comments.map(comment => ({ id: comment.id as string, authorId: comment.usuarioId as string, text: comment.contenido as string, createdAt: comment.createdAt as string })),
       challengeId: null,
+      location: raw.ubicacion ? { latitud: Number(raw.ubicacion.latitud), longitud: Number(raw.ubicacion.longitud) } : null,
+      ownTags: Array.isArray(raw.tagsPropios) ? raw.tagsPropios.map(String) : [],
     }
   }
 
@@ -575,7 +607,11 @@ export class ApiRepository {
         if (!post.alt) throw new Error('Agregá una descripción de la imagen para que sea accesible.')
         const content = this.contentOf(post)
         const fotoUrl = await uploadImage(post.src)
-        const created = await http<Json>('POST', '/api/publicaciones', { contenido: content, tipoContenido: 'IMAGEN', fotoUrl, categorias: [], hashtags: [], cuentasEtiquetadas: [] })
+        const classification = await classificationOf(post.discipline, post.technique)
+        const created = await http<Json>('POST', '/api/publicaciones', {
+          contenido: content, tipoContenido: 'IMAGEN', fotoUrl, categorias: [], hashtags: [], cuentasEtiquetadas: [],
+          ...(post.location ? { ubicacion: post.location } : {}), ...(classification ?? {}), ...(post.ownTags?.length ? { tagsPropios: post.ownTags } : {}),
+        })
         this.aliases.set(post.id, created.id as string)
         if (post.challengeId) {
           try { await this.joinChallenge(this.rid(post.challengeId), created.id as string, post.title, fotoUrl) }
@@ -587,9 +623,17 @@ export class ApiRepository {
         const post = this.post(command.postId)
         const changes = command.changes
         if (!changes.alt) throw new Error('Agregá una descripción accesible del contenido.')
+        // Solo se envía lo que cambió: una publicación sin clasificar no se clasifica sola al editarla (FR-020).
+        const sameJson = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+        const classification = changes.discipline !== post.discipline || changes.technique !== post.technique
+          ? await classificationOf(changes.discipline, changes.technique) : null
         await http('PUT', `/api/publicaciones/${post.id}`, {
           contenido: this.contentOf({ ...post, ...changes }), fotoUrl: post.src.startsWith(BASE) && BASE ? post.src.slice(BASE.length) : post.src,
           categorias: [], hashtags: [], cuentasEtiquetadas: [],
+          ...('location' in changes && !sameJson(changes.location, post.location)
+            ? { cambioUbicacion: changes.location ? { accion: 'ESTABLECER', valor: changes.location } : { accion: 'QUITAR' } } : {}),
+          ...(classification ? { cambioClasificacion: { accion: 'ESTABLECER', ...classification } } : {}),
+          ...(changes.ownTags && !sameJson(changes.ownTags, post.ownTags ?? []) ? { tagsPropios: changes.ownTags } : {}),
         })
         return
       }

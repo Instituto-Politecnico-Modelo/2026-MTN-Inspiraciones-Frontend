@@ -68,10 +68,12 @@ export const PostSchema = z.object({
   likes: z.array(id),
   comments: z.array(CommentSchema),
   challengeId: id.nullable(),
+  location: z.object({ latitud: z.number().min(-90).max(90), longitud: z.number().min(-180).max(180) }).nullable().optional(),
+  ownTags: z.array(z.string().trim().min(1).max(100)).max(3).optional(),
 })
 
 export const PostChangesSchema = PostSchema.pick({
-  title: true, description: true, alt: true, discipline: true, technique: true, license: true,
+  title: true, description: true, alt: true, discipline: true, technique: true, license: true, location: true, ownTags: true,
 }).strict()
 
 export const FolderSchema = z.object({
