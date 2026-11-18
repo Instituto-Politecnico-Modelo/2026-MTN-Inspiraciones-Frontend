@@ -20,7 +20,7 @@ describe('cliente del mapa (FR-005-014)', () => {
     const [url, init] = fetch.mock.calls[0]!
     expect(url).toBe('/api/mapa/publicaciones/consulta')
     expect(url).not.toMatch(/34\.6|58\.4/)
-    expect(init).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+    expect(init).toMatchObject({ method: 'POST', cache: 'no-store', body: JSON.stringify(body) })
   })
 
   it('consulta por zona visible sin coordenadas del usuario', async () => {

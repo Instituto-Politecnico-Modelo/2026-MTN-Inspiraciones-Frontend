@@ -2,7 +2,8 @@ import type {
   Appeal, Challenge, Command, DemoState, Discipline, Folder, Post, Proposal, Report, User,
 } from './model'
 import { disciplines, inspirationTypes, reportReasons } from './model'
-import type { CatalogDiscipline, Coordinates, LocationPreference } from './places'
+import { proximityAccess, type CatalogDiscipline, type Coordinates, type LocationPreference } from './places'
+import { devicePermission, getPosition } from '../lib/geolocation'
 
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 const TOKEN_KEY = 'trama-token'
@@ -146,7 +147,9 @@ async function http<T = Json>(method: string, path: string, body?: unknown, form
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   let response: Response
   try {
-    response = await fetch(`${BASE}${path}`, { method, headers, body: form ?? (body === undefined ? undefined : JSON.stringify(body)) })
+    // Las consultas del mapa llevan coordenadas del usuario: no deben quedar en caché (NFR-004).
+    const cache = path.startsWith('/api/mapa/') || path.startsWith('/api/feed/recomendaciones/ubicacion') ? 'no-store' : undefined
+    response = await fetch(`${BASE}${path}`, { method, headers, cache, body: form ?? (body === undefined ? undefined : JSON.stringify(body)) })
   } catch {
     throw new ApiError('No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.', 0)
   }
@@ -218,18 +221,31 @@ async function uploadImage(source: string): Promise<string> {
 }
 
 // Orden personalizado del backend (preferencias, reacciones, comentarios y bloqueos); hasta 3 lotes de 20.
-async function rankedFeed(): Promise<string[]> {
-  const ids: string[] = []
-  let cursor: string | null | undefined
-  try {
+// Con preferencia activada y permiso del dispositivo se pide el feed con cercanía (POST, posición solo en el cuerpo); si no, el feed original.
+export async function rankedFeed(): Promise<string[]> {
+  const position = await proximityPosition()
+  const load = async (where: Coordinates | null) => {
+    const ids: string[] = []
+    let cursor: string | null | undefined
     for (let batch = 0; batch < 3; batch++) {
-      const page = await http<Page<Json>>('GET', `/api/feed/recomendaciones?limite=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`)
+      const page = where
+        ? await http<Page<Json>>('POST', '/api/feed/recomendaciones/ubicacion', { ubicacionUsuario: where, cursor: cursor ?? null, limite: 20 })
+        : await http<Page<Json>>('GET', `/api/feed/recomendaciones?limite=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`)
       ids.push(...items(page).map(item => String(item.id)))
       cursor = page.nextCursor
       if (!cursor) break
     }
-  } catch { /* sin feed personalizado: se usa el orden general */ }
-  return ids
+    return ids
+  }
+  try { return await load(position) } catch { /* sin cercanía o sin feed personalizado: se usa el feed original */ }
+  try { return position ? await load(null) : [] } catch { return [] }
+}
+
+async function proximityPosition(): Promise<Coordinates | null> {
+  try {
+    if (!proximityAccess(await placesApi.preference.get(), await devicePermission()).enabled) return null
+    return await getPosition()
+  } catch { return null }
 }
 
 export type Session = { token: string; userId: string }

@@ -1,9 +1,42 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiRepository } from './api'
+import { ApiRepository, rankedFeed } from './api'
 
 afterEach(() => {
   vi.unstubAllGlobals()
   localStorage.clear()
+})
+
+describe('feed con cercanía (FR-021/022)', () => {
+  const stub = (preference: string, permission: string) => {
+    localStorage.setItem('trama-token', 'test-token')
+    vi.stubGlobal('navigator', {
+      geolocation: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: -34.6, longitude: -58.4 } }) },
+      permissions: { query: async () => ({ state: permission }) },
+    })
+    const fetch = vi.fn(async (url: string, _init?: RequestInit) => new Response(JSON.stringify(
+      url.includes('preferencia-ubicacion') ? { estado: preference } : { items: [{ id: 'p1' }], nextCursor: null },
+    ), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+    return fetch
+  }
+
+  it('con preferencia activada y permiso usa POST con la posición solo en el cuerpo', async () => {
+    const fetch = stub('ACTIVADA', 'granted')
+    expect(await rankedFeed()).toEqual(['p1'])
+    const call = fetch.mock.calls.find(([url]) => url.includes('/ubicacion')) as unknown as [string, RequestInit]
+    expect(call[0]).toBe('/api/feed/recomendaciones/ubicacion')
+    expect(call[1]).toMatchObject({ method: 'POST', cache: 'no-store' })
+    expect(JSON.parse(call[1].body as string)).toMatchObject({ ubicacionUsuario: { latitud: -34.6, longitud: -58.4 } })
+  })
+
+  it('sin consentimiento o sin permiso conserva el GET original', async () => {
+    for (const [preference, permission] of [['DESACTIVADA', 'granted'], ['ACTIVADA', 'denied']]) {
+      const fetch = stub(preference!, permission!)
+      await rankedFeed()
+      expect(fetch.mock.calls.some(([url]) => url.includes('/ubicacion'))).toBe(false)
+      expect(fetch.mock.calls.some(([url]) => url.startsWith('/api/feed/recomendaciones?'))).toBe(true)
+    }
+  })
 })
 
 describe('búsqueda de perfiles compartidos', () => {
