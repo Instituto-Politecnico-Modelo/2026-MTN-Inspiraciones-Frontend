@@ -32,11 +32,11 @@ jobs:
           cache: npm
           cache-dependency-path: frontend-trama/package-lock.json
 
-      - name: Verify password recovery
+      - name: Verify password recovery and music catalog
         working-directory: frontend-trama
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          npm test -- src/pages/RecoveryPage.test.tsx src/data/api.test.ts
+          npm test -- src/pages/RecoveryPage.test.tsx src/data/api.test.ts src/components/MusicInspirations.test.tsx
 
       - name: Set image name
         id: image

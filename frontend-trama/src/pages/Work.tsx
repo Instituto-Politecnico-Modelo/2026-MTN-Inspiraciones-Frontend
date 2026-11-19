@@ -75,7 +75,7 @@ function WorkDetail({ post }: { post: Post }) {
         {challenge && <Link className="work-challenge" to={`/desafios/${challenge.id}`}><Trophy size={22} aria-hidden="true" /><span>Parte del desafío<strong>{challenge.title}</strong></span></Link>}
         <dl className="work-facts"><div><dt>Licencia</dt><dd>{post.license || 'Licencia no informada'}</dd></div></dl>
         <details className="accessible-description"><summary>{post.kind === 'audio' ? 'Descripción del audio / transcripción' : 'Descripción accesible'}</summary><p>{post.alt}</p></details>
-        {isPublic && user && <MusicInspirations postId={post.id} editable={user.id === post.authorId} />}
+        {isPublic && user && <MusicInspirations key={post.id} postId={post.id} editable={user.id === post.authorId} />}
         <section className="comments-section" aria-labelledby="comentarios"><h2 id="comentarios">Conversación <span>{post.comments.length}</span></h2>
           {post.comments.length ? <ul className="comment-list">{post.comments.map(item => {
             const commenter = state.users.find(candidate => candidate.id === item.authorId)

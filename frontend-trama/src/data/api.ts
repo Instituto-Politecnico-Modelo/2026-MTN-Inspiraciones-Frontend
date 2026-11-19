@@ -23,11 +23,19 @@ export const passwordReset = {
   },
 }
 
-export type MusicalResource = { id: number; tipoRecurso: 'cancion' | 'sample'; titulo: string; artista?: string; letraCompleta?: string; urlExterna?: string; licencia?: string }
+export type MusicalResourceType = 'cancion' | 'sample'
+export type MusicCatalogItem = { id: number; titulo: string; artista?: string | null; duracionSegundos?: number | null; licencia?: string | null }
+export type MusicCatalogPage = { items: MusicCatalogItem[]; siguientePagina?: number }
+export type MusicalResource = MusicCatalogItem & { tipoRecurso: MusicalResourceType; letraCompleta?: string; urlExterna?: string }
 export const musicalResources = {
   list: (id: string) => http<MusicalResource[]>('GET', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`),
+  catalog: (tipoRecurso: MusicalResourceType, q: string, pagina: number) => {
+    const params = new URLSearchParams({ tipoRecurso, q, pagina: String(pagina) })
+    return http<MusicCatalogPage>('GET', `/api/recursos-musicales?${params}`)
+  },
   resolve: (body: { tipoRecurso: string; titulo?: string; artista?: string; id?: number }) => http<MusicalResource>('POST', '/api/recursos-musicales', body),
-  link: (id: string, item: MusicalResource) => http('PUT', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`, { tipoRecurso: item.tipoRecurso, id: item.id }),
+  link: (id: string, item: Pick<MusicalResource, 'tipoRecurso' | 'id'>) =>
+    http<MusicalResource>('PUT', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`, { tipoRecurso: item.tipoRecurso, id: item.id }),
   remove: (id: string, item: MusicalResource) => http('DELETE', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones/${item.tipoRecurso}/${item.id}`),
 }
 
