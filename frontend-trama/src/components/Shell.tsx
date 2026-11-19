@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowUpRight, ChartNoAxesCombined, Compass, Flag, House, Images, Inbox, Info, LogOut, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
+import { ArrowUpRight, ChartNoAxesCombined, Compass, Flag, House, Images, Inbox, Info, LogOut, MapPin, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
 import { Link, NavLink, Navigate, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { canManage, profilePath } from '../data/store'
 import { Avatar, EmptyState, Modal } from './UI'
 import { Brand } from './Brand'
 import { Notifications } from './Notifications'
+import { LocationNotice } from './LocationPreference'
+import { placesApi } from '../data/api'
 
 export const userNavigation = [
   { path: '/inicio', label: 'Inicio', icon: House },
   { path: '/descubrir', label: 'Descubrir', icon: Compass },
+  { path: '/mapa', label: 'Mapa', icon: MapPin },
   { path: '/desafios', label: 'Desafíos', icon: Trophy },
   { path: '/perfil', label: 'Perfil', icon: UserRound },
 ]
@@ -99,6 +102,7 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
         </div>
       </header>
       {user?.status === 'suspended' && <div className="account-warning" role="status">Tu cuenta está suspendida. <Link to="/apelacion">Solicitar revisión</Link></div>}
+      {user?.status === 'active' && !admin && <LocationNotice key={user.id} api={placesApi} />}
       <main id="contenido" className="app-content" ref={main} tabIndex={-1}><Outlet /></main>
       <footer className="site-footer"><span>Trama · Comunidad para artistas</span><Link to="/acerca">Acerca de Trama</Link></footer>
     </div>

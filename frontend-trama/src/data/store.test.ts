@@ -151,3 +151,37 @@ describe('límites de archivos y exportación', () => {
     expect(csv).toContain(`"'@dato"`)
   })
 })
+
+
+describe('moderación de publicaciones con lugar y tags propios (FR-023/025)', () => {
+  const located = (state = seed()) => applyCommand(state, 'mora', {
+    type: 'create-post',
+    post: {
+      id: 'obra-lugar', title: 'Atardecer en el faro', description: '', alt: 'Faro al atardecer', discipline: 'Fotografía', technique: '',
+      kind: 'image', src: '/media/faro.png', cover: '', width: 800, height: 600, duration: 0, license: 'CC0', credit: '', creditUrl: '',
+      challengeId: null, location: { latitud: -34.6, longitud: -58.4 }, ownTags: ['faro', 'mar'],
+    },
+  }, now)
+
+  it('se reporta por el mismo flujo, sin identificar a quien reporta en la publicación', () => {
+    const reported = applyCommand(located(), 'lara', { type: 'create-report', report: { id: 'reporte-lugar', postId: 'obra-lugar', reason: 'Spam', description: 'Contenido repetido y sin relación.' } }, now)
+
+    expect(reported.reports.find(report => report.id === 'reporte-lugar')).toMatchObject({ postId: 'obra-lugar', status: 'pending' })
+    expect(JSON.stringify(reported.posts.find(post => post.id === 'obra-lugar'))).not.toContain('lara')
+  })
+
+  it('al aceptar el reporte la publicación deja de ser visible y conserva sus datos para la auditoría', () => {
+    const reported = applyCommand(located(), 'lara', { type: 'create-report', report: { id: 'reporte-lugar', postId: 'obra-lugar', reason: 'Spam', description: 'Contenido repetido y sin relación.' } }, now)
+    const resolved = applyCommand(reported, 'admin', { type: 'review-report', reportId: 'reporte-lugar', status: 'accepted', note: 'Infracción confirmada.' }, now)
+
+    expect(visiblePosts(resolved).some(post => post.id === 'obra-lugar')).toBe(false)
+    expect(resolved.posts.find(post => post.id === 'obra-lugar')).toMatchObject({ status: 'hidden', location: { latitud: -34.6, longitud: -58.4 }, ownTags: ['faro', 'mar'] })
+  })
+
+  it('la moderación sigue reservada a administración', () => {
+    const reported = applyCommand(located(), 'lara', { type: 'create-report', report: { id: 'reporte-lugar', postId: 'obra-lugar', reason: 'Spam', description: 'Contenido repetido y sin relación.' } }, now)
+
+    expect(() => applyCommand(reported, 'lara', { type: 'review-report', reportId: 'reporte-lugar', status: 'accepted', note: 'No corresponde.' }, now)).toThrow()
+    expect(() => applyCommand(located(), 'lara', { type: 'update-post', postId: 'obra-lugar', changes: { title: 'x', description: '', alt: 'x', discipline: 'Fotografía', technique: '', license: 'CC0', ownTags: [] } }, now)).toThrow(/propias/i)
+  })
+})

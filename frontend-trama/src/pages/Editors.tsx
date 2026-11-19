@@ -1,9 +1,12 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Camera, ImagePlus, Plus, Upload, X } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import { disciplines, type Post, type ProfileChanges, type User } from '../data/model'
-import { challengeStatus, errorMessage, newId } from '../data/store'
+import { challengeStatus, errorMessage, newId, normalize } from '../data/store'
+import { placesApi } from '../data/api'
+import { parsePlace, type CatalogDiscipline } from '../data/places'
+import { OwnTagsField, PlaceFields } from '../components/PlaceFields'
 import { readUpload, type Upload as UploadedMedia } from '../lib/upload'
 import { Avatar, Button, Choice, EmptyState, ErrorMessage, Field, IconButton, PageTitle, SelectField, TextArea } from '../components/UI'
 import { useUnsavedChanges } from '../components/UnsavedChanges'
@@ -86,10 +89,26 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   const [license, setLicense] = useState(existing?.license ?? 'Todos los derechos reservados')
   const [challengeId, setChallengeId] = useState(existing?.challengeId ?? initialChallenge)
   const [rights, setRights] = useState(!!existing)
+  const [catalog, setCatalog] = useState<CatalogDiscipline[]>([])
+  const [ownTags, setOwnTags] = useState<string[]>(existing?.ownTags ?? [])
+  const [latitude, setLatitude] = useState(existing?.location ? String(existing.location.latitud) : '')
+  const [longitude, setLongitude] = useState(existing?.location ? String(existing.location.longitud) : '')
+  const place = parsePlace(latitude, longitude)
+  useEffect(() => {
+    let active = true
+    placesApi.catalog().then(items => { if (active) setCatalog(items) }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
+  const catalogDiscipline = catalog.find(item => normalize(item.nombre) === normalize(discipline))
+  const techniqueOptions = catalogDiscipline ? [
+    { value: '', label: 'Sin técnica' },
+    ...catalogDiscipline.tecnicas.map(item => ({ value: item.nombre, label: item.nombre })),
+    ...(technique && !catalogDiscipline.tecnicas.some(item => item.nombre === technique) ? [{ value: technique, label: technique }] : []),
+  ] : null
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
-  const [initial] = useState(() => JSON.stringify([existing?.title ?? '', existing?.description ?? '', existing?.alt ?? '', existing?.discipline ?? 'Ilustración', existing?.technique ?? '', existing?.license ?? 'Todos los derechos reservados', existing?.challengeId ?? initialChallenge]))
-  const dirty = uploading || (!existing && !!media) || JSON.stringify([title, description, alt, discipline, technique, license, challengeId]) !== initial
+  const [initial] = useState(() => JSON.stringify([existing?.title ?? '', existing?.description ?? '', existing?.alt ?? '', existing?.discipline ?? 'Ilustración', existing?.technique ?? '', existing?.license ?? 'Todos los derechos reservados', existing?.challengeId ?? initialChallenge, existing?.ownTags ?? [], existing?.location ? [String(existing.location.latitud), String(existing.location.longitud)] : ['', '']]))
+  const dirty = uploading || (!existing && !!media) || JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, [latitude, longitude]]) !== initial
   const guard = useUnsavedChanges(dirty, pending)
   const openChallenges = state.challenges.filter(challenge => challengeStatus(challenge) === 'open')
   const pickedChallenge = state.challenges.find(challenge => challenge.id === challengeId)
@@ -108,7 +127,8 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!media || !rights) { setUploadError('Elegí un archivo y confirmá que podés compartirlo.'); return }
-    const changes = { title, description, alt, discipline, technique, license }
+    if (place.error) return
+    const changes = { title, description, alt, discipline, technique, license, location: place.value, ownTags }
     const id = existing?.id ?? newId('obra')
     const result = await run(existing ? { type: 'update-post', postId: existing.id, changes } : {
       type: 'create-post',
@@ -141,10 +161,11 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
         <TextArea label="Sobre esta obra (opcional)" value={description} onChange={event => setDescription(event.target.value)} maxLength={2500} placeholder="Contá qué te inspiró o cómo fue el proceso…" />
         <div className="form-columns"><SelectField label="Disciplina" value={discipline} onChange={event => {
           const option = disciplines.find(value => value === event.target.value)
-          if (option) setDiscipline(option)
+          if (option) { setDiscipline(option); if (catalog.length) setTechnique('') }
           else setUploadError('Elegí una disciplina de la lista.')
         }} options={disciplines.map(value => ({ value, label: value }))} />
-          <Field label="Técnica (opcional)" value={technique} onChange={event => setTechnique(event.target.value)} maxLength={80} placeholder="Por ejemplo, acuarela" /></div>
+          {techniqueOptions ? <SelectField label="Técnica (opcional)" value={technique} onChange={event => setTechnique(event.target.value)} options={techniqueOptions} />
+            : <Field label="Técnica (opcional)" value={technique} onChange={event => setTechnique(event.target.value)} maxLength={80} placeholder="Por ejemplo, acuarela" />}</div>
         <TextArea label={media?.kind === 'audio' ? 'Descripción del audio o transcripción' : 'Descripción accesible de la imagen'} value={alt} onChange={event => setAlt(event.target.value)} required maxLength={media?.kind === 'audio' ? 10000 : 700}
           hint={media?.kind === 'audio' ? 'Describí los sonidos. Si hay voz, incluí la transcripción. Hasta 10.000 caracteres.' : 'Describí lo importante de la imagen para quienes no pueden verla. Hasta 700 caracteres.'} />
         <SelectField label="Licencia o derechos" value={license} onChange={event => setLicense(event.target.value)} options={Array.from(new Set(['Todos los derechos reservados', 'CC BY 4.0', 'CC0', 'Licencia no informada', ...(existing ? [existing.license] : [])])).map(value => ({ value, label: value }))} />
@@ -152,10 +173,12 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
           options={[{ value: '', label: 'Publicar sin desafío' }, ...openChallenges.map(challenge => ({ value: challenge.id, label: challenge.title })), ...(invalidChallenge ? [{ value: challengeId, label: 'Desafío no disponible' }] : [])]} />
           {invalidChallenge && <ErrorMessage message="El desafío elegido no está abierto. Elegí otro o publicá sin asociar tu obra." />}
         </>}
+        <OwnTagsField tags={ownTags} onChange={setOwnTags} />
+        <PlaceFields latitude={latitude} longitude={longitude} onChange={(lat, lon) => { setLatitude(lat); setLongitude(lon) }} />
         <label className="check-row"><input type="checkbox" checked={rights} onChange={event => setRights(event.target.checked)} required /><span>Confirmo que tengo derecho a compartir este archivo.</span></label>
         <ErrorMessage message={error} />
         {!media && <p className="field-hint">Elegí un archivo para habilitar la publicación.</p>}
-        <div className="form-actions"><Link className="button button-secondary" to={existing ? `/obra/${existing.id}` : '/inicio'}>Cancelar</Link><Button type="submit" loading={pending} disabled={!media || uploading || (!existing && invalidChallenge)}>{existing ? 'Guardar cambios' : 'Publicar obra'}</Button></div>
+        <div className="form-actions"><Link className="button button-secondary" to={existing ? `/obra/${existing.id}` : '/inicio'}>Cancelar</Link><Button type="submit" loading={pending} disabled={!media || uploading || !!place.error || (!existing && invalidChallenge)}>{existing ? 'Guardar cambios' : 'Publicar obra'}</Button></div>
       </div>
     </form>{guard.dialog}
   </>
