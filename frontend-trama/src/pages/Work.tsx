@@ -1,6 +1,6 @@
 import { MusicInspirations } from '../components/MusicInspirations'
 import { useState } from 'react'
-import { ArrowLeft, Flag, Pencil, Send, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, Flag, Music2, Pencil, Send, Trash2, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import { reportReasons, type Post, type Report } from '../data/model'
@@ -56,6 +56,9 @@ function WorkDetail({ post }: { post: Post }) {
   return <>
     <div className="work-topline"><Link className="back-link" to={returnTo}><ArrowLeft size={18} aria-hidden="true" />Volver</Link>
       <div className="button-row">{user?.id === author.id && post.status !== 'deleted' && <>
+        {isPublic && <a className="button button-secondary" href="#inspiraciones-musicales">
+          <Music2 size={18} aria-hidden="true" />Añadir música
+        </a>}
         <Link className="icon-button" to={`/obra/${post.id}/editar`} aria-label="Editar publicación" title="Editar publicación"><Pencil size={20} aria-hidden="true" /></Link>
         <IconButton icon={Trash2} label="Eliminar publicación" onClick={() => setConfirmation({ title: 'Eliminar publicación', description: `«${post.title}» dejará de aparecer. Esta acción no se puede deshacer.`, label: 'Eliminar publicación', dangerous: true, command: () => ({ type: 'delete-post', postId: post.id }), success: 'Publicación eliminada.', destination: '/perfil' })} />
       </>}

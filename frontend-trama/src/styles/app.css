@@ -321,6 +321,21 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .comments-section { border-top: 1px solid var(--border); padding-top: 24px; margin-top: 24px; }
 .comments-section > h2 { font-size: 1.25rem; margin-bottom: 20px; }
 .comments-section > h2 > span { color: var(--muted); font-size: .875rem; margin-left: 8px; }
+.music-catalog, .music-catalog-group { display: grid; gap: 12px; min-width: 0; }
+.music-catalog-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.music-catalog-search .button { min-height: 48px; }
+.music-clear-search { justify-self: start; }
+.music-catalog-group + .music-catalog-group { border-top: 1px solid var(--border); padding-top: 18px; }
+.music-catalog-results { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.music-catalog-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: var(--control-radius); background: var(--surface); padding: 12px; }
+.music-catalog-row > div { flex: 1 1 12rem; min-width: 0; }
+.music-catalog-row h4 { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.music-catalog-row .meta { margin-top: 4px; }
+.music-catalog-linked { color: var(--text); font-size: .875rem; background: var(--surface-subtle); padding: 4px 8px; border-radius: var(--control-radius); }
+@media (max-width: 520px) {
+  .music-catalog-search { grid-template-columns: minmax(0, 1fr); }
+  .music-catalog-search .button { justify-self: start; }
+}
 .comment-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 24px; }
 .comment-list > li { display: flex; align-items: flex-start; gap: 12px; }
 .comment-content { flex: 1; min-width: 0; font-size: .875rem; }

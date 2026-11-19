@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, CheckCircle2, LoaderCircle, X } from 'lucide-react'
 import { ApiRepository, getToken, type ProfileLookup } from '../data/api'
-import { disableNotifications } from '../data/push'
+import { disableNotifications, releaseNotificationsFromOtherUser } from '../data/push'
 import { errorMessage, newId } from '../data/store'
 import type { Command, DemoState, User } from '../data/model'
 import { Brand } from '../components/Brand'
@@ -87,14 +87,16 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
     return candidate
   }, [repository])
 
-  const login = useCallback(async (email: string, password: string) => {
-    await disableNotifications(getToken() ?? '').catch(() => undefined)
-    return enter(await repository.login(email, password))
-  }, [enter, repository])
-  const register = useCallback(async (input: { email: string; username: string; nombreCompleto: string; password: string }) => {
-    await disableNotifications(getToken() ?? '').catch(() => undefined)
-    return enter(await repository.register(input))
-  }, [enter, repository])
+  const startSession = useCallback(async (authenticate: () => Promise<string>) => {
+    const previousToken = getToken() ?? ''
+    const id = await authenticate()
+    releaseNotificationsFromOtherUser(id, previousToken)
+    return enter(id)
+  }, [enter])
+  const login = useCallback((email: string, password: string) =>
+    startSession(() => repository.login(email, password)), [repository, startSession])
+  const register = useCallback((input: { email: string; username: string; nombreCompleto: string; password: string }) =>
+    startSession(() => repository.register(input)), [repository, startSession])
   const appeal = useCallback((input: { email: string; password: string; mensaje: string }) => repository.appeal(input), [repository])
 
   const mergeUsers = useCallback((users: User[]) => {

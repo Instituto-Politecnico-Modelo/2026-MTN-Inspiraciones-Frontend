@@ -33,6 +33,10 @@ export const musicalResources = {
     const params = new URLSearchParams({ tipoRecurso, q, pagina: String(pagina) })
     return http<MusicCatalogPage>('GET', `/api/recursos-musicales?${params}`)
   },
+  search: (tipoRecurso: MusicalResourceType, q: string) => {
+    const params = new URLSearchParams({ tipoRecurso, q })
+    return http<MusicCatalogItem[]>('GET', `/api/recursos-musicales/buscar?${params}`)
+  },
   resolve: (body: { tipoRecurso: string; titulo?: string; artista?: string; id?: number }) => http<MusicalResource>('POST', '/api/recursos-musicales', body),
   link: (id: string, item: Pick<MusicalResource, 'tipoRecurso' | 'id'>) =>
     http<MusicalResource>('PUT', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`, { tipoRecurso: item.tipoRecurso, id: item.id }),

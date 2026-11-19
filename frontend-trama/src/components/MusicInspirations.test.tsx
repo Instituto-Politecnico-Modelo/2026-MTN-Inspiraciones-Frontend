@@ -18,33 +18,57 @@ it('permite elegir una canción guardada y vincularla sin consultar al proveedor
   vi.stubGlobal('fetch', fetch)
   render(<MusicInspirations postId="obra-1" editable />)
 
-  await screen.findByRole('option', { name: /Canción de prueba.*Artista de prueba/ })
-  fireEvent.change(screen.getByLabelText('Recurso disponible'), { target: { value: '8' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Vincular a la publicación' }))
+  const list = await screen.findByRole('list', { name: 'Resultados del catálogo' })
+  expect(list).toHaveTextContent('Canción de prueba')
+  expect(list).toHaveTextContent('Artista de prueba')
+  fireEvent.click(screen.getByRole('button', { name: 'Vincular Canción de prueba' }))
   expect(await screen.findByText('Ver letra de referencia')).toBeInTheDocument()
   expect(fetch.mock.calls.find(([, request]) => request?.method === 'PUT')).toEqual([
     '/api/publicaciones/obra-1/inspiraciones', expect.objectContaining({ body: '{"tipoRecurso":"cancion","id":8}' }),
   ])
   expect(fetch.mock.calls.every(([, request]) => request?.method !== 'POST')).toBe(true)
-  expect(screen.queryByRole('option', { name: /Canción de prueba.*Artista de prueba/ })).toBeNull()
+  expect(screen.getByText('Vinculado')).toBeVisible()
 })
 
 it('filtra y pagina los sonidos guardados por separado de las canciones', async () => {
   const fetch = vi.fn(async (path: string) => Response.json(
-    path.includes('pagina=2') ? { items: [sound] }
-      : path.includes('q=lluvia') ? { items: [], siguientePagina: 2 }
+    path.includes('/buscar?') ? []
+      : path.includes('pagina=2') ? { items: [sound] }
+      : path.includes('q=lluvia') ? { items: [{ id: 18, titulo: 'Lluvia en el techo' }], siguientePagina: 2 }
         : path.includes('recursos-musicales') ? { items: [song] } : [],
   ))
   vi.stubGlobal('fetch', fetch)
   render(<MusicInspirations postId="obra-2" editable />)
-  await screen.findByRole('option', { name: /Canción de prueba.*Artista de prueba/ })
+  await screen.findByRole('button', { name: 'Vincular Canción de prueba' })
 
-  fireEvent.change(screen.getByLabelText('Tipo de referencia'), { target: { value: 'sample' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Sonidos' }))
   fireEvent.change(screen.getByLabelText('Filtrar catálogo'), { target: { value: 'lluvia' } })
   fireEvent.click(screen.getByRole('button', { name: 'Buscar en catálogo' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Siguiente página' }))
-  expect(await screen.findByRole('option', { name: /Lluvia.*2[,.]5/ })).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: 'Vincular Lluvia' })).toBeInTheDocument()
+  expect(screen.getByText(/^2[,.]5 s$/)).toBeVisible()
   expect(fetch.mock.calls.some(([path]) => path.includes('tipoRecurso=sample') && path.includes('q=lluvia') && path.includes('pagina=2'))).toBe(true)
+})
+
+it('muestra una canción nueva del proveedor y la importa solo al vincularla', async () => {
+  const suggestion = { id: 489, titulo: 'Canción nueva', artista: 'Artista nuevo' }
+  const resolved = { ...suggestion, id: 101, tipoRecurso: 'cancion', letraCompleta: 'Letra de prueba' }
+  const fetch = vi.fn(async (path: string, init?: RequestInit) => Response.json(
+    init?.method === 'POST' || init?.method === 'PUT' ? resolved
+      : path.includes('/buscar?') ? [suggestion] : path.includes('recursos-musicales') ? { items: [] } : [],
+  ))
+  vi.stubGlobal('fetch', fetch)
+  render(<MusicInspirations postId="obra-4" editable />)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Buscar en catálogo' })).toBeEnabled())
+  fireEvent.change(screen.getByLabelText('Filtrar catálogo'), { target: { value: 'Canción' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Buscar en catálogo' }))
+  const action = await screen.findByRole('button', { name: 'Vincular Canción nueva' })
+  expect(screen.getByRole('list', { name: 'Resultados externos' })).toHaveTextContent('Artista nuevo')
+  expect(fetch.mock.calls.every(([, init]) => init?.method !== 'POST')).toBe(true)
+  fireEvent.click(action)
+  expect(await screen.findByText('Ver letra de referencia')).toBeVisible()
+  expect(fetch.mock.calls.find(([, request]) => request?.method === 'PUT')?.[1]?.body)
+    .toBe('{"tipoRecurso":"cancion","id":101}')
 })
 
 it('solo carga el catálogo para el autor', async () => {

@@ -13,6 +13,7 @@ const messageSchema = z.object({
 })
 export type PushNotice = { id: string; title: string; body: string; path: string }
 type WebConfig = FirebaseOptions & { vapidKey: string }
+let pendingDeviceRelease: Promise<void> | undefined
 
 function storedDevice() {
   try { return deviceSchema.parse(JSON.parse(localStorage.getItem(DEVICE_KEY) ?? 'null')) } catch { return null }
@@ -104,6 +105,8 @@ export async function enableNotifications(userId: string, authToken: string) {
   if (permission !== 'granted') throw new Error(permission === 'denied'
     ? 'Las notificaciones están bloqueadas en los permisos de este sitio.'
     : 'No se concedió el permiso de notificaciones.')
+  await pendingDeviceRelease
+  if (getToken() !== authToken) throw new Error('La sesión cambió. Activá las notificaciones nuevamente.')
   const { sdk, client, config } = await messaging(authToken)
   const registration = await navigator.serviceWorker.register('/push-sw.js')
   await navigator.serviceWorker.ready
@@ -132,6 +135,16 @@ export async function disableNotifications(authToken: string) {
     }
     if (device) await request('/device-tokens', authToken, 'DELETE', { token: device.token })
   }
+}
+
+export function releaseNotificationsFromOtherUser(userId: string, previousToken: string) {
+  const device = storedDevice()
+  if (!device || device.userId === userId) return
+  const release = disableNotifications(previousToken).catch(() => undefined)
+  pendingDeviceRelease = release
+  void release.then(() => {
+    if (pendingDeviceRelease === release) pendingDeviceRelease = undefined
+  })
 }
 
 export function listenNotifications(userId: string, receive: (notice: PushNotice) => void) {

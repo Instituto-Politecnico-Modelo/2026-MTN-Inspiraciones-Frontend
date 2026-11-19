@@ -36,7 +36,7 @@ jobs:
         working-directory: frontend-trama
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          npm test -- src/pages/RecoveryPage.test.tsx src/data/api.test.ts src/components/MusicInspirations.test.tsx
+          npm test -- src/pages/Access.test.tsx src/pages/RecoveryPage.test.tsx src/data/api.test.ts src/components/MusicInspirations.test.tsx
 
       - name: Set image name
         id: image

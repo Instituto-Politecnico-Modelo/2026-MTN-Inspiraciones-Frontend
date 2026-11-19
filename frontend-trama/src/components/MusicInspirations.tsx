@@ -2,24 +2,44 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { musicalResources, type MusicCatalogItem, type MusicCatalogPage, type MusicalResource, type MusicalResourceType } from '../data/api'
 import { Button, ErrorMessage, Field, SelectField } from './UI'
 
-const referenceTypes = [{ value: 'cancion', label: 'Canciones' }, { value: 'sample', label: 'Sonidos de Freesound' }]
+const referenceTypes = [{ value: 'cancion', label: 'Canciones' }, { value: 'sample', label: 'Sonidos' }] as const
 const seconds = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
 
-const catalogLabel = (item: MusicCatalogItem) => [
-  item.titulo,
-  item.artista,
-  item.duracionSegundos != null ? `${seconds.format(item.duracionSegundos)} s` : null,
-].filter(Boolean).join(' · ')
+function ResourceRows({ label, resources, pending, linked, onLink }: {
+  label: string
+  resources: MusicCatalogItem[]
+  pending: boolean
+  linked: (item: MusicCatalogItem) => boolean
+  onLink: (item: MusicCatalogItem) => Promise<void>
+}) {
+  return <ul className="music-catalog-results" aria-label={label}>
+    {resources.map(item => <li className="music-catalog-row" key={item.id}>
+      <div>
+        <h4>{item.titulo}</h4>
+        {item.artista && <p className="muted">{item.artista}</p>}
+        {item.duracionSegundos != null && <p className="meta">{seconds.format(item.duracionSegundos)} s</p>}
+        {item.licencia && (/^https:\/\/(www\.)?creativecommons\.org\//.test(item.licencia)
+          ? <p className="meta"><a href={item.licencia} target="_blank" rel="noreferrer">Ver licencia</a></p>
+          : <p className="meta">{item.licencia}</p>)}
+      </div>
+      {linked(item) ? <span className="music-catalog-linked">Vinculado</span>
+        : <Button variant="secondary" aria-label={`Vincular ${item.titulo}`} disabled={pending}
+          onClick={() => void onLink(item)}>Vincular</Button>}
+    </li>)}
+  </ul>
+}
 
-function MusicCatalogPicker({ linked, pending, onLink }: {
+function MusicCatalogPicker({ linked, pending, onLink, onImport }: {
   linked: MusicalResource[]
   pending: boolean
-  onLink: (type: MusicalResourceType, id: number) => Promise<boolean>
+  onLink: (type: MusicalResourceType, id: number) => Promise<void>
+  onImport: (type: MusicalResourceType, item: MusicCatalogItem) => Promise<void>
 }) {
   const [query, setQuery] = useState({ type: 'cancion' as MusicalResourceType, text: '', page: 1 })
   const [filter, setFilter] = useState('')
   const [loaded, setLoaded] = useState<{ query: typeof query; page?: MusicCatalogPage }>()
-  const [selectedId, setSelectedId] = useState('')
+  const [search, setSearch] = useState({ type: query.type, text: '' })
+  const [external, setExternal] = useState<{ search: typeof search; results?: MusicCatalogItem[]; error?: string }>()
 
   useEffect(() => {
     let active = true
@@ -28,55 +48,89 @@ function MusicCatalogPicker({ linked, pending, onLink }: {
       .catch(() => { if (active) setLoaded({ query }) })
     return () => { active = false }
   }, [query])
+  useEffect(() => {
+    if (search.text.length < 2) return
+    let active = true
+    musicalResources.search(search.type, search.text)
+      .then(results => {
+        if (!Array.isArray(results)) throw new Error('El proveedor devolvió una respuesta incompleta.')
+        if (active) setExternal({ search, results })
+      })
+      .catch(error => {
+        if (active) setExternal({ search, error: error instanceof Error ? error.message : 'El proveedor no pudo responder.' })
+      })
+    return () => { active = false }
+  }, [search])
 
   const current = loaded?.query === query ? loaded : undefined
   const page = current?.page
   const nextPage = page?.siguientePagina
-  const linkedIds = new Set(linked.filter(item => item.tipoRecurso === query.type).map(item => item.id))
-  const available = page?.items.filter(item => !linkedIds.has(item.id)) ?? []
-  const selected = available.find(item => String(item.id) === selectedId)
+  const externalCurrent = external?.search === search ? external : undefined
+  const linkedOfType = linked.filter(item => item.tipoRecurso === query.type)
+  const sameSong = (a: MusicCatalogItem, b: MusicCatalogItem) =>
+    a.titulo.trim().toLowerCase() === b.titulo.trim().toLowerCase() &&
+    a.artista?.trim().toLowerCase() === b.artista?.trim().toLowerCase()
+  const isLinked = (item: MusicCatalogItem) => linkedOfType.some(resource => resource.id === item.id)
+  const isExternalLinked = (item: MusicCatalogItem) => linkedOfType.some(resource =>
+    query.type === 'sample' ? resource.id === item.id : sameSong(resource, item))
+  const newResults = externalCurrent?.results?.filter(item => !page?.items.some(saved =>
+    query.type === 'sample' ? saved.id === item.id : sameSong(saved, item)))
 
   function showPage(page: number, type = query.type, text = query.text) {
-    setSelectedId('')
     setQuery({ page, type, text })
   }
+  function runSearch(type: MusicalResourceType, text: string) {
+    showPage(1, type, text)
+    setSearch({ type, text })
+  }
 
-  return <div className="form-stack">
-    <SelectField label="Tipo de referencia" value={query.type} options={referenceTypes} disabled={pending}
-      onChange={event => { setFilter(''); showPage(1, event.target.value as MusicalResourceType, '') }} />
-    <form className="form-stack" onSubmit={event => { event.preventDefault(); showPage(1, query.type, filter.trim()) }}>
+  return <div className="music-catalog">
+    <div className="button-row" role="group" aria-label="Tipo de referencia">
+      {referenceTypes.map(type => <Button key={type.value} variant={query.type === type.value ? 'primary' : 'secondary'}
+        aria-pressed={query.type === type.value} disabled={pending} onClick={() => runSearch(type.value, filter.trim())}>
+        {type.label}
+      </Button>)}
+    </div>
+    <form className="music-catalog-search" onSubmit={event => { event.preventDefault(); runSearch(query.type, filter.trim()) }}>
       <Field type="search" label="Filtrar catálogo" value={filter} maxLength={100} disabled={pending}
-        placeholder={query.type === 'cancion' ? 'Título o artista' : 'Nombre del sonido'} onChange={event => setFilter(event.target.value)} />
-      <div className="button-row">
-        <Button type="submit" variant="secondary" disabled={pending}>Buscar en catálogo</Button>
-        {query.text && <Button variant="ghost" disabled={pending}
-          onClick={() => { setFilter(''); showPage(1, query.type, '') }}>Quitar filtro</Button>}
-      </div>
+        placeholder={query.type === 'cancion' ? 'Título o artista' : 'Ej. lluvia o aplausos'} onChange={event => setFilter(event.target.value)} />
+      <Button type="submit" variant="secondary" disabled={pending}>Buscar en catálogo</Button>
     </form>
-    {!current && <p role="status">Cargando catálogo…</p>}
-    {current && !page && <div>
-      <ErrorMessage message="No se pudo cargar el catálogo musical." />
-      <Button variant="secondary" disabled={pending} onClick={() => showPage(query.page)}>Reintentar catálogo</Button>
-    </div>}
-    {page && <>
-      <SelectField label="Recurso disponible" value={selected?.id ?? ''} disabled={pending || !available.length}
-        onChange={event => setSelectedId(event.target.value)}
-        options={[{ value: '', label: 'Elegí una referencia' }, ...available.map(item => ({
-          value: String(item.id), label: catalogLabel(item),
-        }))]} />
-      {!available.length && <p role="status">{page.items.length
-        ? 'Ya agregaste las referencias de esta página.' : 'No hay recursos guardados para esta búsqueda.'}</p>}
-      {selected?.licencia && <p className="field-hint">Licencia: {selected.licencia}</p>}
-      <div className="button-row">
-        <Button disabled={!selected || pending} onClick={async () => {
-          if (selected && await onLink(query.type, selected.id)) setSelectedId('')
-        }}>Vincular a la publicación</Button>
-        {query.page > 1 && <Button variant="secondary" disabled={pending}
-          onClick={() => showPage(query.page - 1)}>Página anterior</Button>}
-        {nextPage && <Button variant="secondary" disabled={pending}
-          onClick={() => showPage(nextPage)}>Siguiente página</Button>}
-      </div>
-    </>}
+    {query.text && <Button variant="ghost" className="music-clear-search" disabled={pending}
+      onClick={() => { setFilter(''); runSearch(query.type, '') }}>Quitar filtro</Button>}
+    {search.text.length < 2
+      ? <p className="meta">Buscá con dos caracteres o más para encontrar recursos nuevos en {query.type === 'cancion' ? 'Lyrics.ovh' : 'Freesound'}.</p>
+      : <div className="music-catalog-group">
+        <h3>{query.type === 'cancion' ? 'Canciones nuevas' : 'Sonidos nuevos'}</h3>
+        {!externalCurrent && <p role="status" className="meta">Buscando en el proveedor…</p>}
+        {externalCurrent?.error && <>
+          <ErrorMessage message={externalCurrent.error} />
+          <Button variant="secondary" disabled={pending} onClick={() => setSearch({ ...search })}>Reintentar búsqueda externa</Button>
+        </>}
+        {newResults && !newResults.length && <p role="status" className="meta">No aparecieron recursos nuevos para esta búsqueda.</p>}
+        {!!newResults?.length && <ResourceRows label="Resultados externos" resources={newResults} pending={pending}
+          linked={isExternalLinked} onLink={item => onImport(query.type, item)} />}
+      </div>}
+    <div className="music-catalog-group">
+      <h3>Guardados en Trama</h3>
+      {!current && <p role="status" className="meta">Cargando catálogo…</p>}
+      {current && !page && <>
+        <ErrorMessage message="No se pudieron cargar los recursos guardados." />
+        <Button variant="secondary" disabled={pending} onClick={() => showPage(query.page)}>Reintentar catálogo</Button>
+      </>}
+      {page && <>
+        {page.items.length
+          ? <ResourceRows label="Resultados del catálogo" resources={page.items} pending={pending}
+            linked={isLinked} onLink={item => onLink(query.type, item.id)} />
+          : <p role="status" className="meta">No hay recursos guardados para esta búsqueda.</p>}
+        {(query.page > 1 || nextPage) && <div className="button-row">
+          {query.page > 1 && <Button variant="secondary" disabled={pending}
+            onClick={() => showPage(query.page - 1)}>Página anterior</Button>}
+          {nextPage && <Button variant="secondary" disabled={pending}
+            onClick={() => showPage(nextPage)}>Siguiente página</Button>}
+        </div>}
+      </>}
+    </div>
   </div>
 }
 
@@ -117,10 +171,19 @@ export function MusicInspirations({ postId, editable }: { postId: string; editab
     setPending(true); setError('')
     try {
       remember(await musicalResources.link(postId, { tipoRecurso, id }))
-      return true
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'No se pudo vincular la referencia.')
-      return false
+    } finally { setPending(false) }
+  }
+  const importFromSearch = async (tipoRecurso: MusicalResourceType, item: MusicCatalogItem) => {
+    setPending(true)
+    setError('')
+    try {
+      const resource = await musicalResources.resolve(tipoRecurso === 'cancion'
+        ? { tipoRecurso, titulo: item.titulo, artista: item.artista ?? '' } : { tipoRecurso, id: item.id })
+      remember(await musicalResources.link(postId, resource))
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'No se pudo vincular el recurso externo.')
     } finally { setPending(false) }
   }
   const remove = async (item: MusicalResource) => {
@@ -129,7 +192,7 @@ export function MusicInspirations({ postId, editable }: { postId: string; editab
     catch { setError('No se pudo quitar la inspiración. Reintentá.') }
     finally { setPending(false) }
   }
-  return <section className="comments-section" aria-label="Inspiraciones musicales">
+  return <section className="comments-section" id="inspiraciones-musicales" aria-label="Inspiraciones musicales" tabIndex={-1}>
     <h2>Inspiraciones musicales</h2>
     {loading ? <p role="status">Cargando inspiraciones…</p> : items.length === 0 && <p className="muted">Esta obra todavía no tiene referencias musicales.</p>}
     <ul className="form-stack">{items.map(item => <li key={`${item.tipoRecurso}-${item.id}`}>
@@ -141,7 +204,7 @@ export function MusicInspirations({ postId, editable }: { postId: string; editab
       {editable && <Button variant="secondary" disabled={pending} onClick={() => void remove(item)}>Quitar referencia</Button>}
     </li>)}</ul>
     {editable && <div className="form-stack">
-      <MusicCatalogPicker linked={items} pending={pending || loading} onLink={linkFromCatalog} />
+      <MusicCatalogPicker linked={items} pending={pending || loading} onLink={linkFromCatalog} onImport={importFromSearch} />
       <details><summary>Buscar otro recurso</summary>
         <form className="form-stack" onSubmit={event => void add(event)}>
           <SelectField label="Añadir una referencia musical" value={tipo} disabled={pending}

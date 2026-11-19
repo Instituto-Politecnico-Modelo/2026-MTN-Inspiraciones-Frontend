@@ -27,7 +27,7 @@ export function AccessPage({ register = false }: { register?: boolean }) {
     event.preventDefault()
     setError('')
     setSuspended(false)
-    if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
+    if (register && password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
     setPending(true)
     try {
       if (register) {
@@ -59,7 +59,7 @@ export function AccessPage({ register = false }: { register?: boolean }) {
           </>}
           <Field label="Correo" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" required maxLength={254} />
           <div className="password-field">
-            <Field label="Contraseña" type={showPassword ? 'text' : 'password'} value={password} onChange={event => setPassword(event.target.value)} autoComplete={register ? 'new-password' : 'current-password'} required minLength={8}
+            <Field label="Contraseña" type={showPassword ? 'text' : 'password'} value={password} onChange={event => setPassword(event.target.value)} autoComplete={register ? 'new-password' : 'current-password'} required minLength={register ? 8 : undefined}
               hint={register ? 'Usá al menos 8 caracteres.' : undefined} />
             <IconButton icon={showPassword ? EyeOff : Eye} label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShowPassword(value => !value)} />
           </div>
