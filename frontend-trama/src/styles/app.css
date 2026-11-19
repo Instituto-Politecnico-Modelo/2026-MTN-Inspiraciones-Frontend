@@ -226,6 +226,11 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .auth-form h1 { font-size: 2rem; line-height: 1.25; }
 .auth-form > h1 { margin-bottom: 24px; }
 .auth-form .form-stack { gap: 20px; }
+.recovery-grid { grid-template-columns: minmax(0, 1fr); }
+.recovery-form { display: grid; gap: 16px; }
+.recovery-form > h1 { margin-bottom: 0; }
+.recovery-email { overflow-wrap: anywhere; }
+.recovery-email button { border: 0; background: transparent; padding: 0; font: inherit; }
 .password-field { position: relative; }
 .password-field input { padding-right: 56px !important; }
 .password-field > .icon-button { position: absolute; top: 34px; right: 4px; }

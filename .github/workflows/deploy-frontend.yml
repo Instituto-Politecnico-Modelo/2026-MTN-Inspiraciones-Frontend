@@ -25,6 +25,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Node for recovery checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+          cache: npm
+          cache-dependency-path: frontend-trama/package-lock.json
+
+      - name: Verify password recovery
+        working-directory: frontend-trama
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test -- src/pages/RecoveryPage.test.tsx src/data/api.test.ts
+
       - name: Set image name
         id: image
         env:
