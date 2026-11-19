@@ -73,6 +73,10 @@ small, .meta { font-size: .875rem; line-height: 1.4286; }
 input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 20px; height: 20px; flex-shrink: 0; }
 .check-row { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; }
 .check-row input { margin: 3px 0 0; }
+.sidebar-map-toggle { align-items: center; min-height: 36px; margin: -2px 0 4px 44px; font-size: .875rem; color: var(--muted); cursor: pointer; }
+.sidebar-map-toggle input { margin: 0; }
+@media (min-width: 768px) { .map-toggle-mobile { display: none; } }
+@media (min-width: 768px) and (max-width: 1023px) { .sidebar-map-toggle { margin-left: 0; justify-content: center; } .sidebar-map-toggle span { display: none; } }
 .form-stack { display: grid; gap: 24px; }
 .form-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .error-message { display: flex; align-items: flex-start; gap: 8px; color: var(--error); background: var(--error-surface); border-radius: var(--control-radius); font-size: .875rem; line-height: 1.4286; padding: 12px 16px; margin-block: 16px; overflow-wrap: anywhere; }

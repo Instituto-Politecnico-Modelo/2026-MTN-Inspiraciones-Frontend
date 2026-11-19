@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowUpRight, ChartNoAxesCombined, Compass, Flag, House, Images, Inbox, Info, LogOut, MapPin, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
+import { ArrowUpRight, ChartNoAxesCombined, Compass, Flag, House, Images, Inbox, Info, LogOut, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
 import { Link, NavLink, Navigate, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { canManage, profilePath } from '../data/store'
@@ -12,7 +12,6 @@ import { placesApi } from '../data/api'
 export const userNavigation = [
   { path: '/inicio', label: 'Inicio', icon: House },
   { path: '/descubrir', label: 'Descubrir', icon: Compass },
-  { path: '/mapa', label: 'Mapa', icon: MapPin },
   { path: '/desafios', label: 'Desafíos', icon: Trophy },
   { path: '/perfil', label: 'Perfil', icon: UserRound },
 ]
@@ -62,6 +61,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
 export function SiteLayout({ admin = false }: { admin?: boolean }) {
   const { user } = useDemo()
   const location = useLocation()
+  const navigate = useNavigate()
   const main = useRef<HTMLElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const navigation = admin ? adminNavigation : userNavigation.map(item => item.path === '/perfil' && user ? { ...item, path: profilePath(user) } : item)
@@ -70,10 +70,14 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
     document.title = `${admin ? 'Administración · ' : ''}Trama`
   }, [location.pathname, admin])
 
-  const links = (mobile = false) => (mobile && admin ? [adminNavigation[0], adminNavigation[2], adminNavigation[3]] : navigation).map(item =>
-    <NavLink key={item.path} to={item.path} aria-label={item.label} title={item.label} className={({ isActive }) => isActive ? 'nav-item is-active' : 'nav-item'}>
+  const mapOn = location.pathname === '/descubrir' && new URLSearchParams(location.search).get('mapa') === '1'
+  const mapToggle = <label key="mapa" className="check-row sidebar-map-toggle" title="Mostrar el mapa"><input type="checkbox" aria-label="Mapa" checked={mapOn} onChange={event => navigate(event.target.checked ? '/descubrir?mapa=1' : '/descubrir')} /><span>Mapa</span></label>
+  const links = (mobile = false) => (mobile && admin ? [adminNavigation[0], adminNavigation[2], adminNavigation[3]] : navigation).flatMap(item => {
+    const link = <NavLink key={item.path} to={item.path} aria-label={item.label} title={item.label} className={({ isActive }) => isActive ? 'nav-item is-active' : 'nav-item'}>
       <item.icon size={22} strokeWidth={1.8} aria-hidden="true" /><span>{item.label}</span>
-    </NavLink>)
+    </NavLink>
+    return !mobile && !admin && user?.status === 'active' && item.path === '/descubrir' ? [link, mapToggle] : [link]
+  })
   const publishLink = <Link key="publicar" className="nav-publish" to="/publicar" aria-label="Publicar una obra" title="Publicar una obra"><Plus size={22} strokeWidth={2} aria-hidden="true" /><span>Publicar</span></Link>
   const mobileLinks = links(true)
   if (!admin) mobileLinks.splice(2, 0, publishLink)

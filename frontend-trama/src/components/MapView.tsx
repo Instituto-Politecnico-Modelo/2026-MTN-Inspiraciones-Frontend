@@ -9,6 +9,7 @@ export type MapItem = { publicacion: { id: string; contenido?: string; ubicacion
 type Props = {
   items: MapItem[]
   selectedId: string | null
+  focus?: { center: Coordinates; radiusKm: number } | null
   onSelect: (id: string) => void
   onViewChange: (zone: Zone) => void
   onUnavailable: () => void
@@ -19,7 +20,7 @@ type Engine = { L: typeof Leaflet; map: Leaflet.Map; group: Leaflet.MarkerCluste
 
 const dot = (L: typeof Leaflet, selected: boolean) => L.divIcon({ className: selected ? 'map-dot is-selected' : 'map-dot', iconSize: [20, 20] })
 
-export function MapView({ items, selectedId, onSelect, onViewChange, onUnavailable }: Props) {
+export function MapView({ items, selectedId, focus, onSelect, onViewChange, onUnavailable }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const engine = useRef<Engine | null>(null)
   const callbacks = useRef({ onSelect, onViewChange, onUnavailable })
@@ -83,6 +84,15 @@ export function MapView({ items, selectedId, onSelect, onViewChange, onUnavailab
     current.quiet.value = false
     current.group.zoomToShowLayer(marker)
   }, [selectedId, ready])
+
+  useEffect(() => {
+    const current = engine.current
+    if (!ready || !current || !focus) return
+    // Ajustar la vista al radio es un movimiento propio: no debe disparar una consulta por zona.
+    current.quiet.value = true
+    current.map.fitBounds(current.L.latLng(focus.center.latitud, focus.center.longitud).toBounds(focus.radiusKm * 2000), { animate: false })
+    current.quiet.value = false
+  }, [focus, ready])
 
   return <div ref={container} className="map-canvas" role="application" aria-label="Mapa de lugares de inspiración" />
 }

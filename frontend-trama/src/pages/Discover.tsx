@@ -10,6 +10,21 @@ import { errorMessage, normalize, profilePath, searchPosts, visiblePosts } from 
 import { Avatar, Button, EmptyState, ErrorMessage, Modal, PageTitle, SearchField, SelectField, Tabs } from '../components/UI'
 import { PostGrid } from '../components/PostCard'
 import { FollowButton } from '../components/FollowButton'
+import { PlacesExplorer } from '../components/PlacesExplorer'
+import { proximityAccess, type LocationPreference } from '../data/places'
+import { getPosition } from '../lib/geolocation'
+import { useDevicePermission } from '../lib/useDevicePermission'
+
+function DiscoverMap() {
+  const [preference, setPreference] = useState<LocationPreference>(null)
+  const [permission] = useDevicePermission()
+  useEffect(() => {
+    let active = true
+    placesApi.preference.get().then(value => { if (active) setPreference(value) }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
+  return <PlacesExplorer api={placesApi} access={proximityAccess(preference, permission)} getPosition={getPosition} />
+}
 
 const tabs = [{ value: 'obras', label: 'Obras' }, { value: 'artistas', label: 'Artistas' }]
 
@@ -81,8 +96,14 @@ export function DiscoverPage() {
   </>
   const empty = <EmptyState title="Todavía no encontramos coincidencias" description="Probá con otras palabras o quitá los filtros para ampliar tu búsqueda."
     action={<Button variant="secondary" onClick={() => activeFilters || area ? update({ disciplina: '', tecnica: '', zona: '' }) : update({ q: '' })}>{activeFilters || area ? 'Quitar filtros' : 'Limpiar búsqueda'}</Button>} />
+  const mapOn = params.get('mapa') === '1'
+  const mapToggle = <label className="check-row map-toggle-mobile"><input type="checkbox" checked={mapOn} disabled={!viewerId} onChange={event => update({ mapa: event.target.checked ? '1' : '' })} /> Mapa</label>
+  if (mapOn && viewerId) return <div className="discover-page">
+    <PageTitle title="Descubrir" actions={mapToggle} />
+    <DiscoverMap />
+  </div>
   return <div className="discover-page">
-    <PageTitle title="Descubrir" />
+    <PageTitle title="Descubrir" actions={mapToggle} />
     <div className="discover-search"><SearchField value={query} onChange={value => update({ q: value })} label="Buscar en Descubrir" placeholder={tab === 'musica' ? 'Buscá música, samples o artistas' : tab === 'lugares' ? 'Buscá un espacio o un barrio' : 'Buscá obras, técnicas y artistas'} /></div>
     {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras o Artistas." />}
     {tab === 'artistas' && searchError && <ErrorMessage message={searchError} />}
