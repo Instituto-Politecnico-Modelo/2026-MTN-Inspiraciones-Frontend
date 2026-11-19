@@ -11,7 +11,16 @@ const MARK = '\u2063trama:'
 const MAX_CONTENT = 2000
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code = '') { super(message) }
+  constructor(message: string, readonly status: number, readonly code = '', readonly retryAfterSeconds?: number,
+    readonly intentosRestantes?: number) { super(message) }
+}
+
+const passwordResetPath = '/api/auth/password-reset'
+export const passwordReset = {
+  request: async (email: string) => { await http('POST', passwordResetPath + '/request', { email }) },
+  confirm: async (input: { email: string; code: string; newPassword: string }) => {
+    await http('POST', passwordResetPath + '/confirm', input)
+  },
 }
 
 export type MusicalResource = { id: number; tipoRecurso: 'cancion' | 'sample'; titulo: string; artista?: string; letraCompleta?: string; urlExterna?: string; licencia?: string }
@@ -142,7 +151,7 @@ export function getToken() {
 
 async function http<T = Json>(method: string, path: string, body?: unknown, form?: FormData): Promise<T> {
   const headers: Record<string, string> = {}
-  const token = getToken()
+  const token = path.startsWith(passwordResetPath + '/') ? null : getToken()
   if (token) headers.Authorization = `Bearer ${token}`
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   let response: Response
@@ -160,7 +169,12 @@ async function http<T = Json>(method: string, path: string, body?: unknown, form
   if (!response.ok) {
     if (response.status === 401 && token && !path.startsWith('/api/auth/')) localStorage.removeItem(TOKEN_KEY)
     const detail = typeof payload.message === 'string' ? payload.message : ''
-    throw new ApiError(detail || (response.status === 403 ? 'No tenés permiso para realizar esta acción.' : response.status === 404 ? 'El recurso ya no está disponible.' : 'No pudimos completar la operación. Volvé a intentar.'), response.status, String(payload.code ?? ''))
+    const bodyWait = payload.retryAfterSeconds
+    const headerWait = Number(response.headers?.get('Retry-After'))
+    const retryAfter = Number.isSafeInteger(bodyWait) && bodyWait > 0 ? bodyWait
+      : Number.isSafeInteger(headerWait) && headerWait > 0 ? headerWait : undefined
+    throw new ApiError(detail || (response.status === 403 ? 'No tenés permiso para realizar esta acción.' : response.status === 404 ? 'El recurso ya no está disponible.' : 'No pudimos completar la operación. Volvé a intentar.'), response.status, String(payload.code ?? ''), retryAfter,
+    Number.isSafeInteger(payload.intentosRestantes) && payload.intentosRestantes >= 0 ? payload.intentosRestantes : undefined)
   }
   return payload as T
 }
@@ -296,10 +310,13 @@ export class ApiRepository {
   }
 
   logout() {
-    localStorage.removeItem(TOKEN_KEY)
-    this.meId = null
-    this.state = emptyState()
-    this.userCache.clear()
+    try {
+      localStorage.removeItem(TOKEN_KEY)
+    } finally {
+      this.meId = null
+      this.state = emptyState()
+      this.userCache.clear()
+    }
   }
 
   async load(): Promise<DemoState> {

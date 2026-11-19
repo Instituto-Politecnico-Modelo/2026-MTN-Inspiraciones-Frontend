@@ -7,6 +7,7 @@ import { errorMessage } from '../data/store'
 import { safeReturnPath } from '../lib/format'
 import { Brand } from '../components/Brand'
 import { Button, ErrorMessage, Field, IconButton } from '../components/UI'
+export { RecoveryPage } from './RecoveryPage'
 
 export function AccessPage({ register = false }: { register?: boolean }) {
   const { login, register: createAccount } = useDemo()
@@ -81,11 +82,6 @@ export function AccessPage({ register = false }: { register?: boolean }) {
   </div>
 }
 
-export function RecoveryPage() {
-  return <main className="startup"><Brand /><h1>Recuperar el acceso</h1><p>Por ahora la recuperación de contraseña no está disponible desde Trama. Si no podés ingresar, escribile al equipo de administración para que restablezca tu acceso.</p>
-    <Link className="button button-primary" to="/ingresar">Volver a Ingresar</Link><Link className="text-link" to="/inicio">Seguir explorando</Link>
-  </main>
-}
 export function LogoutPage() {
   const { logout } = useDemo()
   const navigate = useNavigate()

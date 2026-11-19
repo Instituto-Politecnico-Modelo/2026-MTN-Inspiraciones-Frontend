@@ -30,7 +30,7 @@ type Context = {
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
   searchUsers: (query: string) => Promise<User[]>
   getProfile: (lookup: ProfileLookup) => Promise<void>
-  logout: () => void
+  logout: (localOnly?: boolean) => void
   resolveId: (id: string) => string
   notify: (text: string, kind?: Notice['kind']) => void
 }
@@ -116,12 +116,15 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
     if (repository.getProfile) mergeUsers([await repository.getProfile(lookup)])
   }, [repository, mergeUsers])
 
-  const logout = useCallback(() => {
-    void disableNotifications(getToken() ?? '').catch(() => undefined)
-    repository.logout()
-    setUserId(null)
-    setNotice(null)
-    void refresh().catch(error => console.error('[Trama] No se pudo actualizar tras cerrar sesión.', error))
+  const logout = useCallback((localOnly = false) => {
+    if (!localOnly) void disableNotifications(getToken() ?? '').catch(() => undefined)
+    try {
+      repository.logout()
+      void refresh().catch(error => console.error('[Trama] No se pudo actualizar tras cerrar sesión.', error))
+    } finally {
+      setUserId(null)
+      setNotice(null)
+    }
   }, [refresh, repository])
 
   if (loading || !state || startupError) return <main className="startup">
