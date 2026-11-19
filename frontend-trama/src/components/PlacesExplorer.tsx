@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { MapPage, MapQuery } from '../data/api'
+import type { MapPage, MapPublication, MapQuery } from '../data/api'
 import { mergeById, type Coordinates, type ProximityAccess, type Zone } from '../data/places'
 import { errorMessage } from '../data/store'
 import { DistanceControl } from './DistanceControl'
@@ -16,9 +16,10 @@ type Props = {
   api: { query: (body: MapQuery) => Promise<MapPage> }
   access: ProximityAccess
   getPosition: () => Promise<Coordinates>
+  filter?: (publication: MapPublication) => boolean
 }
 
-export function PlacesExplorer({ api, access, getPosition }: Props) {
+export function PlacesExplorer({ api, access, getPosition, filter }: Props) {
   const navigate = useNavigate()
   const [zone, setZone] = useState<Zone>(WORLD)
   const [radius, setRadius] = useState(25)
@@ -60,7 +61,7 @@ export function PlacesExplorer({ api, access, getPosition }: Props) {
     </div>
     <ErrorMessage message={error} />
     <div className="map-column">
-      <MapView items={items} selectedId={null} focus={focus} onSelect={id => navigate(`/obra/${id}`)} onViewChange={view => { if (!radial) setZone(view) }} onUnavailable={() => setMapDown(true)} />
+      <MapView items={filter ? items.filter(item => filter(item.publicacion)) : items} selectedId={null} focus={focus} onSelect={id => navigate(`/obra/${id}`)} onViewChange={view => { if (!radial) setZone(view) }} onUnavailable={() => setMapDown(true)} />
       {mapDown && <p role="status" aria-label="Estado del mapa" className="map-status">El mapa no está disponible por ahora.</p>}
     </div>
   </div>
