@@ -1,0 +1,8 @@
+Inter variable, copia sin modificaciones.
+Proyecto oficial: https://rsms.me/inter/
+Distribución: https://github.com/google/fonts/tree/main/ofl/inter
+Archivo: Inter[opsz,wght].ttf
+Licencia: https://raw.githubusercontent.com/google/fonts/main/ofl/inter/OFL.txt
+Fecha de preparación: 2026-10-27
+SHA-256: 29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031
+Las instancias usadas para componer el PDF se derivan de esta fuente; el archivo adjunto conserva el variable original.

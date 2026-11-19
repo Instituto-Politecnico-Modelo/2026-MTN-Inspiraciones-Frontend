@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+test-results/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.anima/
+.local-data/
+
+# CreateApp: archivos locales
+.createapp/tools/

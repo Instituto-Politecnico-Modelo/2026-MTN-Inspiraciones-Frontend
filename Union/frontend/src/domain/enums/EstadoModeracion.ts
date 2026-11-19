@@ -1,6 +1,0 @@
-export enum EstadoModeracion {
-  PENDIENTE = "PENDIENTE",
-  EN_REVISION = "EN_REVISION",
-  RESUELTO = "RESUELTO",
-  DESESTIMADO = "DESESTIMADO",
-}

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <title>Lo que crece despacio. Ilustración original de la demo.</title>
+  <defs>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".5" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".1"/></feComponentTransfer><feBlend in="SourceGraphic" mode="multiply"/></filter>
+    <path id="leaf" d="M0 0C-15-94 33-171 100-198 107-92 74-19 0 0Z"/>
+  </defs>
+  <g filter="url(#grain)">
+    <path fill="#eedfcf" d="M0 0h800v1000H0z"/><path fill="#dfb8aa" d="M73 0h141v1000H73zm357 0h118v1000H430z"/>
+    <path fill="#3166a4" d="M604 0h196v1000H604z"/><circle cx="566" cy="211" r="157" fill="#e38842"/>
+    <path fill="#dfc467" d="M0 739h800v261H0z"/><path fill="#c6664b" d="M0 861h800v139H0z"/>
+    <g fill="none" stroke="#244c35" stroke-width="11" stroke-linecap="round"><path d="M275 885C305 711 314 588 343 291M466 913c-26-166-20-285-45-435M584 850c9-94 56-166 76-244"/></g>
+    <g fill="#2a6746">
+      <use href="#leaf" transform="translate(330 427) rotate(-78) scale(.8)"/><use href="#leaf" transform="translate(323 480) rotate(18) scale(.85)"/>
+      <use href="#leaf" transform="translate(312 601) rotate(-98)"/><use href="#leaf" transform="translate(304 663) rotate(9)"/>
+      <use href="#leaf" transform="translate(290 794) rotate(-99) scale(1.12)"/><use href="#leaf" transform="translate(341 333) rotate(-17) scale(.66)"/>
+    </g>
+    <g fill="#174b54">
+      <use href="#leaf" transform="translate(438 583) rotate(-69) scale(.7)"/><use href="#leaf" transform="translate(446 708) rotate(43) scale(.85)"/>
+      <use href="#leaf" transform="translate(450 778) rotate(-80) scale(.9)"/><use href="#leaf" transform="translate(464 859) rotate(41)"/>
+      <use href="#leaf" transform="translate(622 716) rotate(-20) scale(.7)"/><use href="#leaf" transform="translate(602 771) rotate(-92) scale(.65)"/>
+    </g>
+    <path fill="#214bcc" d="M143 778h134l-16 148H163z"/><ellipse cx="210" cy="778" rx="67" ry="18" fill="#19353e"/>
+    <path fill="#eed0a0" d="M508 839h164l-26 148H535z"/><ellipse cx="590" cy="839" rx="82" ry="20" fill="#313f32"/>
+  </g>
+</svg>

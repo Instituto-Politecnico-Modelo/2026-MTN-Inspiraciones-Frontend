@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1040">
+  <title>Una línea, muchas formas. Ilustración original de la demo.</title>
+  <defs><filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".09"/></feComponentTransfer><feBlend in="SourceGraphic" mode="multiply"/></filter></defs>
+  <g filter="url(#paper)">
+    <path fill="#eee9dd" d="M0 0h800v1040H0z"/>
+    <circle cx="533" cy="294" r="181" fill="#c78651" opacity=".57"/>
+    <g fill="none" stroke="#34372f" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke-width="6" d="M125 910c13-93 50-169 143-188 45-9 78-41 79-92-68-21-103-83-98-163 2-36-17-59-7-100 17-73 55-145 142-171 80-24 153 5 188 73 35 65 20 133-10 181-18 28-47 40-40 60 7 21 36 35 38 54-12 13-30 19-48 17 4 17 6 32 1 47-10 29-42 44-80 40-19-1-35-5-47-11-2 40 4 74 28 106 24 33 106 27 153 65 35 29 51 72 63 120"/>
+      <path stroke-width="5" d="M276 449c-23-68 14-149 55-178 59-43 142-51 178-1-46 5-44 62-100 85-36 15-42 70-92 68-13-38-46-2-25 36 8 15 21 23 37 29"/>
+      <path stroke-width="4" d="M431 426c28-16 50-10 70 0m-62 16c16-8 36-7 50 2m-43-4c3 14 14 16 20 0m39 8c-2 24-14 49-12 67 0 9 14 13 23 11m-47 44c13-9 28-8 41-2m-44 16c11 6 24 7 35 2m-93 8c-28-10-45-28-59-51"/>
+      <path stroke-width="5" d="M352 229c-76 15-153 138-157 244-4 110 24 190 47 248m90-456c-49 23-72 96-68 135m245-144c63 29 93 97 78 160-19 86-53 161-17 244m-2-346c31 60-3 165-15 217m-31 63c-10 50 21 100 55 118"/>
+      <path stroke-width="4" d="M350 658c26 8 50 10 76 10m-78 61c-31 16-75 61-87 116m162-115c-26 38-36 82-46 128m-82-58c49 21 77 47 89 81m-135 41c64-61 147-65 223-23"/>
+      <path stroke-width="3" d="M136 928c134-29 225-13 298 33m-183-646c-50 123-33 245-18 337m357-277c18 84-33 178 8 260"/>
+    </g>
+  </g>
+</svg>

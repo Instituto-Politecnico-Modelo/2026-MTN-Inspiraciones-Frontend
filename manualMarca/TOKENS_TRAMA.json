@@ -1,0 +1,266 @@
+{
+  "metadata": {
+    "brand": "Trama",
+    "version": "2.0",
+    "date": "2026-10-27",
+    "timezone": "America/Buenos_Aires",
+    "scope": "Design specification only; no application implementation",
+    "confirmedPalette": "B Cobalto neutro",
+    "confirmedTypography": "T2 Inter",
+    "confirmedSymbol": "11 Encuentro",
+    "defaultTheme": "light",
+    "darkThemeStatus": "optional design extension"
+  },
+  "color": {
+    "space": "sRGB",
+    "brand": "#2447D8",
+    "light": {
+      "background": "#FAF9F6",
+      "surface": "#FFFFFF",
+      "surfaceSubtle": "#F1F2F4",
+      "text": "#202327",
+      "textSecondary": "#62666D",
+      "borderDecorative": "#DEDFE3",
+      "borderControl": "#82858B",
+      "action": "#2447D8",
+      "actionHover": "#1C37B0",
+      "actionPressed": "#182F96",
+      "onAction": "#FFFFFF",
+      "selection": "#E8EDFF",
+      "onSelection": "#2447D8",
+      "disabledSurface": "#E7E8EB",
+      "disabledText": "#777A80",
+      "success": "#18734F",
+      "successSurface": "#E7F4EC",
+      "error": "#B42338",
+      "errorSurface": "#FDECEF",
+      "warning": "#7A4D00",
+      "warningSurface": "#FFF3D6",
+      "focus": "#2447D8"
+    },
+    "dark": {
+      "background": "#17191D",
+      "surface": "#21242A",
+      "surfaceSubtle": "#2A2E36",
+      "text": "#F3F2EE",
+      "textSecondary": "#BBC1CD",
+      "borderDecorative": "#3B414B",
+      "borderControl": "#777E8C",
+      "action": "#A9BAFF",
+      "actionHover": "#C3CEFF",
+      "actionPressed": "#91A6F5",
+      "onAction": "#17191D",
+      "selection": "#29345C",
+      "onSelection": "#A9BAFF",
+      "disabledSurface": "#343840",
+      "disabledText": "#858B96",
+      "success": "#89DCB3",
+      "successSurface": "#183A2B",
+      "error": "#FFB4BC",
+      "errorSurface": "#48272D",
+      "warning": "#F2D28E",
+      "warningSurface": "#41351C",
+      "focus": "#A9BAFF"
+    }
+  },
+  "typography": {
+    "family": "Inter",
+    "fallback": [
+      "system-ui",
+      "sans-serif"
+    ],
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "wordmark": {
+      "text": "trama",
+      "weight": 600,
+      "letterSpacingEm": -0.025,
+      "fontSizePerSymbolHeight": 0.9
+    },
+    "scale": {
+      "display": {
+        "weight": 700,
+        "mobile": {
+          "sizePx": 32,
+          "lineHeightPx": 38
+        },
+        "desktop": {
+          "sizePx": 48,
+          "lineHeightPx": 56
+        },
+        "letterSpacingEm": -0.025
+      },
+      "pageTitle": {
+        "weight": 700,
+        "mobile": {
+          "sizePx": 28,
+          "lineHeightPx": 34
+        },
+        "desktop": {
+          "sizePx": 36,
+          "lineHeightPx": 44
+        },
+        "letterSpacingEm": -0.02
+      },
+      "sectionTitle": {
+        "weight": 600,
+        "mobile": {
+          "sizePx": 22,
+          "lineHeightPx": 29
+        },
+        "desktop": {
+          "sizePx": 24,
+          "lineHeightPx": 32
+        },
+        "letterSpacingEm": -0.01
+      },
+      "cardTitle": {
+        "weight": 600,
+        "mobile": {
+          "sizePx": 18,
+          "lineHeightPx": 25
+        },
+        "desktop": {
+          "sizePx": 18,
+          "lineHeightPx": 25
+        },
+        "letterSpacingEm": 0
+      },
+      "body": {
+        "weight": 400,
+        "mobile": {
+          "sizePx": 16,
+          "lineHeightPx": 24
+        },
+        "desktop": {
+          "sizePx": 16,
+          "lineHeightPx": 24
+        },
+        "letterSpacingEm": 0
+      },
+      "control": {
+        "weight": 500,
+        "mobile": {
+          "sizePx": 16,
+          "lineHeightPx": 24
+        },
+        "desktop": {
+          "sizePx": 16,
+          "lineHeightPx": 24
+        },
+        "letterSpacingEm": 0
+      },
+      "meta": {
+        "weight": 400,
+        "mobile": {
+          "sizePx": 14,
+          "lineHeightPx": 20
+        },
+        "desktop": {
+          "sizePx": 14,
+          "lineHeightPx": 20
+        },
+        "letterSpacingEm": 0
+      },
+      "navigation": {
+        "weight": 500,
+        "mobile": {
+          "sizePx": 12,
+          "lineHeightPx": 16
+        },
+        "desktop": {
+          "sizePx": 14,
+          "lineHeightPx": 20
+        },
+        "letterSpacingEm": 0
+      }
+    }
+  },
+  "spacingPx": [
+    4,
+    8,
+    12,
+    16,
+    24,
+    32,
+    48,
+    64
+  ],
+  "radiusPx": {
+    "control": 10,
+    "card": 12,
+    "overlay": 16,
+    "avatar": "circle"
+  },
+  "dimensionsPx": {
+    "buttonMinHeight": 44,
+    "fieldMinHeight": 48,
+    "touchTargetMin": 44,
+    "mobileGutter": 16,
+    "mobileCardGap": 12,
+    "desktopSidebar": 208,
+    "containerMax": 1440,
+    "feedMin": 640,
+    "feedMax": 720,
+    "authFormMax": 420,
+    "editProfileFormMax": 640,
+    "mobileNavigationBase": 64,
+    "focusWidth": 2,
+    "focusOffset": 2
+  },
+  "breakpointsPx": [
+    360,
+    768,
+    1024,
+    1440
+  ],
+  "motionMs": {
+    "control": [
+      120,
+      160
+    ],
+    "panel": [
+      180,
+      220
+    ]
+  },
+  "motionDistancePx": [
+    4,
+    8
+  ],
+  "logo": {
+    "symbol": "11 Encuentro",
+    "source": "assets/referencia_11_original.png",
+    "sourceLocation": "bottom center, labelled 11 Encuentro",
+    "raster": "assets/05_simbolo_encuentro.png",
+    "vectorStatus": "pending faithful production and small-size validation",
+    "clearSpacePerSymbolHeight": 0.25,
+    "wordmarkGapPerSymbolHeight": 0.25,
+    "symbolMinCssPx": 24,
+    "headerSymbolCssPx": 32,
+    "lockupInitialMinCssPx": 104,
+    "faviconCssPx": 16,
+    "faviconStatus": "requires validation"
+  },
+  "navigation": [
+    "Inicio",
+    "Descubrir",
+    "Desafíos",
+    "Perfil"
+  ],
+  "publishIsSeparateAction": true,
+  "requiredScreens": [
+    "Cuestionario",
+    "Registro",
+    "Ingreso",
+    "Inicio",
+    "Desafíos",
+    "Descubrir",
+    "Perfil",
+    "Editar perfil"
+  ]
+}

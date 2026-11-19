@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 800">
+  <title>Objetos que se encuentran. Ilustración original de la demo.</title>
+  <defs>
+    <linearGradient id="clay"><stop stop-color="#b98869"/><stop offset=".4" stop-color="#e3b592"/><stop offset=".68" stop-color="#e9c3a2"/><stop offset="1" stop-color="#ae7559"/></linearGradient>
+    <linearGradient id="ivory"><stop stop-color="#b7aa91"/><stop offset=".3" stop-color="#f1e9d7"/><stop offset=".62" stop-color="#fff7e6"/><stop offset="1" stop-color="#c4b69b"/></linearGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".65" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".065"/></feComponentTransfer><feBlend in="SourceGraphic" mode="multiply"/></filter>
+  </defs>
+  <g filter="url(#grain)">
+    <path fill="#e5ddd0" d="M0 0h900v800H0z"/><path fill="#d1c5b2" d="M0 554h900v246H0z"/>
+    <ellipse cx="400" cy="679" rx="245" ry="27" fill="#82705e" opacity=".18"/>
+    <ellipse cx="621" cy="635" rx="124" ry="20" fill="#82705e" opacity=".2"/>
+    <path d="M261 222c0 86 21 150-12 210-26 46-72 85-68 158 2 48 44 91 136 92 88 1 140-31 140-91 0-74-48-115-75-161-31-52-14-127-12-208Z" fill="url(#ivory)"/>
+    <ellipse cx="316" cy="224" rx="55" ry="15" fill="#afa18a"/><ellipse cx="316" cy="221" rx="49" ry="10" fill="#6f624e"/>
+    <path d="M502 358c13 49 12 87-8 128-30 62-43 159 98 166 129 6 135-95 103-160-17-35-30-82-23-134Z" fill="url(#clay)"/>
+    <ellipse cx="587" cy="358" rx="85" ry="17" fill="#bc8b69"/><ellipse cx="587" cy="357" rx="73" ry="10" fill="#5e4934"/>
+    <path d="M685 432c110-9 107 146 11 132" fill="none" stroke="#b98668" stroke-width="29"/>
+    <path d="M585 355c-32-134-69-224-126-297m105 225c18-57 39-105 80-135" fill="none" stroke="#746a47" stroke-width="7"/>
+    <g fill="#687e59"><path d="M513 162c-65 17-120-30-126-68 72-1 109 23 126 68Z"/><path d="M545 224c-5-70 24-113 58-125 8 61-18 103-58 125Z"/><path d="M587 211c39 10 82-9 102-49-53-10-85 12-102 49Z"/></g>
+    <path d="M195 747c100-48 158-8 225-21" fill="none" stroke="#b5a183" stroke-width="3"/>
+  </g>
+</svg>

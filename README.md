@@ -1,107 +1,146 @@
-# Plataforma de Red Social de Inspiración Artística (Frontend)
+# Trama
 
-Este repositorio contiene la implementación del frontend para la **Red Social de Inspiración Artística**, un ecosistema modular diseñado con una arquitectura en 4 capas estrictas sobre React, Vite y TypeScript. El proyecto unifica y desacopla la experiencia de los usuarios artistas (creación de contenido, descubrimiento, carpetas, desafíos) y de los administradores della plataforma (moderación de reportes, control de cuentas de usuarios, gestión de desafíos y métricas).
+Comunidad de artistas con publicación de imágenes y audio, descubrimiento,
+carpetas privadas, desafíos y administración. La aplicación se conecta a la
+**API Spring Boot de `2026-MTN-Inspiraciones-Api`**, incluida la autenticación.
 
----
+## Estructura
 
-## Estructura de Proyectos
+| Ubicación | Contenido |
+| --- | --- |
+| [frontend-trama](frontend-trama/) | Única aplicación: código, pruebas, recursos locales y configuración de despliegue. |
+| [manualMarca](manualMarca/) | Manual, tokens, recursos originales y decisiones visuales de Trama. |
+| [prompts](prompts/) | Contexto de continuación y pedido original, identificado como histórico. |
+| [.github](.github/) | Workflow de despliegue y personalizaciones de Copilot. |
+| [.agents](.agents/) y [.createapp](.createapp/) | Skills, política y fuentes de trabajo del proyecto. |
 
-El espacio de trabajo se organiza en tres subproyectos principales de frontend independientes que consumen una única API REST externa (no incluida en el alcance de este repositorio):
+El frontend anterior, sus especificaciones, evidencias y prototipos HTML fueron
+retirados del árbol actual. Su historia permanece en Git.
 
-1. **Plataforma de Usuario Independiente**: Ubicada en [Usuario/my-project/backend_usuario/frontend](Usuario/my-project/backend_usuario/frontend), enfocada en interacciones públicas y privadas de usuarios y artistas de la red.
-2. **Plataforma de Administración Independiente**: Ubicada en [Admin/my-proyect/frontend-admin](Admin/my-proyect/frontend-admin), enfocada puramente en las vistas del portal de backoffice para administradores y moderación.
-3. **Plataforma Unificada (Unión)**: Ubicada en [Union/frontend](Union/frontend), una aplicación integrada que agrupa funcionalmente las superficies de usuario y de administración en una única SPA, respetando los guards de acceso y de roles.
+## Ejecutar
 
----
+Requiere **Node.js >=24.15.0** y el backend en `http://localhost:8080`.
+Desde la raíz del repositorio:
 
-## Requisitos Previos
-
-Antes de ejecutar cualquier aplicación, asegúrate de tener instalado en tu sistema:
-- **Node.js**: Versión v18 o superior (v20 recomendada).
-- **npm**: Versión v9 o superior (incluido por defecto con Node.js).
-
----
-
-## Guía de Ejecución Rápida
-
-Sigue los siguientes pasos para instalar y levantar cualquiera de los tres subproyectos:
-
-### 1. Frontend de Usuario (Independiente)
-
-Esta aplicación proporciona soporte completo al flujo de artistas (feed, perfil, carpetas, likes, crear publicación).
-
-```bash
-# Cambiar al directorio del frontend de usuario
-cd Usuario/my-project/backend_usuario/frontend
-
-# Instalar dependencias del proyecto
-npm install
-
-# Levantar el servidor de desarrollo local
-npm run dev
+```sh
+npm --prefix frontend-trama ci --ignore-scripts
+npm --prefix frontend-trama run dev
 ```
-- **URL por Defecto**: `http://localhost:5173` (o el puerto que indique la terminal si el puerto 5173 está ocupado).
-- **Consola de test**: `npm run test` para ejecutar los tests unitarios y de integración con Vitest.
 
----
+Abrir <http://127.0.0.1:5180/>. En PowerShell se puede usar `npm.cmd` si la
+política de ejecución bloquea `npm`. Si el puerto está ocupado, añadir
+`-- --port 5181` al comando de desarrollo.
 
-### 2. Frontend de Administración (Independiente)
+El ingreso y el registro usan la API real. El servidor de desarrollo reenvía
+`/api` al backend; los datos se guardan en ese servicio.
 
-Esta aplicación implementa las pantallas dedicadas (dashboard, moderación de posts, control de usuarios, exportar analíticas).
+La guía funcional, los recursos y los límites están en
+[frontend-trama/README.md](frontend-trama/README.md).
 
-```bash
-# Cambiar al directorio del frontend de administración
-cd Admin/my-proyect/frontend-admin
+## Verificar
 
-# Instalar dependencias del proyecto
-npm install
-
-# Levantar el servidor de desarrollo local
-npm run dev
+```sh
+npm --prefix frontend-trama test
+npm --prefix frontend-trama run lint
+npm --prefix frontend-trama run build
+npm --prefix frontend-trama run preview
 ```
-- **URL por Defecto**: `http://localhost:5173` (u otro puerto alternativo que asigne Vite en caso de colisión, p. ej., `http://localhost:5174`).
-- **Consola de test**: `npm run test` para correr los tests, o `npm run test:coverage` para verificar los umbrales de cobertura obligatorios (100% sobre dominio).
 
----
+El build queda en la carpeta `dist` del frontend. Preview usa
+<http://127.0.0.1:4180/>. No abrir el HTML compilado mediante `file://`.
 
-### 3. Plataforma Unificada (Unión)
+## Despliegue
 
-Este subproyecto integra de manera consolidada en un solo lugar la experiencia completa declarada en la especificación global de plataforma.
+El [workflow existente](.github/workflows/deploy-frontend.yml) ahora construye
+[frontend-trama/Dockerfile](frontend-trama/Dockerfile). Se conservan la rama
+`dev`, el environment `testing` y la integración con Dokploy:
 
-```bash
-# Cambiar al directorio de la plataforma unificada
-cd Union/frontend
-
-# Instalar dependencias del proyecto
-npm install
-
-# Levantar el servidor de desarrollo local
-npm run dev
+```text
+push a dev -> build Docker -> GHCR -> solicitud de despliegue en Dokploy
 ```
-- **URL por Defecto**: `http://localhost:5175` (configurado estáticamente en la configuración de Vite).
-- **Consola de test**: `npm run test` para validar todos los flujos de integración y comportamiento cruzado con Vitest.
 
----
+También puede iniciarse con `workflow_dispatch` sobre `dev`. No se despliega
+desde otras ramas. La imagen se publica como
+`ghcr.io/<propietario>/<repositorio>:latest` y `sha-<commit>`.
 
-## Comandos y Tareas Adicionales por Proyecto
+Configurar la aplicación de Dokploy con proveedor Docker, esa imagen y puerto
+interno **80**. Para una imagen privada, el registro necesita credenciales de
+lectura de paquetes. El environment `testing` conserva estos secrets:
 
-Cada uno de los proyectos soporta tareas adicionales descritas en sus respectivos archivos de configuración:
+| Secret | Uso |
+| --- | --- |
+| `DOKPLOY_URL` | URL HTTPS del panel, sin el sufijo `/api`. |
+| `DOKPLOY_API_KEY` | Credencial para solicitar el despliegue. |
+| `DOKPLOY_APPLICATION_ID` | Identificador de la aplicación en Dokploy. |
 
-### Construir para Producción (Build)
-Para compilar la aplicación optimizada para un entorno de producción, ejecuta en el directorio del proyecto elegido:
-```bash
-npm run build
+El workflow usa `GITHUB_TOKEN` para publicar en GHCR. Trama no necesita los
+antiguos argumentos de compilación `VITE_API_URL`, mocks, OAuth o geolocalización.
+En el entorno `testing`, **Domains** publica ambos servicios en el mismo host
+HTTPS `dev-inspiraciones.policloudservices.ipm.edu.ar`:
+
+| Servicio | Path | Container Port | Internal Path | Strip Path |
+| --- | --- | --- | --- | --- |
+| Frontend | `/` | `80` | `/` | Desactivado |
+| API | `/api` | `8080` | `/` | Desactivado |
+
+La ruta del backend debe ser `/api` en minúsculas, no `/API`. Dokploy envía las
+peticiones directamente a la API, conservando el prefijo `/api`. No se necesita
+`API_UPSTREAM` ni reconstruir el frontend para corregir esta ruta.
+
+La imagen utiliza Node 24.21.0 para compilar y Nginx para servir el resultado.
+Incluye `/healthz`, retorno al HTML de la SPA para rutas de navegación y respuestas
+404 para recursos inexistentes y solicitudes a `/api` que lleguen al frontend.
+No incorpora un backend: debe estar desplegado por separado. Un 404 de Nginx
+durante el registro indica que hay que revisar el enrutamiento del servicio API.
+El éxito del job significa que Dokploy aceptó la solicitud; el resultado final
+del despliegue se consulta en su panel.
+
+### Perfiles y publicaciones
+
+Los enlaces de perfiles usan `/user/nombre-de-usuario`. Los enlaces anteriores
+`/nombre-de-usuario`, `/perfil` y `/perfil/:id` siguen funcionando y redirigen
+a la nueva ruta, conservando los parametros de la pestaña seleccionada.
+Los nombres admiten entre 3 y 50 letras ASCII, numeros, puntos, guiones y guiones
+bajos; la API controla la unicidad sin distinguir mayusculas y minusculas y
+reserva los nombres de las rutas de la aplicacion. Las cuentas antiguas con
+un nombre reservado tambien usan `/user/nombre-de-usuario`, sin colisionar con
+esas rutas.
+
+Descubrir > Artistas consulta el directorio compartido aun sin escribir una
+busqueda (hasta 100 cuentas activas). La busqueda encuentra coincidencias dentro
+del nombre visible o del nombre de usuario, incluyendo cuentas sin publicaciones.
+Un perfil puede abrirse directamente sin datos precargados; sus obras requieren
+iniciar sesion, igual que el resto del contenido protegido por la API.
+
+Desplegar primero la API actualizada y despues el frontend: el cliente utiliza
+`GET /api/usuarios/username/{username}` y la busqueda ampliada. Las imagenes
+admiten hasta 5 MB. El contenedor API debe poder escribir en
+`/app/var/uploads/imagenes` como UID/GID `10001:10001`, con un volumen persistente
+en esa misma ruta para no perder archivos al recrear el contenedor. Publicar
+solo el frontend no corrige los permisos del servidor de imagenes.
+
+Prueba local, con el motor de Docker ejecutándose:
+
+```sh
+docker build -t trama-frontend ./frontend-trama
+docker run --rm -p 127.0.0.1:8081:80 trama-frontend
 ```
-La salida se exportará a una carpeta `dist` lista para ser servida por servidores web de estáticos (Nginx, Amazon S3, etc.).
 
-### Ejecución de Pruebas Unitarias y de Cobertura
-Las pruebas están escritas usando Vitest y React Testing Library:
-- **Ejecutar tests una vez (modo CI)**: `npm run test` (o `npm run test:ci` en el frontend de usuario).
-- **Ejecutar en modo observador (watch)**: `npm run test:watch`.
-- **Análisis de cobertura**: `npm run test:coverage` (disponible en el admin para revisar la cobertura estricta del 100% elegida sobre las entidades de dominio y reglas críticas).
+Abrir <http://127.0.0.1:8081/> o consultar `/healthz` en ese puerto.
+Este contenedor aislado no conecta `/api`: para los flujos completos usar el
+servidor de desarrollo con el backend o el enrutamiento de Dokploy indicado.
 
----
+## Continuar el trabajo
 
-## Siguiente Lectura Recomendada
+Leer [AGENTS.md](AGENTS.md), la [política del proyecto](.createapp/POLICY.md) y el
+[manual de marca](manualMarca/MANUAL_MARCA_RED_ARTISTAS.md). Conservar la identidad
+de marca y revisar los cambios locales antes de editar. El
+[pedido original](prompts/miPrompt.md) es histórico; el archivo de continuación
+citado anteriormente no está presente.
 
-Para una inmersión completa sobre la arquitectura interna de 4 capas (Presentación, Aplicación/Servicios, Dominio, e Infraestructura), diagramas de conexión, análisis exhaustivo de qué hace cada carpeta y archivo dentro de los proyectos, y cómo fluye la información en las operaciones clave del sistema, por favor lee las especificaciones detalladas en el archivo [FUNCIONAMIENTO.md](FUNCIONAMIENTO.md).
+La simplificación de interfaz del 1 de noviembre conserva los flujos existentes:
+menos texto repetido, controles más compactos y mejor acceso móvil. Se verificaron
+43 pruebas, lint, build y 85 combinaciones de ruta y ancho en Edge. CreateApp agregó
+los perfiles `ca-impeccable` y `ca-find-skills`, sin cambiar la marca ni activar
+otro coordinador. El [plan UX/UI](frontend-trama/PLAN_UX_UI_IMPECCABLE.md) registra
+lo implementado y separa las propuestas opcionales y verificaciones pendientes.

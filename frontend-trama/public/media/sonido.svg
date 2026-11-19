@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+  <title>Paisaje ilustrado al atardecer.</title>
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#bdafc7"/><stop offset=".57" stop-color="#e6a6a0"/><stop offset="1" stop-color="#f1c19e"/></linearGradient><filter id="grain"><feTurbulence baseFrequency=".7" numOctaves="3" type="fractalNoise"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".07"/></feComponentTransfer><feBlend in="SourceGraphic" mode="multiply"/></filter></defs>
+  <g filter="url(#grain)"><path fill="url(#sky)" d="M0 0h900v600H0z"/><circle fill="#f6d5b1" cx="610" cy="367" r="75"/><path fill="#9d879c" d="m0 415 112-84 123 35 182-91 150 116 195-65 138 42v232H0Z"/><path fill="#635e7b" d="m0 452 191-71 124 49 98-24 178 37 139-76 170 50v183H0Z"/><path fill="#353f58" d="m0 486 134-27 199 47 167-43 137 32 142-8 121 27v86H0Z"/></g>
+</svg>

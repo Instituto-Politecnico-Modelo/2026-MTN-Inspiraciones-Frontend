@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+  <title>Composición abstracta de círculos y arcos.</title>
+  <defs><filter id="grain"><feTurbulence baseFrequency=".7" numOctaves="3" type="fractalNoise"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".1"/></feComponentTransfer><feBlend in="SourceGraphic" mode="multiply"/></filter></defs>
+  <g filter="url(#grain)"><path fill="#d5ded2" d="M0 0h900v600H0z"/><path fill="#325c55" d="M0 0h253v600H0z"/><circle fill="#c69561" cx="601" cy="284" r="172"/><path fill="none" stroke="#234b49" stroke-width="52" d="M218 0v239c0 239 382 240 382 0"/><path fill="none" stroke="#eff0e6" stroke-width="38" d="M148 600V339c0-266 367-265 367 0"/><circle fill="#233f44" cx="712" cy="496" r="54"/></g>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1080">
+  <title>Herbario cotidiano. Ilustración original de la demo.</title>
+  <defs>
+    <path id="leaf" d="M0 0C-63-63-83-168-51-239 44-198 76-96 0 0Z"/>
+    <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".1"/></feComponentTransfer><feBlend in="SourceGraphic" mode="multiply"/></filter>
+  </defs>
+  <g filter="url(#paper)">
+    <path fill="#f0e7d6" d="M0 0h800v1080H0z"/><path fill="#e5d2ac" d="M0 743h283v337H0z"/><circle cx="640" cy="226" r="140" fill="#d8ba86" opacity=".7"/>
+    <g fill="none" stroke="#193e82" stroke-width="10" stroke-linecap="round"><path d="M247 1120c95-404 86-617 162-1008M403 699c72-127 129-230 237-302"/></g>
+    <g fill="#214f9b">
+      <use href="#leaf" transform="translate(397 196) rotate(18) scale(.7)"/><use href="#leaf" transform="translate(373 359) rotate(-44) scale(.93)"/>
+      <use href="#leaf" transform="translate(359 481) rotate(71)"/><use href="#leaf" transform="translate(341 635) rotate(-42)"/>
+      <use href="#leaf" transform="translate(325 771) rotate(73) scale(1.15)"/><use href="#leaf" transform="translate(288 946) rotate(-52) scale(1.22)"/>
+      <use href="#leaf" transform="translate(500 555) rotate(44) scale(.64)"/><use href="#leaf" transform="translate(552 479) rotate(-21) scale(.63)"/>
+      <use href="#leaf" transform="translate(616 415) rotate(66) scale(.59)"/>
+    </g>
+    <g fill="none" stroke="#f0e7d6" stroke-width="3" opacity=".65"><path d="m337 626-157-194m152 329 192-113m-234 291L97 782m265-313 168-100m-155-10L253 176"/></g>
+  </g>
+</svg>

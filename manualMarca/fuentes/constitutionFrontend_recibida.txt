@@ -1,0 +1,58 @@
+/speckit.constitution 
+
+Este proyecto es una red social para artistas donde los usuarios pueden compartir sus creaciones
+(dibujos, música, esculturas, etc.) e inspirarse en las de otros. Permite buscar inspiración con
+filtros avanzados, descubrir ubicaciones físicas, explorar música y samples, y participar en desafíos
+creativos usando la tecnología React.
+
+El presente constitution aplica exclusivamente al módulo del frontend. Su responsabilidad es trabajar
+únicamente sobre la sección de interfaz del usuario para que pueda interactuar con las siguientes pantallas: 
+cuestionario, registro, login, home, desafios, descubrir, perfil del usuario y editar perfil del usuario.
+
+Principios obligatorios:
+
+1. La especificación manda sobre la implementación. No se debe programar funcionalidad que no esté
+   trazada a una historia de usuario o requisito definido en el documento de alcance o arquitectura.
+   El módulo solo procesa: likes, búsquedas y demás interacciones crudas para producir rankings
+   de canciones/artistas más usados como inspiración y recomendaciones personalizadas basadas en
+   likes. No implementar ningún cálculo o métrica que no esté especificada.
+
+2. El dominio debe modelarse con orientación a objetos real. Las entidades de analytics
+   (por ejemplo: RankingEntry, UserRecommendation, InteractionEvent) deben encapsular sus
+   propias reglas de negocio y validaciones. Evitar clases anémicas cuando haya lógica de
+   cálculo o agregación clara.
+
+3. Separar responsabilidades en capas bien definidas:
+   - dominio: entidades de analytics, reglas de cálculo de rankings y recomendaciones
+   - aplicación/servicios: orquestación de los jobs de preprocesamiento (leer, calcular, escribir)
+   - infraestructura-lectura: acceso a MySQL para obtener los datos crudos de interacciones
+   - infraestructura-escritura: acceso a Redis para persistir los resultados procesados
+   No mezclar lógica de cálculo con acceso a base de datos ni con configuración de scheduling.
+   - frontend: Interfaz de usuario.
+
+4. Evitar lógica duplicada, métodos gigantes y mezcla de responsabilidades. Cada paso del
+   pipeline (extracción, transformación, carga) debe estar claramente separado. No realizar
+   cálculos inline dentro de los repositorios ni accesos a datos dentro de los servicios de dominio.
+
+5. Usar enums o value objects cuando representen valores cerrados.
+
+6. Aplicar patrones de diseño solo si simplifican el diseño. No forzar patrones. Si el pipeline
+   de procesamiento se beneficia de un patrón Estrategia para intercambiar algoritmos de
+   recomendación, úsarlo; si no aporta claridad, no forzarlo.
+
+7. Toda regla de negocio importante del módulo debe tener tests. En particular: el cálculo de
+   rankings (qué canciones/artistas aparecen y en qué orden), la generación de recomendaciones
+   (basadas en likes del usuario), y la serialización/deserialización de datos hacia/desde Redis.
+
+8. El sistema debe poder escalar a 100.000 publicaciones y 10.000 usuarios activos. El módulo
+   de preprocesamiento debe trabajar sobre consultas SQL eficientes con índices adecuados y
+   procesamiento por lotes (batching), nunca cargando tablas completas en memoria para recorrerlas.
+   Las claves de Redis deben tener TTL definidos para evitar acumulación indefinida de datos obsoletos.
+
+9. El módulo es un servicio de background: no expone endpoints de usuario. Su salida (datos en Redis)
+   debe estar estructurada para que la API Java los consuma de forma directa y eficiente, sin
+   necesidad de transformaciones adicionales del lado de la API. Las claves y estructuras de Redis
+   deben acordarse y documentarse como contrato entre este módulo y la API.
+
+10. No implementar código durante las fases de especificación, aclaración, checklist, planificación
+    y generación de tareas. Solo crear o actualizar los documentos correspondientes.

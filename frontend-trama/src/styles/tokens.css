@@ -1,0 +1,44 @@
+@font-face {
+  font-family: Inter;
+  src: url('/fonts/Inter-variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  font-synthesis: none;
+  color-scheme: light;
+  --background: #FAF9F6;
+  --surface: #FFFFFF;
+  --surface-subtle: #F1F2F4;
+  --text: #202327;
+  --muted: #62666D;
+  --border: #DEDFE3;
+  --border-control: #82858B;
+  --action: #2447D8;
+  --action-hover: #1C37B0;
+  --action-pressed: #182F96;
+  --selection: #E8EDFF;
+  --disabled: #E7E8EB;
+  --disabled-text: #777A80;
+  --success: #18734F;
+  --success-surface: #E7F4EC;
+  --error: #B42338;
+  --error-surface: #FDECEF;
+  --warning: #7A4D00;
+  --warning-surface: #FFF3D6;
+  --control-radius: 10px;
+  --card-radius: 12px;
+  --overlay-radius: 16px;
+  --sidebar: 208px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+}

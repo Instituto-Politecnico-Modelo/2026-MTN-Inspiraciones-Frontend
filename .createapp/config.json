@@ -1,0 +1,44 @@
+{
+  "name": "2026-mtn-inspiraciones-unionuseradmin",
+  "directory": ".",
+  "agent": "copilot",
+  "agents": [
+    "copilot"
+  ],
+  "stack": "web",
+  "template": "config-only",
+  "mode": "balanced",
+  "coordinator": "superpowers",
+  "testing": "balanced",
+  "autonomy": "milestones",
+  "parallel": false,
+  "design": "existing",
+  "database": "none",
+  "goal": "",
+  "skills": [
+    "browser-test",
+    "debug",
+    "find-skills",
+    "impeccable",
+    "performance",
+    "security",
+    "simplicity",
+    "sources",
+    "ux",
+    "visual",
+    "web-review",
+    "workflow"
+  ],
+  "packs": [
+    "addy",
+    "anthropic",
+    "find-skills",
+    "impeccable",
+    "ponytail",
+    "superpowers",
+    "uiux"
+  ],
+  "vercel_react": true,
+  "vercel_web": true,
+  "vercel_composition": false
+}

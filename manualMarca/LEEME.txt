@@ -1,0 +1,9 @@
+TRAMA · MANUAL V2.0
+Identidad confirmada: Cobalto neutro + Inter + logo 11 Encuentro.
+
+Leer primero el PDF para visión de conjunto o ENTREGA_IA_TRAMA.md para el traspaso.
+MANUAL_MARCA_RED_ARTISTAS.md es la especificación completa. TOKENS_TRAMA.json contiene datos de diseño, no una aplicación.
+
+Solo la opción11 de referencia_11_original.png pertenece a la marca vigente.
+La extracción raster no sustituye el SVG maestro pendiente.
+Las imágenes de interfaz son ejemplos ficticios. No se creó código de aplicación.
