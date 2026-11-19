@@ -67,7 +67,7 @@ export function createAppRoutes(repository?: Backend): RouteObject[] {
           { index: true, element: <Navigate to="/inicio" replace /> },
           { path: 'inicio', element: <HomePage /> },
           { path: 'descubrir', element: <DiscoverPage /> },
-          { path: 'mapa', lazy: async () => ({ Component: (await import('./pages/Places')).PlacesPage }) },
+          { path: 'mapa', element: <Navigate to="/descubrir?mapa=1" replace /> },
           { path: 'ubicacion/configuracion', element: <RequireAccount><LocationSettingsPage /></RequireAccount> },
           { path: 'notificaciones', element: <RequireAccount><NotificationsPage /></RequireAccount> },
           { path: 'notificaciones/configuracion', element: <RequireAccount><NotificationSettingsPage /></RequireAccount> },

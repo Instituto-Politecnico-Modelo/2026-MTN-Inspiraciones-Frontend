@@ -3,13 +3,28 @@ import { MapPin, SlidersHorizontal } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { disciplines, type User } from '../data/model'
-import { placesApi } from '../data/api'
+import { placesApi, type MapPublication } from '../data/api'
 import type { CatalogDiscipline } from '../data/places'
 import { places } from '../data/seed'
 import { errorMessage, normalize, profilePath, searchPosts, visiblePosts } from '../data/store'
 import { Avatar, Button, EmptyState, ErrorMessage, Modal, PageTitle, SearchField, SelectField, Tabs } from '../components/UI'
 import { PostGrid } from '../components/PostCard'
 import { FollowButton } from '../components/FollowButton'
+import { PlacesExplorer } from '../components/PlacesExplorer'
+import { proximityAccess, type LocationPreference } from '../data/places'
+import { getPosition } from '../lib/geolocation'
+import { useDevicePermission } from '../lib/useDevicePermission'
+
+function DiscoverMap({ filter }: { filter: (publication: MapPublication) => boolean }) {
+  const [preference, setPreference] = useState<LocationPreference>(null)
+  const [permission] = useDevicePermission()
+  useEffect(() => {
+    let active = true
+    placesApi.preference.get().then(value => { if (active) setPreference(value) }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
+  return <PlacesExplorer api={placesApi} access={proximityAccess(preference, permission)} getPosition={getPosition} filter={filter} />
+}
 
 const tabs = [{ value: 'obras', label: 'Obras' }, { value: 'artistas', label: 'Artistas' }]
 
@@ -81,9 +96,24 @@ export function DiscoverPage() {
   </>
   const empty = <EmptyState title="Todavía no encontramos coincidencias" description="Probá con otras palabras o quitá los filtros para ampliar tu búsqueda."
     action={<Button variant="secondary" onClick={() => activeFilters || area ? update({ disciplina: '', tecnica: '', zona: '' }) : update({ q: '' })}>{activeFilters || area ? 'Quitar filtros' : 'Limpiar búsqueda'}</Button>} />
+  const mapOn = params.get('mapa') === '1' && !!viewerId
+  const mapToggle = <label className="check-row map-toggle"><input type="checkbox" checked={mapOn} disabled={!viewerId} onChange={event => update({ mapa: event.target.checked ? '1' : '', q: '' })} /> Mapa</label>
+  const needle = normalize(query.trim())
+  const mapFilter = (publication: MapPublication) => {
+    const author = state.users.find(item => item.id === String(publication.usuarioId))
+    const tags = [publication.tagsPropios, publication.hashtags].flatMap(value => Array.isArray(value) ? value.map(String) : [])
+    return normalize(`${author?.name ?? ''} ${author?.handle ?? ''} ${tags.join(' ')} ${publication.contenido ?? ''}`).includes(needle)
+  }
+  const searchField = <div className="discover-search"><SearchField value={query} onChange={value => update({ q: value })} label="Buscar en Descubrir" placeholder={mapOn ? 'Buscá por artista o etiqueta para ver el mapa' : 'Buscá obras, técnicas y artistas'} /></div>
+  if (mapOn) return <div className="discover-page">
+    <PageTitle title="Descubrir" />
+    {searchField}
+    <div className="filter-row">{mapToggle}</div>
+    {needle ? <DiscoverMap filter={mapFilter} /> : <p className="filter-summary" role="status">Escribí un nombre o una etiqueta para ver las publicaciones con ubicación en el mapa.</p>}
+  </div>
   return <div className="discover-page">
     <PageTitle title="Descubrir" />
-    <div className="discover-search"><SearchField value={query} onChange={value => update({ q: value })} label="Buscar en Descubrir" placeholder={tab === 'musica' ? 'Buscá música, samples o artistas' : tab === 'lugares' ? 'Buscá un espacio o un barrio' : 'Buscá obras, técnicas y artistas'} /></div>
+    {searchField}
     {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras o Artistas." />}
     {tab === 'artistas' && searchError && <ErrorMessage message={searchError} />}
     <Tabs items={tabs} value={tab} label="Qué querés descubrir" onChange={value => update({ tipo: value, disciplina: '', tecnica: '', zona: '' })}>
@@ -92,6 +122,7 @@ export function DiscoverPage() {
           <div className="filter-row discover-filters">{filters()}</div>
           <Button className="filter-toggle" variant="secondary" onClick={() => { setDraftDiscipline(discipline); setDraftTechnique(technique); setFiltersOpen(true) }}><SlidersHorizontal size={18} aria-hidden="true" />Filtros{activeFilters ? ` (${activeFilters})` : ''}</Button>
           {tab !== 'artistas' && <SelectField label="Orden" value={order} onChange={event => update({ orden: event.target.value })} options={[{ value: 'seleccion', label: 'Selección' }, { value: 'recientes', label: 'Más recientes' }, { value: 'titulo', label: 'Por título' }]} />}
+          {mapToggle}
           {!!activeFilters && <Button variant="ghost" onClick={() => update({ disciplina: '', tecnica: '' })}>Limpiar filtros</Button>}
         </div>
         <p className="filter-summary" role="status">{tab === 'artistas' ? searching ? 'Buscando artistas…' : `${artists.length} artistas` : `${posts.length} ${posts.length === 1 ? 'resultado' : 'resultados'}`}{query ? ` para «${query}»` : ''}{activeFilters ? ` · ${activeFilters} ${activeFilters === 1 ? 'filtro activo' : 'filtros activos'}` : ''}</p>

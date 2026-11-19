@@ -9,7 +9,7 @@ export function LocationSettingsPage() {
   // Pedirlo desde un botón es una acción del usuario; la app nunca lo solicita sola.
   const requestPermission = async () => { await getPosition().catch(() => undefined); refresh() }
   return <>
-    <PageTitle title="Configuración de ubicación" description="Decidí si querés ver lugares cerca tuyo." back={{ to: '/mapa', label: 'Volver al mapa' }} />
+    <PageTitle title="Configuración de ubicación" description="Decidí si querés ver lugares cerca tuyo." back={{ to: '/descubrir?mapa=1', label: 'Volver al mapa' }} />
     <LocationSettings api={placesApi} permission={permission} requestPermission={requestPermission} />
   </>
 }

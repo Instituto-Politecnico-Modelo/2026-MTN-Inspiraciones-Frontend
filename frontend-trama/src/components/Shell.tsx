@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowUpRight, ChartNoAxesCombined, Compass, Flag, House, Images, Inbox, Info, LogOut, MapPin, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
+import { ArrowUpRight, ChartNoAxesCombined, Compass, Flag, House, Images, Inbox, Info, LogOut, Menu, Plus, ShieldCheck, Trophy, UserRound, Users } from 'lucide-react'
 import { Link, NavLink, Navigate, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { canManage, profilePath } from '../data/store'
@@ -12,7 +12,6 @@ import { placesApi } from '../data/api'
 export const userNavigation = [
   { path: '/inicio', label: 'Inicio', icon: House },
   { path: '/descubrir', label: 'Descubrir', icon: Compass },
-  { path: '/mapa', label: 'Mapa', icon: MapPin },
   { path: '/desafios', label: 'Desafíos', icon: Trophy },
   { path: '/perfil', label: 'Perfil', icon: UserRound },
 ]
