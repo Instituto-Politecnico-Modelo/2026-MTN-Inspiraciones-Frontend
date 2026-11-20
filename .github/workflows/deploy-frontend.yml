@@ -4,23 +4,27 @@ on:
   push:
     branches:
       - dev
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: frontend-dokploy-dev
+  group: frontend-dokploy-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build-and-push:
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
       packages: write
+    outputs:
+      image: ${{ steps.image.outputs.name }}:${{ steps.target.outputs.tag }}
+      environment: ${{ steps.target.outputs.environment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,6 +48,15 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: echo "name=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
+      - name: Select image tag and environment
+        id: target
+        run: |
+          case "$GITHUB_REF_NAME" in
+            dev) printf 'tag=dev\nenvironment=testing\n' ;;
+            main) printf 'tag=production\nenvironment=production\n' ;;
+            *) exit 1 ;;
+          esac >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -62,8 +75,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ steps.image.outputs.name }}:dev
-            ${{ steps.image.outputs.name }}:dev-sha-${{ github.sha }}
+            ${{ steps.image.outputs.name }}:${{ steps.target.outputs.tag }}
+            ${{ steps.image.outputs.name }}:${{ steps.target.outputs.tag }}-sha-${{ github.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -73,7 +86,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    environment: testing
+    environment: ${{ needs.build-and-push.outputs.environment }}
     timeout-minutes: 5
     permissions: {}
     steps:
@@ -82,13 +95,19 @@ jobs:
           DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
           DOKPLOY_APPLICATION_ID: ${{ secrets.DOKPLOY_APPLICATION_ID }}
-          EXPECTED_IMAGE: ghcr.io/${{ github.repository }}:dev
+          EXPECTED_IMAGE: ${{ needs.build-and-push.outputs.image }}
+          EXPECTED_APPLICATION_ID: ${{ github.ref_name == 'main' && 'hkywuqgUV3GUZgtK3cyWf' || 'eRDil3bftJ2Z0YORZZuqH' }}
+          EXPECTED_ENVIRONMENT_ID: ${{ github.ref_name == 'main' && 'EbsNYxufQ-YNlhmqbQ0Mi' || 'iHPH9mt5Wrk3DJ_L78qr2' }}
         run: |
           set -euo pipefail
 
           : "${DOKPLOY_URL:?Missing GitHub Actions secret: DOKPLOY_URL}"
           : "${DOKPLOY_API_KEY:?Missing GitHub Actions secret: DOKPLOY_API_KEY}"
           : "${DOKPLOY_APPLICATION_ID:?Missing GitHub Actions secret: DOKPLOY_APPLICATION_ID}"
+          if [[ "$DOKPLOY_APPLICATION_ID" != "$EXPECTED_APPLICATION_ID" ]]; then
+            echo "::error::The configured application is not the deployment target for this branch."
+            exit 1
+          fi
 
           if [[ "$DOKPLOY_URL" != https://* ]]; then
             echo "::error::DOKPLOY_URL must use HTTPS to protect the API key."
@@ -103,12 +122,12 @@ jobs:
             --header "x-api-key: $DOKPLOY_API_KEY" \
             --data-urlencode "applicationId=$DOKPLOY_APPLICATION_ID")
           jq --exit-status \
-            --arg id 'eRDil3bftJ2Z0YORZZuqH' \
-            --arg environment 'iHPH9mt5Wrk3DJ_L78qr2' \
+            --arg id "$EXPECTED_APPLICATION_ID" \
+            --arg environment "$EXPECTED_ENVIRONMENT_ID" \
             --arg image "${EXPECTED_IMAGE,,}" \
             '.applicationId == $id and .environmentId == $environment and .sourceType == "docker" and .dockerImage == $image' \
             <<< "$metadata" > /dev/null || {
-              echo "::error::Frontend testing must use the Docker provider and the expected :dev image. No deployment requested."
+              echo "::error::Frontend must use the expected deployment environment, Docker provider and image. No deployment requested."
               exit 1
             }
 
