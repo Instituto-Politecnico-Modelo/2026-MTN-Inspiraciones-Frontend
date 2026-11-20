@@ -90,14 +90,36 @@ jobs:
     timeout-minutes: 5
     permissions: {}
     steps:
+      - name: Request production deploy with the service webhook
+        if: github.ref == 'refs/heads/main'
+        env:
+          DOKPLOY_DEPLOY_WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
+          DOKPLOY_IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$DOKPLOY_DEPLOY_WEBHOOK" =~ ^https://policloud[.]ipm[.]edu[.]ar/api/deploy/[A-Za-z0-9_-]{12,}$ ]]; then
+            echo '::error::Set the dedicated Dokploy webhook in the production environment.'
+            exit 1
+          fi
+          if [[ "$DOKPLOY_IMAGE" != "ghcr.io/${GITHUB_REPOSITORY,,}:production" ]]; then
+            echo '::error::Only the production image of this repository can be deployed.'
+            exit 1
+          fi
+          payload=$(jq -cn --arg image "$DOKPLOY_IMAGE" '{registry_package:{package_version:{package_url:$image,container_metadata:{tag:{name:"production"}}}}}')
+          result=$(curl --fail --silent --show-error --proto '=https' --connect-timeout 15 --max-time 120 \
+            -H 'Content-Type: application/json' -H 'X-GitHub-Event: registry_package' \
+            --data "$payload" "$DOKPLOY_DEPLOY_WEBHOOK")
+          jq -e '.message == "Application deployed successfully"' <<< "$result" > /dev/null
+          echo 'Dokploy accepted the production deployment request.'
       - name: Request deployment in Dokploy
+        if: github.ref == 'refs/heads/dev'
         env:
           DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
           DOKPLOY_APPLICATION_ID: ${{ secrets.DOKPLOY_APPLICATION_ID }}
           EXPECTED_IMAGE: ${{ needs.build-and-push.outputs.image }}
-          EXPECTED_APPLICATION_ID: ${{ github.ref_name == 'main' && 'hkywuqgUV3GUZgtK3cyWf' || 'eRDil3bftJ2Z0YORZZuqH' }}
-          EXPECTED_ENVIRONMENT_ID: ${{ github.ref_name == 'main' && 'EbsNYxufQ-YNlhmqbQ0Mi' || 'iHPH9mt5Wrk3DJ_L78qr2' }}
+          EXPECTED_APPLICATION_ID: eRDil3bftJ2Z0YORZZuqH
+          EXPECTED_ENVIRONMENT_ID: iHPH9mt5Wrk3DJ_L78qr2
         run: |
           set -euo pipefail
 
