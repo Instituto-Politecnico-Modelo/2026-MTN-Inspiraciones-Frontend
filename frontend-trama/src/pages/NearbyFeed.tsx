@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { LocateFixed, MapPin } from 'lucide-react'
+import { LocateFixed } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { FeedMap } from '../components/FeedMap'
 import { PostGrid } from '../components/PostCard'
-import { Button, EmptyState, ErrorMessage } from '../components/UI'
+import { Button, ErrorMessage } from '../components/UI'
 import { placesApi } from '../data/api'
 import type { Post } from '../data/model'
 import { cityWorks, nearbyWorks, NEARBY_RADIUS_KM } from '../data/nearbyFeed'
-import type { LocationPreference } from '../data/places'
+import type { Coordinates, LocationPreference } from '../data/places'
 import { getPosition } from '../lib/geolocation'
 import { useDevicePermission } from '../lib/useDevicePermission'
 
@@ -33,6 +34,7 @@ export function NearbyFeed({ posts }: { posts: Post[] }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState<Results>()
+  const [center, setCenter] = useState<Coordinates>()
   const request = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -58,6 +60,7 @@ export function NearbyFeed({ posts }: { posts: Post[] }) {
       }
       const center = await getPosition()
       signal.throwIfAborted()
+      setCenter(center)
       const [nearby, city] = await Promise.allSettled([nearbyWorks(center, signal), cityWorks(center, signal)])
       if (!signal.aborted) setResults({ nearby, city })
     } catch {
@@ -70,15 +73,8 @@ export function NearbyFeed({ posts }: { posts: Post[] }) {
     }
   }
 
-  if (permission === 'denied' || permission === 'unsupported') {
-    return <EmptyState icon={MapPin} title="No podemos acceder a tu ubicación"
-      description={permission === 'denied'
-        ? 'Permití el acceso a la ubicación en la configuración de este sitio en tu navegador y volvé a intentar.'
-        : 'Probá abrir Trama en un navegador que admita la ubicación del dispositivo.'}
-      action={<Link className="button button-secondary" to={settingsPath}>Configuración de ubicación</Link>} />
-  }
-
   const byId = new Map(posts.map(post => [post.id, post]))
+  const blocked = permission === 'denied' || permission === 'unsupported'
   const nearby = results?.nearby.status === 'fulfilled' ? results.nearby.value.flatMap(id => byId.get(id) ?? []) : []
   const shownNearby = new Set(nearby.map(post => post.id))
   const city = results?.city.status === 'fulfilled' ? results.city.value : null
@@ -87,28 +83,39 @@ export function NearbyFeed({ posts }: { posts: Post[] }) {
     : preference === 'ACTIVADA' ? 'Usar mi ubicación' : 'Activar y usar mi ubicación'
 
   return <div className="nearby-feed">
-    {!results && <EmptyState icon={MapPin} title="Encontrá obras cerca tuyo"
-      description="Usá la ubicación de tu dispositivo para ver publicaciones cercanas y otras de tu ciudad. Trama solo guarda tu preferencia."
-      action={<Button loading={loading} disabled={preference === undefined && !error} onClick={() => void search()}>
-        <LocateFixed size={17} aria-hidden="true" />{actionLabel}
-      </Button>} />}
-    {loading && <p role="status" className="muted">Buscando publicaciones cerca tuyo…</p>}
-    <ErrorMessage message={error} />
-    {results && <>
-      <NearbyResults title={`A menos de ${NEARBY_RADIUS_KM} km`} posts={nearby} more="Ver más publicaciones cercanas"
-        empty={results.nearby.status === 'rejected' ? 'No pudimos cargar las publicaciones cercanas.' : 'Todavía no hay publicaciones cerca de tu ubicación.'} />
-      {city ? <NearbyResults title={`En ${city.name}`} posts={cityPosts} more={`Ver más en ${city.name}`}
-        empty={nearby.length ? 'No encontramos más publicaciones en tu ciudad.' : 'Todavía no hay publicaciones en tu ciudad.'} />
-        : <section className="nearby-section">
-          <h2>En tu ciudad</h2>
-          <p className="muted">{results.city.status === 'rejected' ? 'No pudimos cargar las publicaciones de tu ciudad.'
-            : 'Tu ubicación está fuera de las localidades argentinas que podemos identificar.'}</p>
-        </section>}
-      <div className="button-row">
-        <Button variant="secondary" onClick={() => void search()}><LocateFixed size={17} aria-hidden="true" />{actionLabel}</Button>
-        <Link className="button button-ghost" to={settingsPath}>Configuración de ubicación</Link>
+    <div className="feed-map-heading">
+      <div>
+        <h2>Mapa de publicaciones</h2>
+        <p className="muted">Mové el mapa, ajustá el zoom o tocá un punto para abrir la publicación.</p>
       </div>
-      {city && <p className="field-hint">Límites de localidad según <a href="https://portalgeoestadistico.indec.gob.ar/">cartografía del INDEC</a>.</p>}
+      {!blocked && <Button variant="secondary" loading={loading} disabled={preference === undefined && !error} onClick={() => void search()}>
+        <LocateFixed size={17} aria-hidden="true" />{actionLabel}
+      </Button>}
+    </div>
+    <FeedMap posts={posts} center={blocked ? undefined : center} />
+    {blocked ? <div className="nearby-section">
+      <h2>No podemos acceder a tu ubicación</h2>
+      <p className="muted">{permission === 'denied'
+        ? 'Para ver obras cerca tuyo, habilitá la ubicación en los permisos de este sitio en tu navegador.'
+        : 'Para ver obras cerca tuyo, abrí Trama en un navegador compatible con la ubicación del dispositivo.'}</p>
+      <div><Link className="button button-secondary" to={settingsPath}>Configuración de ubicación</Link></div>
+    </div> : <>
+      {!results && preference !== 'ACTIVADA' && <p className="field-hint">Si activás la ubicación, Trama solo guarda tu preferencia.</p>}
+      {loading && <p role="status" className="muted">Buscando publicaciones cerca tuyo…</p>}
+      <ErrorMessage message={error} />
+      {results && <>
+        <NearbyResults title={`A menos de ${NEARBY_RADIUS_KM} km`} posts={nearby} more="Ver más publicaciones cercanas"
+          empty={results.nearby.status === 'rejected' ? 'No pudimos cargar las publicaciones cercanas.' : 'Todavía no hay publicaciones cerca de tu ubicación.'} />
+        {city ? <NearbyResults title={`En ${city.name}`} posts={cityPosts} more={`Ver más en ${city.name}`}
+          empty={nearby.length ? 'No encontramos más publicaciones en tu ciudad.' : 'Todavía no hay publicaciones en tu ciudad.'} />
+          : <section className="nearby-section">
+            <h2>En tu ciudad</h2>
+            <p className="muted">{results.city.status === 'rejected' ? 'No pudimos cargar las publicaciones de tu ciudad.'
+              : 'Tu ubicación está fuera de las localidades argentinas que podemos identificar.'}</p>
+          </section>}
+        <div><Link className="button button-ghost" to={settingsPath}>Configuración de ubicación</Link></div>
+        {city && <p className="field-hint">Límites de localidad según <a href="https://portalgeoestadistico.indec.gob.ar/">cartografía del INDEC</a>.</p>}
+      </>}
     </>}
   </div>
 }

@@ -10,6 +10,7 @@ type Props = {
   items: MapItem[]
   selectedId: string | null
   focus?: { center: Coordinates; radiusKm: number } | null
+  browse?: { center: Coordinates; zoom: number }
   onSelect: (id: string) => void
   onViewChange: (zone: Zone) => void
   onUnavailable: () => void
@@ -20,7 +21,7 @@ type Engine = { L: typeof Leaflet; map: Leaflet.Map; group: Leaflet.MarkerCluste
 
 const dot = (L: typeof Leaflet, selected: boolean) => L.divIcon({ className: selected ? 'map-dot is-selected' : 'map-dot', iconSize: [20, 20] })
 
-export function MapView({ items, selectedId, focus, onSelect, onViewChange, onUnavailable }: Props) {
+export function MapView({ items, selectedId, focus, browse, onSelect, onViewChange, onUnavailable }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const engine = useRef<Engine | null>(null)
   const callbacks = useRef({ onSelect, onViewChange, onUnavailable })
@@ -36,25 +37,29 @@ export function MapView({ items, selectedId, focus, onSelect, onViewChange, onUn
         ;(window as unknown as { L: typeof L }).L = L
         await import('leaflet.markercluster')
         if (disposed || !container.current) return
-        const map = L.map(container.current, { worldCopyJump: true, minZoom: 2 }).setView([20, 0], 2)
+        const map = L.map(container.current, { worldCopyJump: true, minZoom: 2, scrollWheelZoom: !browse, zoomControl: !browse })
+          .setView(browse ? [browse.center.latitud, browse.center.longitud] : [20, 0], browse?.zoom ?? 2)
+        if (browse) L.control.zoom({ zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(map)
         let failed = false
-        L.tileLayer(TILES, { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(map)
+        L.tileLayer(TILES, { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map)
           .on('tileerror', () => { if (!failed) { failed = true; callbacks.current.onUnavailable() } })
         const group = L.markerClusterGroup({ spiderfyOnMaxZoom: true, showCoverageOnHover: false })
         map.addLayer(group)
         const quiet = { value: false }
-        map.on('moveend', () => {
+        const reportView = () => {
           if (quiet.value) { quiet.value = false; return }
           const bounds = map.getBounds()
           callbacks.current.onViewChange(boundsToZone({ south: bounds.getSouth(), north: bounds.getNorth(), west: bounds.getWest(), east: bounds.getEast() }))
-        })
+        }
+        map.on('moveend', reportView)
         engine.current = { L, map, group, markers: new Map(), quiet }
         dispose = () => { map.remove(); engine.current = null }
+        if (browse) reportView()
         setReady(true)
       } catch { callbacks.current.onUnavailable() }
     })()
     return () => { disposed = true; dispose() }
-  }, [])
+  }, [browse])
 
   useEffect(() => {
     const current = engine.current
@@ -88,11 +93,11 @@ export function MapView({ items, selectedId, focus, onSelect, onViewChange, onUn
   useEffect(() => {
     const current = engine.current
     if (!ready || !current || !focus) return
-    // Ajustar la vista al radio es un movimiento propio: no debe disparar una consulta por zona.
-    current.quiet.value = true
+    // En el explorador libre, centrar el mapa también recarga los puntos visibles.
+    current.quiet.value = !browse
     current.map.fitBounds(current.L.latLng(focus.center.latitud, focus.center.longitud).toBounds(focus.radiusKm * 2000), { animate: false })
     current.quiet.value = false
-  }, [focus, ready])
+  }, [browse, focus, ready])
 
   return <div ref={container} className="map-canvas" role="application" aria-label="Mapa de lugares de inspiración" />
 }
