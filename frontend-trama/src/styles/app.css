@@ -139,6 +139,11 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .nearby-feed, .nearby-section { display: grid; gap: 16px; }
 .nearby-feed > .nearby-section + .nearby-section { margin-top: 16px; padding-top: 24px; border-top: 1px solid var(--border); }
 .nearby-section > :is(h2, p), .nearby-feed > p { margin: 0; }
+.feed-map-heading, .feed-map-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.feed-map-heading h2 { margin: 0 0 4px; }
+.feed-map-heading p, .feed-map-status p { margin: 0; }
+.feed-map { display: grid; gap: 8px; min-width: 0; }
+.feed-map .map-canvas { height: clamp(320px, 60svh, 520px); isolation: isolate; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .section-heading > a { color: var(--action); font-weight: 500; min-height: 44px; display: inline-flex; align-items: center; gap: 8px; }
 .empty-state { padding: 64px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; max-width: 620px; margin: auto; }

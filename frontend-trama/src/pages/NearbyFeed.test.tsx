@@ -8,6 +8,7 @@ import { cityWorks, nearbyWorks } from '../data/nearbyFeed'
 import { NearbyFeed } from './NearbyFeed'
 
 vi.mock('../data/nearbyFeed', () => ({ NEARBY_RADIUS_KM: 5, cityWorks: vi.fn(), nearbyWorks: vi.fn() }))
+vi.mock('../components/FeedMap', () => ({ FeedMap: () => <div role="application" aria-label="Mapa de publicaciones" /> }))
 vi.mock('../components/PostCard', () => ({
   PostGrid: ({ posts }: { posts: Post[] }) => <ul>{posts.map(post => <li key={post.id}>{post.title}</li>)}</ul>,
 }))
@@ -54,6 +55,7 @@ it('consulta solo al activar y muestra primero las cercanas, sin repetirlas en l
 it('indica cómo recuperar el acceso si el navegador lo denegó', async () => {
   const { position, save } = setup('denied')
   expect(await screen.findByRole('heading', { name: 'No podemos acceder a tu ubicación' })).toBeInTheDocument()
+  expect(screen.getByRole('application', { name: 'Mapa de publicaciones' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Configuración de ubicación' })).toHaveAttribute('href', '/ubicacion/configuracion?desde=inicio')
   expect(position).not.toHaveBeenCalled()
   expect(save).not.toHaveBeenCalled()

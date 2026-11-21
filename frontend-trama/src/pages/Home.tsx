@@ -5,11 +5,12 @@ import { challengeStatus, searchPosts, visiblePosts } from '../data/store'
 import type { Challenge, DemoState } from '../data/model'
 import { Badge, EmptyState, ErrorMessage, PageTitle, Tabs } from '../components/UI'
 import { PostGrid } from '../components/PostCard'
+import { FeedMap } from '../components/FeedMap'
 import { NearbyFeed } from './NearbyFeed'
 
 const homeTabs = [
   { value: 'para-vos', label: 'Para vos' },
-  { value: 'cerca-de-mi', label: 'Cerca de mí' },
+  { value: 'mapa', label: 'Mapa' },
   { value: 'seguidos', label: 'Seguidos' },
   { value: 'desafios', label: 'Desafíos' },
 ]
@@ -34,19 +35,23 @@ export function HomePage() {
   const { state, user } = useDemo()
   const [params, setParams] = useSearchParams()
   const requested = params.get('vista') ?? 'para-vos'
-  const tab = homeTabs.some(item => item.value === requested) ? requested : 'para-vos'
+  const view = requested === 'cerca-de-mi' ? 'mapa' : requested
+  const tab = homeTabs.some(item => item.value === view) ? view : 'para-vos'
   const challenge = state.challenges.find(item => challengeStatus(item) === 'open')
-  const posts = tab === 'cerca-de-mi' ? visiblePosts(state)
+  const posts = tab === 'mapa' ? visiblePosts(state)
     : tab === 'seguidos' ? user ? searchPosts(state, { following: user.id }) : []
     : tab === 'desafios' ? visiblePosts(state).filter(post => post.challengeId) : forYouPosts(state)
   return <>
     <PageTitle title="Inicio" />
-    {requested !== tab && <ErrorMessage message="La vista de ese enlace no existe. Podés elegir una de las pestañas de Inicio." />}
+    {view !== tab && <ErrorMessage message="La vista de ese enlace no existe. Podés elegir una de las pestañas de Inicio." />}
     <Tabs label="Contenido de Inicio" value={tab} items={homeTabs}
       onChange={value => setParams(value === 'para-vos' ? {} : { vista: value }, { replace: true, preventScrollReset: true })}>
-      {tab === 'cerca-de-mi' ? user ? <NearbyFeed key={user.id} posts={posts} /> : <EmptyState icon={MapPin} title="Encontrá obras cerca tuyo"
-        description="Ingresá para ver publicaciones cerca de tu ubicación y en tu ciudad."
-        action={<Link className="button button-primary" to="/ingresar?volver=%2Finicio%3Fvista%3Dcerca-de-mi">Ingresar</Link>} />
+      {tab === 'mapa' ? user ? <NearbyFeed key={user.id} posts={posts} /> : <div className="nearby-feed">
+        <FeedMap />
+        <EmptyState icon={MapPin} title="Explorá publicaciones en el mapa"
+          description="Ingresá para ver qué obras se compartieron en la zona que estás explorando."
+          action={<Link className="button button-primary" to="/ingresar?volver=%2Finicio%3Fvista%3Dmapa">Ingresar</Link>} />
+      </div>
       : posts.length ? <><PostGrid posts={posts} compact />
         {challenge && <ChallengeNudge challenge={challenge} />}
       </> : <EmptyState icon={tab === 'seguidos' ? Users : Trophy}
