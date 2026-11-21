@@ -136,6 +136,9 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .tabs > button:hover { color: var(--text); }
 .tabs > button[aria-selected='true'] { border-bottom-color: var(--action); color: var(--action); font-weight: 600; }
 .tab-content { padding-top: 16px; }
+.nearby-feed, .nearby-section { display: grid; gap: 16px; }
+.nearby-feed > .nearby-section + .nearby-section { margin-top: 16px; padding-top: 24px; border-top: 1px solid var(--border); }
+.nearby-section > :is(h2, p), .nearby-feed > p { margin: 0; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .section-heading > a { color: var(--action); font-weight: 500; min-height: 44px; display: inline-flex; align-items: center; gap: 8px; }
 .empty-state { padding: 64px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; max-width: 620px; margin: auto; }

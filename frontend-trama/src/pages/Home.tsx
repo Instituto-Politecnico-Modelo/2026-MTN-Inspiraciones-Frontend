@@ -1,10 +1,18 @@
-import { ArrowRight, Trophy, Users } from 'lucide-react'
+import { ArrowRight, MapPin, Trophy, Users } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { challengeStatus, searchPosts, visiblePosts } from '../data/store'
 import type { Challenge, DemoState } from '../data/model'
 import { Badge, EmptyState, ErrorMessage, PageTitle, Tabs } from '../components/UI'
 import { PostGrid } from '../components/PostCard'
+import { NearbyFeed } from './NearbyFeed'
+
+const homeTabs = [
+  { value: 'para-vos', label: 'Para vos' },
+  { value: 'cerca-de-mi', label: 'Cerca de mí' },
+  { value: 'seguidos', label: 'Seguidos' },
+  { value: 'desafios', label: 'Desafíos' },
+]
 
 export function ChallengeNudge({ challenge }: { challenge: Challenge }) {
   return <article className="challenge-nudge post-card">
@@ -26,16 +34,20 @@ export function HomePage() {
   const { state, user } = useDemo()
   const [params, setParams] = useSearchParams()
   const requested = params.get('vista') ?? 'para-vos'
-  const tab = ['para-vos', 'seguidos', 'desafios'].includes(requested) ? requested : 'para-vos'
+  const tab = homeTabs.some(item => item.value === requested) ? requested : 'para-vos'
   const challenge = state.challenges.find(item => challengeStatus(item) === 'open')
-  const posts = tab === 'seguidos' ? user ? searchPosts(state, { following: user.id }) : []
+  const posts = tab === 'cerca-de-mi' ? visiblePosts(state)
+    : tab === 'seguidos' ? user ? searchPosts(state, { following: user.id }) : []
     : tab === 'desafios' ? visiblePosts(state).filter(post => post.challengeId) : forYouPosts(state)
   return <>
     <PageTitle title="Inicio" />
     {requested !== tab && <ErrorMessage message="La vista de ese enlace no existe. Podés elegir una de las pestañas de Inicio." />}
-    <Tabs label="Contenido de Inicio" value={tab} items={[{ value: 'para-vos', label: 'Para vos' }, { value: 'seguidos', label: 'Seguidos' }, { value: 'desafios', label: 'Desafíos' }]}
+    <Tabs label="Contenido de Inicio" value={tab} items={homeTabs}
       onChange={value => setParams(value === 'para-vos' ? {} : { vista: value }, { replace: true, preventScrollReset: true })}>
-      {posts.length ? <><PostGrid posts={posts} compact />
+      {tab === 'cerca-de-mi' ? user ? <NearbyFeed key={user.id} posts={posts} /> : <EmptyState icon={MapPin} title="Encontrá obras cerca tuyo"
+        description="Ingresá para ver publicaciones cerca de tu ubicación y en tu ciudad."
+        action={<Link className="button button-primary" to="/ingresar?volver=%2Finicio%3Fvista%3Dcerca-de-mi">Ingresar</Link>} />
+      : posts.length ? <><PostGrid posts={posts} compact />
         {challenge && <ChallengeNudge challenge={challenge} />}
       </> : <EmptyState icon={tab === 'seguidos' ? Users : Trophy}
         title={tab === 'seguidos' ? user ? 'Encontrá otras miradas' : 'Tu comunidad empieza acá' : 'Todavía no hay obras para mostrar'}

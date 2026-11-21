@@ -69,7 +69,7 @@ const preferencePath = '/api/usuarios/me/preferencia-ubicacion'
 // Las coordenadas de consulta viajan solo en el cuerpo (NFR-004); nunca en la URL.
 export const placesApi = {
   catalog: () => http<{ items: CatalogDiscipline[] }>('GET', '/api/catalogo/disciplinas').then(response => response.items),
-  query: (body: MapQuery) => http<MapPage>('POST', '/api/mapa/publicaciones/consulta', body),
+  query: (body: MapQuery, signal?: AbortSignal) => http<MapPage>('POST', '/api/mapa/publicaciones/consulta', body, undefined, signal),
   detail: (id: string) => http<Json>('GET', `/api/mapa/publicaciones/${encodeURIComponent(id)}`),
   preference: {
     get: () => http<{ estado: LocationPreference }>('GET', preferencePath).then(response => response.estado),
@@ -161,7 +161,7 @@ export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
 }
 
-async function http<T = Json>(method: string, path: string, body?: unknown, form?: FormData): Promise<T> {
+async function http<T = Json>(method: string, path: string, body?: unknown, form?: FormData, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = {}
   const token = path.startsWith(passwordResetPath + '/') ? null : getToken()
   if (token) headers.Authorization = `Bearer ${token}`
@@ -170,7 +170,7 @@ async function http<T = Json>(method: string, path: string, body?: unknown, form
   try {
     // Las consultas del mapa llevan coordenadas del usuario: no deben quedar en caché (NFR-004).
     const cache = path.startsWith('/api/mapa/') || path.startsWith('/api/feed/recomendaciones/ubicacion') ? 'no-store' : undefined
-    response = await fetch(`${BASE}${path}`, { method, headers, cache, body: form ?? (body === undefined ? undefined : JSON.stringify(body)) })
+    response = await fetch(`${BASE}${path}`, { method, headers, cache, signal, body: form ?? (body === undefined ? undefined : JSON.stringify(body)) })
   } catch {
     throw new ApiError('No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.', 0)
   }
@@ -213,14 +213,16 @@ export const excelReports = {
 
 const items = <T,>(page: Page<T> | T[] | undefined): T[] => Array.isArray(page) ? page : page?.items ?? page?.contenido ?? []
 
-async function allPages<T>(path: string): Promise<T[]> {
+async function allPages<T>(path: string, maxPages = 50): Promise<T[]> {
   const result: T[] = []
+  const cursors = new Set<string>()
   let cursor: string | null | undefined
-  for (let guard = 0; guard < 50; guard++) {
+  for (let pageNumber = 0; pageNumber < maxPages; pageNumber++) {
     const page = await http<Page<T>>('GET', `${path}${path.includes('?') ? '&' : '?'}limite=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`)
     result.push(...items(page))
     cursor = page.nextCursor ?? page.siguienteCursor
-    if (!cursor) break
+    if (!cursor || cursors.has(cursor)) break
+    cursors.add(cursor)
   }
   return result
 }
@@ -375,7 +377,7 @@ export class ApiRepository {
     const meUser = this.toUser(me)
 
     const [rawPosts, rawFolders, rawChallenges, rawRequests] = await Promise.all([
-      allPages<Json>('/api/publicaciones').catch(() => items(undefined as never) as Json[]),
+      allPages<Json>('/api/publicaciones', Infinity).catch(() => items(undefined as never) as Json[]),
       allPages<Json>(`/api/usuarios/${this.meId}/carpetas`),
       allPages<Json>('/api/desafios?'),
       allPages<Json>(isAdmin ? '/api/solicitudes?' : '/api/solicitudes/mis-solicitudes?'),
