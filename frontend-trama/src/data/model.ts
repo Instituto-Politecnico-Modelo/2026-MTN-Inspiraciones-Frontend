@@ -18,6 +18,8 @@ const website = z.union([
   z.string().trim().max(500).url('Escribí una dirección web completa.').regex(/^https?:\/\//i, 'El enlace debe comenzar con https:// o http://.'),
 ])
 
+const birthDate = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Usá una fecha válida.')])
+
 export const UserSchema = z.object({
   id,
   name: z.string().trim().min(2, 'Escribí un nombre de al menos 2 caracteres.').max(80),
@@ -33,10 +35,19 @@ export const UserSchema = z.object({
   inspirations: z.array(z.enum(inspirationTypes)).max(6),
   joinedAt: date,
   suspensionReason: z.string().max(1000),
+  fechaNacimiento: birthDate.optional(),
+  sinContrasena: z.boolean().optional(),
 })
 
 export const ProfileSchema = UserSchema.pick({
   name: true, handle: true, bio: true, location: true, website: true, avatar: true, disciplines: true,
+}).strict()
+
+export const AccountChangesSchema = z.object({
+  email: UserSchema.shape.email,
+  fechaNacimiento: birthDate,
+  contrasenaActual: z.string().max(200).optional(),
+  googleIdToken: z.string().max(4096).optional(),
 }).strict()
 
 export const AccountSchema = UserSchema.pick({ id: true, name: true, handle: true, email: true }).strict()
@@ -164,6 +175,7 @@ export const StateSchema = z.object({
 
 export type User = z.infer<typeof UserSchema>
 export type ProfileChanges = z.infer<typeof ProfileSchema>
+export type AccountChanges = z.infer<typeof AccountChangesSchema>
 export type Post = z.infer<typeof PostSchema>
 export type PostChanges = z.infer<typeof PostChangesSchema>
 export type Folder = z.infer<typeof FolderSchema>
@@ -180,7 +192,7 @@ export type ChallengeInput = Omit<Challenge, 'createdBy'>
 
 export type Command =
   | { type: 'create-account'; user: z.infer<typeof AccountSchema> }
-  | { type: 'update-profile'; changes: ProfileChanges }
+  | { type: 'update-profile'; changes: ProfileChanges; account?: AccountChanges }
   | { type: 'set-interests'; disciplines: User['disciplines']; inspirations: User['inspirations'] }
   | { type: 'toggle-like'; postId: string }
   | { type: 'toggle-follow'; userId: string }

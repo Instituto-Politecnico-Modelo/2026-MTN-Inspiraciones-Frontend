@@ -6,9 +6,11 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
 COPY . .
-# Vite incrusta VITE_* al compilar: la URL de teselas debe llegar como build arg.
+# Vite incrusta VITE_* al compilar: la URL de teselas y el client ID de Google deben llegar como build args.
 ARG VITE_MAP_TILES_URL
 ENV VITE_MAP_TILES_URL=$VITE_MAP_TILES_URL
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 RUN npm run build
 
 FROM nginx:stable-alpine AS runtime

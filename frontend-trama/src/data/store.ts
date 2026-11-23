@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
   AccountSchema, AppealSchema, ChallengeSchema, CommentSchema, FolderSchema, PostChangesSchema,
-  PostSchema, ProfileSchema, ReportSchema, RequestSchema, StateSchema, UserSchema,
+  PostSchema, ProfileSchema, AccountChangesSchema, ReportSchema, RequestSchema, StateSchema, UserSchema,
   type Challenge, type Command, type DemoState, type MediaKind, type Post, type User,
 } from './model'
 export { createSeed } from './seed'
@@ -97,6 +97,11 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
     case 'update-profile': {
       const changes = ProfileSchema.parse(command.changes)
       if (state.users.some(user => user.id !== actor.id && normalize(user.handle) === normalize(changes.handle))) throw new Error('Ese nombre de usuario ya está en uso.')
+      if (command.account) {
+        const account = AccountChangesSchema.parse(command.account)
+        if (state.users.some(user => user.id !== actor.id && normalize(user.email) === normalize(account.email))) throw new Error('Ese correo ya está en uso.')
+        Object.assign(actor, { email: account.email, fechaNacimiento: account.fechaNacimiento })
+      }
       Object.assign(actor, changes)
       break
     }

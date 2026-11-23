@@ -61,6 +61,7 @@ export const notificationPreferences = {
 }
 
 type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
+type LoginSession = { accessToken: string; user: { id: string } }
 type Page<T> = { items?: T[]; contenido?: T[]; nextCursor?: string | null; siguienteCursor?: string | null }
 
 export type MapQuery = {
@@ -301,7 +302,14 @@ export class ApiRepository {
   private meId: string | null = null
 
   async login(email: string, password: string): Promise<string> {
-    const response = await http<{ accessToken: string; user: { id: string } }>('POST', '/api/auth/login', { email: email.trim(), password })
+    return this.storeSession(await http<LoginSession>('POST', '/api/auth/login', { email: email.trim(), password }))
+  }
+
+  async loginWithGoogle(idToken: string): Promise<string> {
+    return this.storeSession(await http<LoginSession>('POST', '/api/auth/google', { idToken }))
+  }
+
+  private storeSession(response: LoginSession): string {
     localStorage.setItem(TOKEN_KEY, response.accessToken)
     this.meId = response.user.id
     return response.user.id
@@ -368,6 +376,8 @@ export class ApiRepository {
       inspirations: pickInspirations(meta.i),
       joinedAt: (raw.createdAt as string) ?? known?.joinedAt ?? new Date(0).toISOString(),
       suspensionReason: known?.suspensionReason ?? '',
+      ...(typeof raw.fechaNacimiento === 'string' ? { fechaNacimiento: raw.fechaNacimiento } : {}),
+      ...(raw.tieneContrasena === false ? { sinContrasena: true } : {}),
       ...extra,
     }
     this.userCache.set(user.id, user)
@@ -595,10 +605,16 @@ export class ApiRepository {
         const changes = command.changes
         const avatarUrl = changes.avatar.startsWith('data:') ? undefined : changes.avatar
         const current = this.state.users.find(user => user.id === this.meId)
+        const account = command.account
         await http('PATCH', '/api/usuarios/me', {
           nombreCompleto: changes.name, ...(changes.handle !== current?.handle ? { username: changes.handle } : {}), sobreMi: changes.bio,
           descripcion: pack(changes.location, { w: changes.website, d: changes.disciplines, i: current?.inspirations ?? [] }),
           ...(avatarUrl !== undefined && avatarUrl === '' ? { avatarUrl: null } : {}),
+          ...(account && account.email.toLowerCase() !== current?.email.toLowerCase() ? {
+            email: account.email,
+            ...(account.googleIdToken ? { googleIdToken: account.googleIdToken } : { contrasenaActual: account.contrasenaActual ?? '' }),
+          } : {}),
+          ...(account && account.fechaNacimiento !== (current?.fechaNacimiento ?? '') ? { fechaNacimiento: account.fechaNacimiento || null } : {}),
         })
         if (changes.avatar.startsWith('data:')) {
           const form = new FormData()

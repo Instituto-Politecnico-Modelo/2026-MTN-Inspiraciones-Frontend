@@ -3,14 +3,17 @@ import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { ApiError } from '../data/api'
+import type { User } from '../data/model'
 import { errorMessage } from '../data/store'
 import { safeReturnPath } from '../lib/format'
+import { googleClientId } from '../lib/googleIdentity'
 import { Brand } from '../components/Brand'
+import { GoogleButton } from '../components/GoogleButton'
 import { Button, ErrorMessage, Field, IconButton } from '../components/UI'
 export { RecoveryPage } from './RecoveryPage'
 
 export function AccessPage({ register = false }: { register?: boolean }) {
-  const { login, register: createAccount } = useDemo()
+  const { login, loginWithGoogle, register: createAccount } = useDemo()
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const admin = params.get('modo') === 'admin' && !register
@@ -22,6 +25,27 @@ export function AccessPage({ register = false }: { register?: boolean }) {
   const [error, setError] = useState('')
   const [suspended, setSuspended] = useState(false)
   const [pending, setPending] = useState(false)
+
+  const finishLogin = (user: User) => {
+    if (admin && user.role !== 'admin') throw new Error('Este perfil no tiene acceso a administración. Podés ingresar como artista.')
+    setPassword('')
+    navigate(safeReturnPath(params.get('volver'), user.role === 'admin' ? '/admin/resumen' : '/inicio'), { replace: true })
+  }
+  const fail = (failure: unknown) => {
+    console.error('[Trama] No se pudo ingresar.', failure)
+    setSuspended(failure instanceof ApiError && failure.status === 403)
+    setError(errorMessage(failure))
+  }
+  const continueWithGoogle = async (idToken: string) => {
+    setError('')
+    setSuspended(false)
+    setPending(true)
+    try {
+      finishLogin(await loginWithGoogle(idToken))
+    } catch (failure) {
+      fail(failure)
+    } finally { setPending(false) }
+  }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -35,15 +59,10 @@ export function AccessPage({ register = false }: { register?: boolean }) {
         setPassword('')
         navigate('/cuestionario', { replace: true })
       } else {
-        const user = await login(email.trim(), password)
-        if (admin && user.role !== 'admin') throw new Error('Este perfil no tiene acceso a administración. Podés ingresar como artista.')
-        setPassword('')
-        navigate(safeReturnPath(params.get('volver'), user.role === 'admin' ? '/admin/resumen' : '/inicio'), { replace: true })
+        finishLogin(await login(email.trim(), password))
       }
     } catch (failure) {
-      console.error('[Trama] No se pudo ingresar.', failure)
-      setSuspended(failure instanceof ApiError && failure.status === 403)
-      setError(errorMessage(failure))
+      fail(failure)
     } finally { setPending(false) }
   }
 
@@ -52,6 +71,8 @@ export function AccessPage({ register = false }: { register?: boolean }) {
     <main className="auth-grid">
       <section className="auth-form">
         <h1>{register ? 'Crear perfil' : admin ? 'Ingresar a administración' : 'Ingresar'}</h1>
+        <GoogleButton onCredential={continueWithGoogle} />
+        {googleClientId && <p className="auth-divider" aria-hidden="true"><span>o con tu correo</span></p>}
         <form className="form-stack" onSubmit={event => void submit(event)}>
           {register && <>
             <Field label="Nombre visible" value={name} onChange={event => setName(event.target.value)} autoComplete="nickname" required minLength={2} maxLength={80} placeholder="Cómo te gusta que te llamen" />

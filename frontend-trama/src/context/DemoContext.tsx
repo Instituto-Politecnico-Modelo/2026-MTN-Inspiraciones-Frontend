@@ -14,6 +14,7 @@ export type Backend = {
   close: () => Promise<void>
   currentUserId: () => string | null
   login: (email: string, password: string) => Promise<string>
+  loginWithGoogle?: (idToken: string) => Promise<string>
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<string>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
   searchUsers?: (query: string) => Promise<User[]>
@@ -26,6 +27,7 @@ type Context = {
   user: User | null
   execute: (command: Command) => Promise<DemoState>
   login: (email: string, password: string) => Promise<User>
+  loginWithGoogle: (idToken: string) => Promise<User>
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<User>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
   searchUsers: (query: string) => Promise<User[]>
@@ -95,6 +97,10 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   }, [enter])
   const login = useCallback((email: string, password: string) =>
     startSession(() => repository.login(email, password)), [repository, startSession])
+  const loginWithGoogle = useCallback((idToken: string) => {
+    if (!repository.loginWithGoogle) return Promise.reject(new Error('El ingreso con Google no está disponible.'))
+    return startSession(() => repository.loginWithGoogle!(idToken))
+  }, [repository, startSession])
   const register = useCallback((input: { email: string; username: string; nombreCompleto: string; password: string }) =>
     startSession(() => repository.register(input)), [repository, startSession])
   const appeal = useCallback((input: { email: string; password: string; mensaje: string }) => repository.appeal(input), [repository])
@@ -139,7 +145,7 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   </main>
 
   const user = state.users.find(candidate => candidate.id === userId && candidate.status !== 'deleted') ?? null
-  return <DemoContext.Provider value={{ state, user, execute, login, register, appeal, searchUsers, getProfile, logout, resolveId: repository.resolveId, notify }}>
+  return <DemoContext.Provider value={{ state, user, execute, login, loginWithGoogle, register, appeal, searchUsers, getProfile, logout, resolveId: repository.resolveId, notify }}>
     {children}
     {notice && <div className={`toast toast-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
       {notice.kind === 'error' ? <AlertCircle size={20} aria-hidden="true" /> : <CheckCircle2 size={20} aria-hidden="true" />}

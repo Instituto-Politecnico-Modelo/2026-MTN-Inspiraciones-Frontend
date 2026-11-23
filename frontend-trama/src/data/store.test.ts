@@ -72,6 +72,14 @@ describe('interacciones y privacidad de la demo', () => {
     }, now)).toThrow()
   })
 
+  it('cambia el correo y la fecha de nacimiento, y rechaza un correo de otra cuenta', () => {
+    const profile = { name: 'Mora', handle: 'moravidal', bio: '', location: '', website: '', disciplines: ['Ilustración' as const], avatar: '' }
+    const updated = applyCommand(seed(), 'mora', { type: 'update-profile', changes: profile, account: { email: 'Nueva@Trama.test', fechaNacimiento: '1990-05-02' } }, now)
+    expect(updated.users.find(user => user.id === 'mora')).toMatchObject({ email: 'nueva@trama.test', fechaNacimiento: '1990-05-02' })
+    const otherEmail = seed().users.find(user => user.id === 'lara')!.email
+    expect(() => applyCommand(seed(), 'mora', { type: 'update-profile', changes: profile, account: { email: otherEmail, fechaNacimiento: '' } }, now)).toThrow(/correo/i)
+  })
+
   it('busca sin distinguir mayúsculas o tildes y filtra por medio', () => {
     expect(searchPosts(seed(), { query: 'CORRIENTE', kind: 'image' }).map(p => p.id)).toContain('obra-1')
     expect(searchPosts(seed(), { query: '', kind: 'audio' }).every(p => p.kind === 'audio')).toBe(true)

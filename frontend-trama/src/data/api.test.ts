@@ -6,6 +6,15 @@ afterEach(() => {
   localStorage.clear()
 })
 
+it('ingresa con Google y guarda la sesión igual que el ingreso con correo', async () => {
+  const fetch = vi.fn(async (_path: string, _options: RequestInit) => new Response(JSON.stringify({ accessToken: 'token-google', user: { id: 'usuario-google' } })))
+  vi.stubGlobal('fetch', fetch)
+
+  expect(await new ApiRepository().loginWithGoogle('id-token-de-prueba')).toBe('usuario-google')
+  expect(localStorage.getItem('trama-token')).toBe('token-google')
+  expect(fetch).toHaveBeenCalledWith('/api/auth/google', expect.objectContaining({ method: 'POST', body: JSON.stringify({ idToken: 'id-token-de-prueba' }) }))
+})
+
 it('consulta y guarda las preferencias web en la API principal, aunque Push esté caído', async () => {
   localStorage.setItem('trama-token', 'test-token')
   const fetch = vi.fn(async (path: string, _options: RequestInit) => {
