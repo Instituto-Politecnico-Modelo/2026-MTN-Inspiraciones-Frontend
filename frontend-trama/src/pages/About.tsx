@@ -20,7 +20,7 @@ export function AboutPage() {
       <div><dt>Audio</dt><dd>Dos piezas instrumentales sintetizadas, de 8 y 6 segundos, sin grabaciones ni voces de terceros. Publicadas bajo <a className="text-link" href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0</a>.</dd></div>
       <div><dt>Fotografías</dt><dd>Seis referencias obtenidas de Unsplash y bajo la <a className="text-link" href="https://unsplash.com/license" target="_blank" rel="noopener noreferrer">licencia Unsplash</a>. Las fuentes utilizadas se enlazan a continuación; no se atribuyen a los perfiles de la comunidad.</dd></div>
     </dl>
-      <ul className="photo-credits">{Object.entries(imageCredits).map(([asset, url]) => <li key={asset}><img src={`/media/${asset}.jpg`} alt="" loading="lazy" width="240" height="160" /><strong>{photoLabels[asset] ?? asset}</strong><a className="text-link" href={url} target="_blank" rel="noopener noreferrer" aria-label={`Ver referencia de ${photoLabels[asset] ?? asset} en Unsplash`}>Referencia original<ExternalLink size={16} aria-hidden="true" /></a></li>)}</ul>
+      <ul className="photo-credits">{Object.entries(imageCredits).map(([asset, url]) => <li key={asset}><img src={`/media/${asset}.jpg`} alt="" loading="lazy" width="240" height="160" /><strong>{photoLabels[asset] ?? asset}</strong><a className="text-link" href={url} target="_blank" rel="noopener noreferrer" aria-label={`Referencia original de ${photoLabels[asset] ?? asset} en Unsplash`}>Referencia original<ExternalLink size={16} aria-hidden="true" /></a></li>)}</ul>
     </section>
   </div>
 }

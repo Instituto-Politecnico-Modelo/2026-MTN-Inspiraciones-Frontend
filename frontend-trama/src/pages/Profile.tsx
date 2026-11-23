@@ -68,6 +68,7 @@ export function ProfilePage() {
   const profile = state.users.find(candidate => (username ? candidate.handle.toLowerCase() === username.toLowerCase() : candidate.id === (id ?? user?.id)) && candidate.status === 'active')
   if (!profile && lookupKey && profileRequest.key !== lookupKey) return <p role="status">Cargando perfil…</p>
   if (profileRequest.key === lookupKey && profileRequest.error) return <>
+    <PageTitle title="Perfil no disponible" />
     <ErrorMessage message={profileRequest.error} />
     <Button variant="secondary" onClick={() => setRetry(value => value + 1)}>Reintentar</Button>
   </>
