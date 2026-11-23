@@ -44,7 +44,8 @@ export const musicalResources = {
 }
 
 export type InboxNotice = { id: string; tipo: string; titulo: string; mensaje: string; publicacionId?: string | null; createdAt: string }
-const inboxPath = '/api/usuarios/me/notificaciones/bandeja'
+const notificationsPath = '/api/usuarios/me/notificaciones'
+const inboxPath = notificationsPath + '/bandeja'
 export const notificationInbox = {
   list: () => getToken() ? http<InboxNotice[]>('GET', inboxPath) : Promise.resolve([]),
   read: (id: string) => http<void>('PUT', `${inboxPath}/${encodeURIComponent(id)}/leida`),
@@ -52,8 +53,11 @@ export const notificationInbox = {
 }
 export type NotificationPreference = { tipoEvento: 'LIKE' | 'COMMENT'; activo: boolean }
 export const notificationPreferences = {
-  list: () => http<{ preferencias: NotificationPreference[] }>('GET', '/api/push-notifications/preferences'),
-  save: (preferencias: NotificationPreference[]) => http('PUT', '/api/push-notifications/preferences', { preferencias }),
+  list: async () => {
+    const { preferencias } = await http<{ preferencias: { tipoEvento: string; activo: boolean }[] }>('GET', notificationsPath)
+    return { preferencias: preferencias.filter((item): item is NotificationPreference => item.tipoEvento === 'LIKE' || item.tipoEvento === 'COMMENT') }
+  },
+  save: (preferencias: NotificationPreference[]) => http('PUT', notificationsPath, { preferencias }),
 }
 
 type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any

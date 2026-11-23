@@ -1,9 +1,29 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiRepository, rankedFeed } from './api'
+import { ApiRepository, notificationPreferences, rankedFeed } from './api'
 
 afterEach(() => {
   vi.unstubAllGlobals()
   localStorage.clear()
+})
+
+it('consulta y guarda las preferencias web en la API principal, aunque Push esté caído', async () => {
+  localStorage.setItem('trama-token', 'test-token')
+  const fetch = vi.fn(async (path: string, _options: RequestInit) => {
+    if (path.startsWith('/api/push-notifications')) return new Response(null, { status: 502 })
+    return new Response(JSON.stringify({ preferencias: [
+      { tipoEvento: 'LIKE', activo: true }, { tipoEvento: 'COMMENT', activo: false }, { tipoEvento: 'REPORT', activo: true },
+    ] }))
+  })
+  vi.stubGlobal('fetch', fetch)
+
+  expect(await notificationPreferences.list()).toEqual({ preferencias: [
+    { tipoEvento: 'LIKE', activo: true }, { tipoEvento: 'COMMENT', activo: false },
+  ] })
+  await notificationPreferences.save([{ tipoEvento: 'COMMENT', activo: true }])
+  expect(fetch).toHaveBeenNthCalledWith(1, '/api/usuarios/me/notificaciones', expect.objectContaining({ method: 'GET' }))
+  expect(fetch).toHaveBeenNthCalledWith(2, '/api/usuarios/me/notificaciones', expect.objectContaining({
+    method: 'PUT', body: JSON.stringify({ preferencias: [{ tipoEvento: 'COMMENT', activo: true }] }),
+  }))
 })
 
 describe('feed con cercanía (FR-021/022)', () => {
