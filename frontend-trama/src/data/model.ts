@@ -74,6 +74,7 @@ export const PostSchema = z.object({
   license: z.string().trim().max(300),
   credit: z.string().max(500),
   creditUrl: website,
+  tutorialUrl: website.optional(),
   status: z.enum(['published', 'hidden', 'deleted']),
   createdAt: date,
   likes: z.array(id),

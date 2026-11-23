@@ -114,6 +114,7 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   const [discipline, setDiscipline] = useState<Post['discipline']>(existing?.discipline ?? 'Ilustración')
   const [technique, setTechnique] = useState(existing?.technique ?? '')
   const [license, setLicense] = useState(existing?.license ?? 'Todos los derechos reservados')
+  const [tutorialUrl, setTutorialUrl] = useState(existing?.tutorialUrl ?? '')
   const [challengeId, setChallengeId] = useState(existing?.challengeId ?? initialChallenge)
   const [rights, setRights] = useState(!!existing)
   const [catalog, setCatalog] = useState<CatalogDiscipline[]>([])
@@ -159,7 +160,7 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
     const id = existing?.id ?? newId('obra')
     const result = await run(existing ? { type: 'update-post', postId: existing.id, changes } : {
       type: 'create-post',
-      post: { id, ...changes, ...media, cover: media.kind === 'audio' ? '/media/sonido.svg' : '', challengeId: challengeId || null, credit: `Obra compartida por ${user.name}.`, creditUrl: '' },
+      post: { id, ...changes, ...media, cover: media.kind === 'audio' ? '/media/sonido.svg' : '', challengeId: challengeId || null, credit: `Obra compartida por ${user.name}.`, creditUrl: '', tutorialUrl: tutorialUrl.trim() },
     }, existing ? 'Los cambios de tu obra se guardaron.' : 'Tu obra se publicó.')
     if (result) { guard.allow(); navigate(`/obra/${resolveId(id)}`) }
   }
@@ -199,6 +200,8 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
         {!existing && <><SelectField label="Desafío (opcional)" value={challengeId} onChange={event => setChallengeId(event.target.value)}
           options={[{ value: '', label: 'Publicar sin desafío' }, ...openChallenges.map(challenge => ({ value: challenge.id, label: challenge.title })), ...(invalidChallenge ? [{ value: challengeId, label: 'Desafío no disponible' }] : [])]} />
           {invalidChallenge && <ErrorMessage message="El desafío elegido no está abierto. Elegí otro o publicá sin asociar tu obra." />}
+          <Field label="Enlace a video tutorial (opcional)" type="url" value={tutorialUrl} onChange={event => setTutorialUrl(event.target.value)} maxLength={500} placeholder="https://..."
+            hint="Si tu obra enseña una técnica, compartí el enlace al video. Se mostrará como tutorial en Descubrir." />
         </>}
         <OwnTagsField tags={ownTags} onChange={setOwnTags} />
         <PlaceFields latitude={latitude} longitude={longitude} onChange={(lat, lon) => { setLatitude(lat); setLongitude(lon) }} />

@@ -1,6 +1,6 @@
 import { MusicInspirations } from '../components/MusicInspirations'
 import { useState } from 'react'
-import { ArrowLeft, Flag, Music2, Pencil, Send, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, Flag, MonitorPlay, Music2, Pencil, Send, Trash2, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import { reportReasons, type Post, type Report } from '../data/model'
@@ -74,6 +74,7 @@ function WorkDetail({ post }: { post: Post }) {
         <div className="work-author"><Link className="artist-link" to={profilePath(author)}><Avatar user={author} size="medium" /><span><strong>{author.name}</strong><small>@{author.handle}</small></span></Link>{author.status === 'active' && <FollowButton artist={author} />}</div>
         <h1>{post.title}</h1><p className="meta">{post.discipline}{post.technique ? ` · ${post.technique}` : ''} · {formatDate(post.createdAt)}</p>
         {post.description && <p className="work-description">{post.description}</p>}
+        {!!post.tutorialUrl && <a className="button button-secondary" href={post.tutorialUrl} target="_blank" rel="noopener noreferrer"><MonitorPlay size={18} aria-hidden="true" />Ver video tutorial</a>}
         {isPublic && <PostActions post={post} />}
         {challenge && <Link className="work-challenge" to={`/desafios/${challenge.id}`}><Trophy size={22} aria-hidden="true" /><span>Parte del desafío<strong>{challenge.title}</strong></span></Link>}
         <dl className="work-facts"><div><dt>Licencia</dt><dd>{post.license || 'Licencia no informada'}</dd></div></dl>

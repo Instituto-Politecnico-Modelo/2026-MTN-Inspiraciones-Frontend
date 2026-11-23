@@ -26,7 +26,7 @@ function DiscoverMap({ filter }: { filter: (publication: MapPublication) => bool
   return <PlacesExplorer api={placesApi} access={proximityAccess(preference, permission)} getPosition={getPosition} filter={filter} />
 }
 
-const tabs = [{ value: 'obras', label: 'Obras' }, { value: 'artistas', label: 'Artistas' }]
+const tabs = [{ value: 'obras', label: 'Obras' }, { value: 'tutoriales', label: 'Tutoriales' }, { value: 'artistas', label: 'Artistas' }]
 
 export function DiscoverPage() {
   const { state, user, searchUsers } = useDemo()
@@ -75,7 +75,7 @@ export function DiscoverPage() {
     setParams(next, { replace: true, preventScrollReset: true })
   }
   const activeFilters = [discipline, technique].filter(Boolean).length
-  const posts = searchPosts(state, { query, kind: tab === 'musica' ? 'audio' : 'image', discipline, technique })
+  const posts = searchPosts(state, { query, kind: tab === 'musica' ? 'audio' : tab === 'tutoriales' ? undefined : 'image', tutorial: tab === 'tutoriales' || undefined, discipline, technique })
   if (order === 'recientes') posts.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
   if (order === 'titulo') posts.sort((a, b) => a.title.localeCompare(b.title, 'es'))
   const artists = (viewerId ? artistResults : state.users).filter(user => user.role === 'artist' && user.status === 'active' && (!discipline || user.disciplines.some(value => value === discipline)) && normalize(`${user.name} ${user.handle} ${user.bio} ${user.disciplines.join(' ')}`).includes(normalize(artistQuery)))
@@ -114,7 +114,7 @@ export function DiscoverPage() {
   return <div className="discover-page">
     <PageTitle title="Descubrir" />
     {searchField}
-    {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras o Artistas." />}
+    {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras, Tutoriales o Artistas." />}
     {tab === 'artistas' && searchError && <ErrorMessage message={searchError} />}
     <Tabs items={tabs} value={tab} label="Qué querés descubrir" onChange={value => update({ tipo: value, disciplina: '', tecnica: '', zona: '' })}>
       {tab !== 'lugares' ? <>

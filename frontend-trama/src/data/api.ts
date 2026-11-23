@@ -553,6 +553,7 @@ export class ApiRepository {
       id: raw.id as string, authorId: author, title: first.trim().slice(0, 120) || 'Sin título', description: rest.join('\n').trim(),
       alt: typeof meta.a === 'string' && meta.a ? meta.a : first.trim(), discipline: pickDisciplines([meta.d])[0] ?? 'Ilustración',
       technique: typeof meta.t === 'string' ? meta.t : '', kind: 'image', src: assetUrl(raw.fotoUrl as string), cover: '',
+      tutorialUrl: typeof raw.enlaceExterno === 'string' ? raw.enlaceExterno : '',
       width: Number(meta.w) > 0 ? Number(meta.w) : 1200, height: Number(meta.h) > 0 ? Number(meta.h) : 900, duration: 0,
       license: typeof meta.l === 'string' ? meta.l : '', credit: typeof meta.c === 'string' ? meta.c : '', creditUrl: typeof meta.u === 'string' ? meta.u : '',
       status, createdAt: raw.createdAt as string, likes,
@@ -676,7 +677,8 @@ export class ApiRepository {
         const fotoUrl = await uploadImage(post.src)
         const classification = await classificationOf(post.discipline, post.technique)
         const created = await http<Json>('POST', '/api/publicaciones', {
-          contenido: content, tipoContenido: 'IMAGEN', fotoUrl, categorias: [], hashtags: [], cuentasEtiquetadas: [],
+          contenido: content, tipoContenido: post.tutorialUrl ? 'TUTORIAL' : 'IMAGEN', fotoUrl, categorias: [], hashtags: [], cuentasEtiquetadas: [],
+          ...(post.tutorialUrl ? { enlaceExterno: post.tutorialUrl } : {}),
           ...(post.location ? { ubicacion: post.location } : {}), ...(classification ?? {}), ...(post.ownTags?.length ? { tagsPropios: post.ownTags } : {}),
         })
         this.aliases.set(post.id, created.id as string)

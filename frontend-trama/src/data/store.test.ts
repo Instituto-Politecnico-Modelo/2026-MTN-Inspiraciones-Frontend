@@ -83,6 +83,8 @@ describe('interacciones y privacidad de la demo', () => {
   it('busca sin distinguir mayúsculas o tildes y filtra por medio', () => {
     expect(searchPosts(seed(), { query: 'CORRIENTE', kind: 'image' }).map(p => p.id)).toContain('obra-1')
     expect(searchPosts(seed(), { query: '', kind: 'audio' }).every(p => p.kind === 'audio')).toBe(true)
+    expect(searchPosts(seed(), { tutorial: true }).every(p => !!p.tutorialUrl)).toBe(true)
+    expect(searchPosts(seed(), { tutorial: true }).map(p => p.id)).toContain('obra-5')
     expect(searchPosts(seed(), { query: 'zzzz-no-existe' })).toHaveLength(0)
   })
 })

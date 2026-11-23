@@ -36,12 +36,13 @@ export function privateFolders(state: DemoState, ownerId: string, viewerId: stri
   return ownerId === viewerId ? state.folders.filter(folder => folder.ownerId === ownerId) : []
 }
 
-export function searchPosts(state: DemoState, filters: { query?: string; kind?: MediaKind; discipline?: string; technique?: string; following?: string; challenge?: string } = {}) {
+export function searchPosts(state: DemoState, filters: { query?: string; kind?: MediaKind; discipline?: string; technique?: string; following?: string; challenge?: string; tutorial?: boolean } = {}) {
   const query = normalize(filters.query ?? '')
   const followed = new Set(state.follows.filter(follow => follow.followerId === filters.following).map(follow => follow.followingId))
   return visiblePosts(state).filter(post => {
     const author = state.users.find(user => user.id === post.authorId)
     return (!filters.kind || post.kind === filters.kind) &&
+      (!filters.tutorial || !!post.tutorialUrl) &&
       (!filters.discipline || post.discipline === filters.discipline) &&
       (!filters.technique || post.technique === filters.technique) &&
       (!filters.following || followed.has(post.authorId)) &&

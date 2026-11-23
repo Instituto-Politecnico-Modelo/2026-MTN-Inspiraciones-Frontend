@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bookmark, Heart, MessageCircle, Music2 } from 'lucide-react'
+import { Bookmark, Heart, MessageCircle, MonitorPlay, Music2 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import type { Post } from '../data/model'
@@ -50,6 +50,7 @@ export function PostCard({ post, eager = false }: { post: Post; eager?: boolean 
     <Link to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }} className="artwork-link">
       <div className="card-media"><ArtworkImage post={post} eager={eager} decorative={post.kind === 'audio'} retry={false} />
         {post.kind === 'audio' && <span className="media-kind"><Music2 size={16} aria-hidden="true" />{post.technique === 'Sample' ? 'Sample' : 'Audio'}</span>}
+        {!!post.tutorialUrl && post.kind !== 'audio' && <span className="media-kind"><MonitorPlay size={16} aria-hidden="true" />Tutorial</span>}
       </div>
       <h2>{post.title}</h2>
     </Link>
