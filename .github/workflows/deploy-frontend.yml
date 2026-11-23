@@ -74,6 +74,8 @@ jobs:
           file: ./frontend-trama/Dockerfile
           platforms: linux/amd64
           push: true
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
           tags: |
             ${{ steps.image.outputs.name }}:${{ steps.target.outputs.tag }}
             ${{ steps.image.outputs.name }}:${{ steps.target.outputs.tag }}-sha-${{ github.sha }}
