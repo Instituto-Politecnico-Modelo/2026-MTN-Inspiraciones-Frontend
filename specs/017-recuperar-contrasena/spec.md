@@ -5,7 +5,7 @@
 **Aplicación objetivo:** `frontend-trama`.
 **Estado:** implementado en `frontend-trama`. Pruebas de interfaz y cliente HTTP, compilación y lint verificados el 19 de noviembre.
 **Especificación del servidor:** [SPEC del backend](../../../2026-MTN-Inspiraciones-Api/specs/017-recuperar-contrasena/spec.md).
-
+ 
 ## 1 Objetivo
 
 Reemplazar la pantalla informativa de recuperación por un recorrido completo y accesible: ingresar correo, recibir código, elegir una contraseña nueva y volver al login. Debe funcionar para cualquier persona con cuenta activa, sin una sesión previa y sin asistencia de administración.
