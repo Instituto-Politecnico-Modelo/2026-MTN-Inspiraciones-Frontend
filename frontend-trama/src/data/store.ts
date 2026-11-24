@@ -47,7 +47,7 @@ export function searchPosts(state: DemoState, filters: { query?: string; kind?: 
       (!filters.technique || post.technique === filters.technique) &&
       (!filters.following || followed.has(post.authorId)) &&
       (!filters.challenge || post.challengeId === filters.challenge) &&
-      (!query || normalize(`${post.title} ${post.description} ${post.discipline} ${post.technique} ${author?.name ?? ''}`).includes(query))
+      (!query || normalize(`${post.title} ${post.description} ${post.discipline} ${post.technique} ${(post.ownTags ?? []).join(' ')} ${author?.name ?? ''}`).includes(query))
   })
 }
 

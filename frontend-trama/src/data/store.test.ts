@@ -87,6 +87,12 @@ describe('interacciones y privacidad de la demo', () => {
     expect(searchPosts(seed(), { tutorial: true }).map(p => p.id)).toContain('obra-5')
     expect(searchPosts(seed(), { query: 'zzzz-no-existe' })).toHaveLength(0)
   })
+
+  it('encuentra obras por tags propios', () => {
+    const state = seed()
+    state.posts[0] = { ...state.posts[0], ownTags: ['Atardecer Otoñal'] }
+    expect(searchPosts(state, { query: 'atardecer otoñal' }).map(p => p.id)).toContain(state.posts[0].id)
+  })
 })
 
 describe('moderación y desafíos', () => {
