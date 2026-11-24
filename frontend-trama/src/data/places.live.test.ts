@@ -29,10 +29,8 @@ describe.skipIf(!live)('mapa de lugares contra el servicio real (FR-005-014)', (
     expect(listed).toMatchObject({ ubicacion: { latitud: -34.6037, longitud: -58.3816 } })
     expect([...(listed?.tagsPropios as string[])].sort()).toEqual(['faro', 'mar'])
 
-    // El radio exige la preferencia activada; el aviso inicial se concede una sola vez.
+    // El radio exige la preferencia activada.
     await expect(placesApi.query({ criterio: { modo: 'RADIO', centro: { latitud: -34.6, longitud: -58.4 }, radioKm: 5 } })).rejects.toMatchObject({ status: 403 })
-    expect(await placesApi.preference.claimNotice()).toBe(true)
-    expect(await placesApi.preference.claimNotice()).toBe(false)
     expect(await placesApi.preference.set('ACTIVADA')).toBe('ACTIVADA')
     const radial = await placesApi.query({ criterio: { modo: 'RADIO', centro: { latitud: -34.6, longitud: -58.4 }, radioKm: 5 } })
     expect(radial.items.find(item => item.publicacion.id === postId)?.distanciaKm).toBeLessThan(5)

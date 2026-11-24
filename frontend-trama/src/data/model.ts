@@ -47,6 +47,7 @@ export const AccountChangesSchema = z.object({
   email: UserSchema.shape.email,
   fechaNacimiento: birthDate,
   contrasenaActual: z.string().max(200).optional(),
+  contrasenaNueva: z.string().max(200).optional(),
   googleIdToken: z.string().max(4096).optional(),
 }).strict()
 

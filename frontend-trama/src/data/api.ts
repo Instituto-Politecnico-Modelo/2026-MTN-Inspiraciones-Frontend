@@ -79,7 +79,6 @@ export const placesApi = {
   preference: {
     get: () => http<{ estado: LocationPreference }>('GET', preferencePath).then(response => response.estado),
     set: (estado: 'ACTIVADA' | 'DESACTIVADA') => http<{ estado: LocationPreference }>('PUT', preferencePath, { estado }).then(response => response.estado),
-    claimNotice: () => http<{ mostrar: boolean }>('POST', `${preferencePath}/aviso-inicial`).then(response => response.mostrar),
   },
 }
 
@@ -607,14 +606,18 @@ export class ApiRepository {
         const avatarUrl = changes.avatar.startsWith('data:') ? undefined : changes.avatar
         const current = this.state.users.find(user => user.id === this.meId)
         const account = command.account
+        const emailChanged = !!account && account.email.toLowerCase() !== current?.email.toLowerCase()
+        const passwordChanged = !!account?.contrasenaNueva
         await http('PATCH', '/api/usuarios/me', {
           nombreCompleto: changes.name, ...(changes.handle !== current?.handle ? { username: changes.handle } : {}), sobreMi: changes.bio,
           descripcion: pack(changes.location, { w: changes.website, d: changes.disciplines, i: current?.inspirations ?? [] }),
           ...(avatarUrl !== undefined && avatarUrl === '' ? { avatarUrl: null } : {}),
-          ...(account && account.email.toLowerCase() !== current?.email.toLowerCase() ? {
+          ...(account && emailChanged ? {
             email: account.email,
-            ...(account.googleIdToken ? { googleIdToken: account.googleIdToken } : { contrasenaActual: account.contrasenaActual ?? '' }),
+            ...(account.googleIdToken ? { googleIdToken: account.googleIdToken } : {}),
           } : {}),
+          ...(account && ((emailChanged && !account.googleIdToken) || passwordChanged) ? { contrasenaActual: account.contrasenaActual ?? '' } : {}),
+          ...(account?.contrasenaNueva ? { contrasenaNueva: account.contrasenaNueva } : {}),
           ...(account && account.fechaNacimiento !== (current?.fechaNacimiento ?? '') ? { fechaNacimiento: account.fechaNacimiento || null } : {}),
         })
         if (changes.avatar.startsWith('data:')) {

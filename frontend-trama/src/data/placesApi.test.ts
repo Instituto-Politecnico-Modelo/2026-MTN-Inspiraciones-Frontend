@@ -48,21 +48,18 @@ describe('cliente del mapa (FR-005-014)', () => {
     expect(await placesApi.catalog()).toEqual([{ codigo: 'PINTURA', nombre: 'Pintura', tecnicas: [] }])
   })
 
-  it('consulta, cambia y reclama el aviso de la preferencia de ubicación sin coordenadas', async () => {
+  it('consulta y cambia la preferencia de ubicación sin coordenadas', async () => {
     const fetch = vi.fn()
       .mockResolvedValueOnce(reply({ estado: 'PENDIENTE' }))
       .mockResolvedValueOnce(reply({ estado: 'ACTIVADA' }))
-      .mockResolvedValueOnce(reply({ mostrar: true }))
     vi.stubGlobal('fetch', fetch)
 
     expect(await placesApi.preference.get()).toBe('PENDIENTE')
     expect(await placesApi.preference.set('ACTIVADA')).toBe('ACTIVADA')
-    expect(await placesApi.preference.claimNotice()).toBe(true)
 
     expect(fetch.mock.calls.map(call => [call[0], call[1].method])).toEqual([
       ['/api/usuarios/me/preferencia-ubicacion', 'GET'],
       ['/api/usuarios/me/preferencia-ubicacion', 'PUT'],
-      ['/api/usuarios/me/preferencia-ubicacion/aviso-inicial', 'POST'],
     ])
     expect(fetch.mock.calls[1]![1].body).toBe(JSON.stringify({ estado: 'ACTIVADA' }))
   })

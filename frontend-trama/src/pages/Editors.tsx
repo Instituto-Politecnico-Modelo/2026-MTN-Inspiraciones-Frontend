@@ -12,7 +12,9 @@ import { readUpload, type Upload as UploadedMedia } from '../lib/upload'
 import { Avatar, Button, Choice, EmptyState, ErrorMessage, Field, IconButton, PageTitle, SelectField, TextArea } from '../components/UI'
 import { useUnsavedChanges } from '../components/UnsavedChanges'
 import { AudioPlayer } from '../components/Media'
-
+import { LocationSettings } from '../components/LocationPreference'
+import { getPosition } from '../lib/geolocation'
+import { useDevicePermission } from '../lib/useDevicePermission'
 const imageAccept = 'image/jpeg,image/png,image/webp'
 const mediaAccept = `${imageAccept},audio/mpeg,audio/wav,audio/x-wav,audio/ogg,audio/mp4`
 const profileFields = (user: User): ProfileChanges => ({
@@ -29,7 +31,11 @@ function ProfileForm({ user }: { user: User }) {
   const [form, setForm] = useState(() => profileFields(user))
   const [account, setAccount] = useState(() => accountFields(user))
   const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [googleToken, setGoogleToken] = useState('')
+  const [permission, refreshPermission] = useDevicePermission()
+  // Pedirlo desde un botón es una acción del usuario; la app nunca lo solicita sola.
+  const requestPermission = async () => { await getPosition().catch(() => undefined); refreshPermission() }
   const sinContrasena = user.sinContrasena === true
   const [initial] = useState(() => JSON.stringify({ ...profileFields(user), ...accountFields(user) }))
   const [uploadError, setUploadError] = useState('')
@@ -37,11 +43,13 @@ function ProfileForm({ user }: { user: User }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { run, pending, error } = useAction()
-  const dirty = JSON.stringify({ ...form, ...account }) !== initial || uploading
+  const dirty = JSON.stringify({ ...form, ...account }) !== initial || uploading || newPassword !== ''
   const guard = useUnsavedChanges(dirty, pending)
   const update = <K extends keyof ProfileChanges>(key: K, value: ProfileChanges[K]) => setForm(current => ({ ...current, [key]: value }))
   const emailChanged = account.email.trim().toLowerCase() !== user.email.toLowerCase()
-  const accountChanged = emailChanged || account.fechaNacimiento !== (user.fechaNacimiento ?? '')
+  const passwordChanged = !sinContrasena && newPassword !== ''
+  const accountChanged = emailChanged || passwordChanged || account.fechaNacimiento !== (user.fechaNacimiento ?? '')
+  const currentRequired = !sinContrasena && (emailChanged || passwordChanged)
   const photo = async (file: File) => {
     setUploading(true); setUploadError('')
     try { const media = await readUpload(file, true); update('avatar', media.src) }
@@ -55,6 +63,7 @@ function ProfileForm({ user }: { user: User }) {
       const accountChanges = accountChanged ? {
         email: account.email.trim(), fechaNacimiento: account.fechaNacimiento,
         ...(!emailChanged ? {} : sinContrasena ? { googleIdToken: googleToken } : { contrasenaActual: currentPassword }),
+        ...(passwordChanged ? { contrasenaActual: currentPassword, contrasenaNueva: newPassword } : {}),
       } : undefined
       void run({ type: 'update-profile', changes: form, account: accountChanges }, 'Tu perfil se actualizó.').then(result => { if (result) { guard.allow(); navigate('/perfil') } })
     }}>
@@ -79,13 +88,21 @@ function ProfileForm({ user }: { user: User }) {
           <Field label="Fecha de nacimiento" type="date" max={new Date().toISOString().slice(0, 10)} value={account.fechaNacimiento}
             onChange={event => setAccount(current => ({ ...current, fechaNacimiento: event.target.value }))} hint="Opcional. No se muestra en tu perfil." />
         </div>
-        {emailChanged && !sinContrasena && <Field label="Contraseña actual" type="password" required autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)}
-          hint="Para confirmar el cambio de correo." />}
+        {!sinContrasena && <div className="form-columns">
+          <Field label="Contraseña actual" type="password" required={currentRequired} autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)}
+            hint="Solo la pedimos si cambiás el correo o la contraseña." />
+          <Field label="Nueva contraseña" type="password" minLength={8} maxLength={200} autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)}
+            hint="Opcional. Mínimo 8 caracteres, con letras, números y un símbolo." />
+        </div>}
+        {!sinContrasena && <p className="field-hint"><Link className="text-link recovery-link" to="/recuperar">¿Olvidaste tu contraseña?</Link></p>}
         {emailChanged && sinContrasena && <div className="google-reconfirm">
           <p className="field-hint">Tu cuenta entra con Google y no tiene contraseña en Trama. Confirmá tu identidad con Google: su pantalla te pide la contraseña de tu cuenta de Google, y Trama no la recibe.</p>
           <GoogleButton onCredential={token => setGoogleToken(token)} />
           <p className="field-hint">{googleToken ? 'Identidad confirmada. Guardá los cambios en los próximos 5 minutos.' : 'Todavía no confirmaste tu identidad con Google.'}</p>
         </div>}
+      </fieldset>
+      <fieldset className="plain-fieldset"><legend>Ubicación para lugares cercanos</legend>
+        <LocationSettings api={placesApi} permission={permission} requestPermission={requestPermission} />
       </fieldset>
       <ErrorMessage message={error} />
       <div className="form-actions"><Link className="button button-secondary" to="/perfil">Cancelar</Link><Button type="submit" loading={pending} disabled={uploading || !dirty || (emailChanged && sinContrasena && !googleToken)}>Guardar cambios</Button></div>

@@ -1,55 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { LocationNotice, LocationSettings } from './LocationPreference'
+import { LocationSettings } from './LocationPreference'
 
 type Api = {
-  preference: { get: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; claimNotice: ReturnType<typeof vi.fn> }
+  preference: { get: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn> }
 }
 let api: Api
 
 beforeEach(() => {
-  api = { preference: { get: vi.fn().mockResolvedValue('PENDIENTE'), set: vi.fn(), claimNotice: vi.fn().mockResolvedValue(true) } }
-})
-
-describe('aviso inicial de ubicación (FR-010)', () => {
-  it('se presenta solo cuando el servidor concede el reclamo único', async () => {
-    api.preference.claimNotice.mockResolvedValue(false)
-    render(<LocationNotice api={api as never} />)
-
-    await waitFor(() => expect(api.preference.claimNotice).toHaveBeenCalledTimes(1))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('cerrarlo sin elegir deja la decisión pendiente y no vuelve a preguntar', async () => {
-    render(<LocationNotice api={api as never} />)
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Cerrar' }))
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(api.preference.set).not.toHaveBeenCalled()
-    expect(api.preference.claimNotice).toHaveBeenCalledTimes(1)
-  })
-
-  it('permite activar o desactivar y guarda solo la preferencia', async () => {
-    api.preference.set.mockResolvedValue('ACTIVADA')
-    render(<LocationNotice api={api as never} />)
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Activar ubicación' }))
-
-    expect(api.preference.set).toHaveBeenCalledWith('ACTIVADA')
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-  })
-
-  it('no solicita el permiso del dispositivo por sí mismo', async () => {
-    const request = vi.fn()
-    vi.stubGlobal('navigator', { ...navigator, geolocation: { getCurrentPosition: request } })
-    render(<LocationNotice api={api as never} />)
-    await screen.findByRole('dialog')
-
-    expect(request).not.toHaveBeenCalled()
-    vi.unstubAllGlobals()
-  })
+  api = { preference: { get: vi.fn().mockResolvedValue('PENDIENTE'), set: vi.fn() } }
 })
 
 describe('configuración de ubicación (FR-010/014)', () => {

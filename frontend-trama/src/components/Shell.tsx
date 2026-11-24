@@ -6,8 +6,6 @@ import { canManage, profilePath } from '../data/store'
 import { Avatar, EmptyState, Modal } from './UI'
 import { Brand } from './Brand'
 import { Notifications } from './Notifications'
-import { LocationNotice } from './LocationPreference'
-import { placesApi } from '../data/api'
 
 export const userNavigation = [
   { path: '/inicio', label: 'Inicio', icon: House },
@@ -101,7 +99,6 @@ export function SiteLayout({ admin = false }: { admin?: boolean }) {
         </div>
       </header>
       {user?.status === 'suspended' && <div className="account-warning" role="status">Tu cuenta está suspendida. <Link to="/apelacion">Solicitar revisión</Link></div>}
-      {user?.status === 'active' && !admin && <LocationNotice key={user.id} api={placesApi} />}
       <main id="contenido" className="app-content" ref={main} tabIndex={-1}><Outlet /></main>
       <footer className="site-footer"><span>Trama · Comunidad para artistas</span><Link to="/acerca">Acerca de Trama</Link></footer>
     </div>
