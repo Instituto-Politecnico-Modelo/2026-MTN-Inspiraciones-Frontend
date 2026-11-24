@@ -374,6 +374,21 @@ describe('integracion de rutas', () => {
     expect(await screen.findByRole('link', { name: /Preparar desaf.o/ })).toHaveAttribute('href', '/admin/desafios/nuevo?solicitud=solicitud-1')
   })
 
+  it('admin: una propuesta aprobada aparece en Desafios como pendiente de publicar', async () => {
+    const user = userEvent.setup()
+    await repository.load()
+    openRoute('/admin/solicitudes/solicitud-1', 'admin')
+    await user.click(await screen.findByRole('button', { name: 'Aprobar propuesta' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Aprobar esta propuesta' })
+    await user.type(within(dialog).getByLabelText(/Motivo de la decisi.n/), 'Aprobada para publicar.')
+    await user.click(within(dialog).getByRole('button', { name: 'Aprobar propuesta' }))
+    await waitFor(async () => expect((await repository.load()).requests.find(request => request.id === 'solicitud-1')?.status).toBe('approved'))
+    openRoute('/admin/desafios', 'admin')
+    expect((await screen.findAllByText('Pendiente de publicar')).length).toBeGreaterThan(0)
+    const links = await screen.findAllByRole('link', { name: /Preparar desaf.o/ })
+    expect(links.map(link => link.getAttribute('href'))).toContain('/admin/desafios/nuevo?solicitud=solicitud-1')
+  })
+
   it('admin: publica y edita un desafio con fechas de Buenos Aires', async () => {
     const user = userEvent.setup()
     openRoute('/admin/desafios/nuevo?solicitud=solicitud-3', 'admin')
