@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArtworkImage } from './Media'
 import { FolderLock, Plus } from 'lucide-react'
 import { useAction, useDemo } from '../context/DemoContext'
 import { newId, privateFolders } from '../data/store'
@@ -12,7 +13,7 @@ export function SaveDialog({ post, onClose }: { post: Post; onClose: () => void 
   if (!user) return null
   const folders = privateFolders(state, user.id, user.id)
   return <Modal open title="Guardar inspiración" description="Tus carpetas son privadas. Los cambios se guardan al seleccionarlas." onClose={onClose} busy={pending}>
-    <div className="save-preview"><img src={post.kind === 'audio' ? post.cover || '/media/sonido.svg' : post.src} alt="" /><strong>{post.title}</strong></div>
+    <div className="save-preview"><ArtworkImage post={post} decorative retry={false} /><strong>{post.title}</strong></div>
     <div className="folder-options">{folders.map(folder => <label className="folder-option" key={folder.id}>
       <FolderLock size={21} aria-hidden="true" /><span>{folder.name}<small>{folder.postIds.length} {folder.postIds.length === 1 ? 'obra' : 'obras'}</small></span>
       <input type="checkbox" checked={folder.postIds.includes(post.id)} disabled={pending} onChange={event => void run({ type: event.target.checked ? 'save-to-folder' : 'remove-from-folder', folderId: folder.id, postId: post.id }, event.target.checked ? 'Obra guardada en tu carpeta privada.' : 'Obra quitada de la carpeta.')} />

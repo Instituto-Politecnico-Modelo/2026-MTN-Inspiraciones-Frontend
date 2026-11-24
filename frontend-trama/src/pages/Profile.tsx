@@ -1,3 +1,4 @@
+import { ArtworkImage } from '../components/Media'
 import { useEffect, useState } from 'react'
 import { Ban, Bookmark, FolderLock, Grid2X2, LockKeyhole, LogOut, MapPin, MoreHorizontal, Pencil, Plus, ShieldCheck, SlidersHorizontal, Trash2, Trophy, UsersRound } from 'lucide-react'
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -116,7 +117,7 @@ export function ProfilePage() {
           {folders.length ? <div className="folder-grid">{folders.map(folder => {
             const previews = publicWorks.filter(post => folder.postIds.includes(post.id)).slice(0, 4)
             return <Link className="folder-card" key={folder.id} to={`/carpeta/${folder.id}`}><div className="folder-preview">
-              {[0, 1, 2, 3].map(index => previews[index] ? <img key={index} src={previews[index].kind === 'audio' ? previews[index].cover || '/media/sonido.svg' : previews[index].src} alt="" /> : <span key={index}><FolderLock size={24} aria-hidden="true" /></span>)}
+              {[0, 1, 2, 3].map(index => previews[index] ? <ArtworkImage key={index} post={previews[index]} decorative retry={false} /> : <span key={index}><FolderLock size={24} aria-hidden="true" /></span>)}
             </div><h2>{folder.name}</h2><p className="meta">{folder.postIds.length} {folder.postIds.length === 1 ? 'referencia guardada' : 'referencias guardadas'}</p></Link>
           })}</div> : <EmptyState icon={FolderLock} title="Dale un lugar a lo que te inspira" description="Creá carpetas privadas y guardá obras con el marcador que aparece en cada publicación." action={<Button onClick={() => setCreatingFolder(true)}>Crear mi primera carpeta</Button>} />}
         </>}

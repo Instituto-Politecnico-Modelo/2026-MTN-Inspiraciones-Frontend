@@ -1,3 +1,4 @@
+import { ArtworkImage, mediaLabel } from '../components/Media'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ArrowRight, Ban, Check, Download, Eye, EyeOff, Flag, RotateCcw, ShieldCheck, Trash2, X } from 'lucide-react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
@@ -103,7 +104,7 @@ export function AdminPostsPage() {
       const change = (next: typeof post.status) => setConfirmation({ title: next === 'hidden' ? 'Ocultar esta publicación' : next === 'published' ? 'Restaurar esta publicación' : 'Eliminar esta publicación',
         description: next === 'deleted' ? `«${post.title}» dejará de estar disponible. Esta acción no se puede deshacer.` : `Se cambiará la visibilidad de «${post.title}». La obra solo será pública si su autor tiene una cuenta activa.`,
         label: next === 'hidden' ? 'Ocultar obra' : next === 'published' ? 'Restaurar obra' : 'Eliminar obra', reason: true, dangerous: next !== 'published', command: reason => ({ type: 'moderate-post', postId: post.id, status: next, reason }), success: 'Estado de la publicación actualizado.' })
-      return <tr key={post.id}><th scope="row"><Link className="table-work" to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }}><img src={post.kind === 'audio' ? post.cover || '/media/sonido.svg' : post.src} alt="" /><span>{post.title}<small>{post.kind === 'audio' ? 'Audio' : 'Imagen'} · {post.discipline}</small></span></Link></th>
+      return <tr key={post.id}><th scope="row"><Link className="table-work" to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }}><ArtworkImage post={post} decorative retry={false} /><span>{post.title}<small>{mediaLabel[post.kind]} · {post.discipline}</small></span></Link></th>
         <td>{author?.name ?? 'Perfil no disponible'}</td><td>{post.status === 'published' && !publicIds.has(post.id) ? <Badge>Cuenta no activa</Badge> : <Badge status={post.status} />}</td><td className="date-cell">{formatDate(post.createdAt)}</td>
         <td><div className="table-actions"><Link className="icon-button" to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }} aria-label={`Ver ${post.title}`} title="Ver obra"><Eye size={21} aria-hidden="true" /></Link>
           {post.status !== 'deleted' && <><IconButton icon={post.status === 'hidden' ? RotateCcw : EyeOff} label={`${post.status === 'hidden' ? 'Restaurar' : 'Ocultar'} ${post.title}`} onClick={() => change(post.status === 'hidden' ? 'published' : 'hidden')} /><IconButton icon={Trash2} label={`Eliminar ${post.title}`} onClick={() => change('deleted')} /></>}</div></td></tr>
@@ -158,7 +159,7 @@ function ReviewPage({ appeal = false }: { appeal?: boolean }) {
     <Badge status={record.status} /><dl className="admin-facts"><div><dt>Enviado por</dt><dd>{member?.name ?? 'Perfil no disponible'}</dd></div><div><dt>Fecha</dt><dd>{formatDateTime(record.createdAt)}</dd></div>{'reason' in record && <div><dt>Motivo</dt><dd>{record.reason}</dd></div>}{appeal && member && <div><dt>Estado de la cuenta</dt><dd><Badge status={member.status} /></dd></div>}</dl>
     {appeal && member?.suspensionReason && <p className="inline-notice">{member.suspensionReason}</p>}
     <section className="review-description"><h2>{appeal ? 'Solicitud de revisión' : 'Información del reporte'}</h2><p>{record.description}</p></section>
-    {post && <Link className="review-work" to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }}><img src={post.kind === 'audio' ? post.cover || '/media/sonido.svg' : post.src} alt="" /><span><strong>{post.title}</strong><Badge status={post.status} /></span><ArrowRight size={20} aria-hidden="true" /></Link>}
+    {post && <Link className="review-work" to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }}><ArtworkImage post={post} decorative retry={false} /><span><strong>{post.title}</strong><Badge status={post.status} /></span><ArrowRight size={20} aria-hidden="true" /></Link>}
     {record.status === 'pending' ? <div className="form-actions"><Button variant="secondary" onClick={() => resolve(false)}><X size={18} aria-hidden="true" />{appeal ? 'Rechazar apelación' : 'Desestimar reporte'}</Button><Button onClick={() => resolve(true)}><Check size={18} aria-hidden="true" />{appeal ? 'Aceptar apelación' : 'Aceptar reporte'}</Button></div> : <Resolution record={record} />}
     {confirmation && <CommandDialog confirmation={confirmation} onClose={() => setConfirmation(null)} />}
   </div>

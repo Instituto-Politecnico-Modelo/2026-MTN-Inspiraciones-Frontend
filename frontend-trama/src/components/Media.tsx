@@ -1,20 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
-import { ImageOff, LoaderCircle, Pause, Play, RotateCcw } from 'lucide-react'
+import { Film, ImageOff, LoaderCircle, Pause, Play, RotateCcw } from 'lucide-react'
 import type { Post } from '../data/model'
 import { formatDuration } from '../lib/format'
 import { Button, ErrorMessage, IconButton } from './UI'
 
 let activeAudio: HTMLAudioElement | null = null
 
+export const mediaLabel = { image: 'Imagen', audio: 'Audio', video: 'Video' } as const
+
 export function ArtworkImage({ post, eager = false, decorative = false, retry = true }: { post: Post; eager?: boolean; decorative?: boolean; retry?: boolean }) {
   const [failed, setFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  const src = post.kind === 'audio' ? post.cover || '/media/sonido.svg' : post.src
+  if (post.kind === 'video' && !post.cover) {
+    return <div className="artwork-image video-cover" aria-hidden="true" style={{ aspectRatio: post.width / post.height }}>
+      <Film size={24} strokeWidth={1.5} />
+    </div>
+  }
+  const src = post.kind === 'image' ? post.src : post.cover || '/media/sonido.svg'
   if (failed) return <div className="media-failure" role="status"><ImageOff aria-hidden="true" /><p>No pudimos cargar esta imagen.</p>
     {retry && <Button variant="secondary" onClick={event => { event.preventDefault(); setAttempt(value => value + 1); setFailed(false) }}><RotateCcw size={17} aria-hidden="true" />Reintentar</Button>}
   </div>
   return <img key={attempt} className="artwork-image" src={src} alt={decorative ? '' : post.alt}
     width={post.width} height={post.height} loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailed(true)} />
+}
+
+export function VideoPlayer({ post, eager = false }: { post: Post; eager?: boolean }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <div className="media-failure" role="status">
+    <p>No pudimos reproducir este video.</p>
+    <Button variant="secondary" onClick={() => setFailed(false)}>Reintentar</Button>
+  </div>
+
+  return <video className="video-player" src={post.src} poster={post.cover || undefined}
+    aria-label={`Video: ${post.title}`} controls playsInline preload={eager ? 'metadata' : 'none'}
+    style={{ aspectRatio: post.width / post.height }} onError={() => setFailed(true)} />
 }
 
 export function AudioPlayer({ post }: { post: Post }) {

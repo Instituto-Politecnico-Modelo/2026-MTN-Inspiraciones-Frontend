@@ -91,7 +91,7 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
   const checkParticipation = (challengeId: string, kind: MediaKind) => {
     const challenge = requireValue(state.challenges.find(item => item.id === challengeId), 'El desafío no está disponible.')
     if (challengeStatus(challenge, now) !== 'open') throw new Error('Este desafío ya no está abierto.')
-    if (!challenge.kinds.includes(kind)) throw new Error('Este formato no está admitido por la consigna.')
+    if (kind === 'video' || !challenge.kinds.includes(kind)) throw new Error('Este formato no está admitido por la consigna.')
   }
 
   switch (command.type) {
@@ -161,8 +161,8 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
     case 'create-post': {
       fresh(state.posts, command.post.id)
       const post = PostSchema.parse({ ...command.post, authorId: actor.id, status: 'published', createdAt: now, likes: [], comments: [] })
-      if (!post.alt) throw new Error(post.kind === 'image' ? 'Agregá una descripción de la imagen para que sea accesible.' : 'Describí el contenido del audio; agregá una transcripción si tiene voz.')
-      if (post.kind === 'audio' && post.duration <= 0) throw new Error('No pudimos leer la duración del audio.')
+      if (!post.alt) throw new Error('Agregá una descripción accesible de tu obra.')
+      if (post.kind !== 'image' && post.duration <= 0) throw new Error('No pudimos leer la duración del archivo.')
       if (post.challengeId) checkParticipation(post.challengeId, post.kind)
       state.posts.unshift(post)
       break
@@ -315,12 +315,25 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
   return StateSchema.parse(state)
 }
 
-export function validateFile(file: Pick<File, 'type' | 'size'>): MediaKind {
+const uploadTypes: Record<MediaKind, { mime: string[]; extensions: string[]; limit: number }> = {
+  image: { mime: ['image/jpeg', 'image/png', 'image/webp'], extensions: ['jpg', 'jpeg', 'png', 'webp'], limit: 5 },
+  audio: { mime: ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'], extensions: ['mp3', 'wav', 'ogg', 'm4a'], limit: 16 },
+  video: { mime: ['video/mp4', 'video/webm'], extensions: ['mp4', 'webm'], limit: 64 },
+}
+
+export const mediaAccept = Object.values(uploadTypes).flatMap(format => [
+  ...format.mime, ...format.extensions.map(extension => '.' + extension),
+]).join(',')
+
+export function validateFile(file: Pick<File, 'type' | 'size'> & Partial<Pick<File, 'name'>>): MediaKind {
   if (file.size === 0) throw new Error('El archivo está vacío.')
-  const kind = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ? 'image'
-    : ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/mp4'].includes(file.type) ? 'audio' : null
-  if (!kind) throw new Error('Formato no admitido. Usá JPG, PNG, WebP, MP3, WAV, Ogg o M4A.')
-  const limit = kind === 'image' ? 5 : 16
+  const extension = file.name?.toLowerCase().split('.').pop() ?? ''
+  const mime = file.type.toLowerCase()
+  const kind = (Object.keys(uploadTypes) as MediaKind[]).find(key => uploadTypes[key].mime.includes(mime)
+    || ((!mime || mime === 'application/octet-stream') && uploadTypes[key].extensions.includes(extension))
+    || (key === 'audio' && extension === 'm4a' && mime === 'video/mp4'))
+  if (!kind) throw new Error('Formato no admitido. Usá JPG, PNG, WebP, MP3, WAV, OGG, M4A, MP4 o WebM.')
+  const { limit } = uploadTypes[kind]
   if (file.size > limit * 1024 * 1024) throw new Error(`El archivo supera el límite de ${limit} MB.`)
   return kind
 }

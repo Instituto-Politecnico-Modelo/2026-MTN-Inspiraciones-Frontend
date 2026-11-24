@@ -170,6 +170,10 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .artwork-link { display: block; border-radius: var(--card-radius); }
 .card-media { overflow: hidden; position: relative; border-radius: var(--card-radius); background: var(--surface-subtle); }
 .artwork-image { display: block; width: 100%; height: auto; }
+.video-cover { display: grid; place-items: center; background: var(--surface-subtle); color: var(--muted); }
+.video-player { display: block; width: 100%; height: auto; max-height: 70vh; background: var(--text); object-fit: contain; }
+.card-media > .video-player { border-radius: var(--card-radius); }
+.upload-filename { overflow-wrap: anywhere; }
 .artwork-link h2 { font-size: 1.125rem; line-height: 1.389; font-weight: 600; letter-spacing: 0; margin-top: 12px; overflow-wrap: anywhere; }
 .artwork-link:hover h2 { color: var(--action); }
 .artist-link { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: .875rem; color: var(--muted); min-height: 36px; flex-wrap: wrap; }
@@ -192,7 +196,7 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .audio-duration { font-size: .875rem; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
 .audio-player .error-message { padding: 8px; margin: 4px 0; }
 .save-preview { display: flex; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
-.save-preview img { width: 56px; height: 64px; object-fit: cover; border-radius: 8px; }
+.save-preview > .artwork-image { width: 56px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .folder-option { display: flex; align-items: center; min-height: 64px; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--border); cursor: pointer; }
 .folder-option > span { flex: 1; }
 .folder-option small { display: block; color: var(--muted); }
@@ -290,7 +294,7 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 32px 24px; }
 .folder-card { min-width: 0; }
 .folder-preview { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; aspect-ratio: 4 / 3; gap: 4px; border-radius: var(--card-radius); overflow: hidden; background: var(--surface-subtle); }
-.folder-preview > img { width: 100%; height: 100%; object-fit: cover; min-height: 0; }
+.folder-preview > .artwork-image { width: 100%; height: 100%; object-fit: cover; min-height: 0; }
 .folder-preview > span { display: grid; place-items: center; color: var(--muted); }
 .folder-card h2 { font-size: 1.125rem; margin-block: 12px 4px; }
 .folder-card:hover h2 { color: var(--action); }
@@ -437,7 +441,7 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .table-title { display: block; margin-bottom: 4px; }
 .table-description { font-weight: 400; color: var(--muted); margin-top: 8px; max-width: 48ch; }
 .table-work { display: flex; align-items: center; gap: 12px; min-width: 220px; }
-.table-work img { width: 56px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.table-work > .artwork-image { width: 56px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .table-work > span { min-width: 0; }
 .table-actions { display: flex; align-items: center; gap: 4px; }
 .admin-detail { max-width: 800px; }
@@ -448,7 +452,7 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .review-description h2, .review-resolution h2 { font-size: 1.25rem; }
 .review-description p { margin-top: 16px; white-space: pre-wrap; }
 .review-work { display: flex; align-items: center; gap: 16px; padding-block: 16px; margin-block: 24px; border-block: 1px solid var(--border); }
-.review-work > img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
+.review-work > .artwork-image { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .review-work > span { flex: 1; min-width: 0; display: grid; gap: 12px; }
 .review-resolution { display: grid; gap: 12px; border-top: 1px solid var(--border); padding-top: 24px; margin-block: 32px; }
 .review-resolution > p { white-space: pre-wrap; }

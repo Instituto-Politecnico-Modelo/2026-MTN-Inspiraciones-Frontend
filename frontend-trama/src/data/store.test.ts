@@ -153,6 +153,9 @@ describe('límites de archivos y exportación', () => {
   it('admite imágenes hasta 5 MiB y audio hasta 16 MiB, inclusive', () => {
     expect(validateFile({ type: 'image/png', size: 5 * 1024 * 1024 })).toBe('image')
     expect(validateFile({ type: 'audio/mpeg', size: 16 * 1024 * 1024 })).toBe('audio')
+    expect(validateFile({ type: 'video/mp4', size: 64 * 1024 * 1024 })).toBe('video')
+    expect(validateFile({ type: 'video/webm', size: 1024 })).toBe('video')
+    expect(() => validateFile({ type: 'video/webm', size: 64 * 1024 * 1024 + 1 })).toThrow(/64 MB/)
     expect(() => validateFile({ type: 'image/png', size: 5 * 1024 * 1024 + 1 })).toThrow(/5 MB/)
     expect(() => validateFile({ type: 'audio/wav', size: 16 * 1024 * 1024 + 1 })).toThrow(/16 MB/)
     expect(() => validateFile({ type: 'image/svg+xml', size: 100 })).toThrow(/formato/i)

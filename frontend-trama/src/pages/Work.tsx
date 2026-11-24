@@ -7,7 +7,7 @@ import { reportReasons, type Post, type Report } from '../data/model'
 import { canManage, newId, profilePath, visiblePosts } from '../data/store'
 import { backPath, formatDate, relativeDate } from '../lib/format'
 import { Avatar, Badge, Button, EmptyState, ErrorMessage, IconButton, Modal, PageTitle, SelectField, TextArea } from '../components/UI'
-import { ArtworkImage, AudioPlayer } from '../components/Media'
+import { ArtworkImage, AudioPlayer, mediaLabel, VideoPlayer } from '../components/Media'
 import { PostActions } from '../components/PostCard'
 import { FollowButton } from '../components/FollowButton'
 import { useAccountGate } from '../components/Shell'
@@ -66,7 +66,9 @@ function WorkDetail({ post }: { post: Post }) {
     </div>
     {!isPublic && <p className="inline-notice"><Flag size={18} aria-hidden="true" />Esta obra no es pública. La podés consultar por ser su autor o por administrar la comunidad. <Badge status={post.status} /></p>}
     <div className="work-layout">
-      <section className="work-visual" aria-label="Obra completa"><div className="work-image"><ArtworkImage post={post} eager decorative={post.kind === 'audio'} /></div>
+      <section className="work-visual" aria-label="Obra completa"><div className="work-image">
+        {post.kind === 'video' ? <VideoPlayer key={post.src} post={post} eager /> : <ArtworkImage post={post} eager decorative={post.kind === 'audio'} />}
+      </div>
         {post.kind === 'audio' && <AudioPlayer post={post} />}
         <div className="work-credit"><p>{post.credit}</p>{post.creditUrl && <a className="text-link" href={post.creditUrl} target="_blank" rel="noopener noreferrer">Ver imagen de referencia</a>}</div>
       </section>
@@ -78,7 +80,7 @@ function WorkDetail({ post }: { post: Post }) {
         {isPublic && <PostActions post={post} />}
         {challenge && <Link className="work-challenge" to={`/desafios/${challenge.id}`}><Trophy size={22} aria-hidden="true" /><span>Parte del desafío<strong>{challenge.title}</strong></span></Link>}
         <dl className="work-facts"><div><dt>Licencia</dt><dd>{post.license || 'Licencia no informada'}</dd></div></dl>
-        <details className="accessible-description"><summary>{post.kind === 'audio' ? 'Descripción del audio / transcripción' : 'Descripción accesible'}</summary><p>{post.alt}</p></details>
+        <details className="accessible-description"><summary>{post.kind === 'image' ? 'Descripción accesible' : `Descripción del ${mediaLabel[post.kind].toLowerCase()} / transcripción`}</summary><p>{post.alt}</p></details>
         {isPublic && user && <MusicInspirations key={post.id} postId={post.id} editable={user.id === post.authorId} />}
         <section className="comments-section" aria-labelledby="comentarios"><h2 id="comentarios">Conversación <span>{post.comments.length}</span></h2>
           {post.comments.length ? <ul className="comment-list">{post.comments.map(item => {

@@ -3,7 +3,7 @@ import { Camera, ImagePlus, Plus, Upload, X } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import { disciplines, type Post, type ProfileChanges, type User } from '../data/model'
-import { challengeStatus, errorMessage, newId, normalize } from '../data/store'
+import { challengeStatus, errorMessage, mediaAccept, newId, normalize } from '../data/store'
 import { placesApi } from '../data/api'
 import { parsePlace, type CatalogDiscipline } from '../data/places'
 import { OwnTagsField, PlaceFields } from '../components/PlaceFields'
@@ -11,12 +11,11 @@ import { GoogleButton } from '../components/GoogleButton'
 import { readUpload, type Upload as UploadedMedia } from '../lib/upload'
 import { Avatar, Button, Choice, EmptyState, ErrorMessage, Field, IconButton, PageTitle, SelectField, TextArea } from '../components/UI'
 import { useUnsavedChanges } from '../components/UnsavedChanges'
-import { AudioPlayer } from '../components/Media'
+import { ArtworkImage, AudioPlayer, mediaLabel, VideoPlayer } from '../components/Media'
 import { LocationSettings } from '../components/LocationPreference'
 import { getPosition } from '../lib/geolocation'
 import { useDevicePermission } from '../lib/useDevicePermission'
 const imageAccept = 'image/jpeg,image/png,image/webp'
-const mediaAccept = `${imageAccept},audio/mpeg,audio/wav,audio/x-wav,audio/ogg,audio/mp4`
 const profileFields = (user: User): ProfileChanges => ({
   name: user.name, handle: user.handle, bio: user.bio, location: user.location, website: user.website, avatar: user.avatar, disciplines: user.disciplines,
 })
@@ -152,32 +151,45 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   ] : null
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const uploadRequest = useRef(0)
+  useEffect(() => () => { uploadRequest.current++ }, [])
+  useEffect(() => {
+    if (media?.file) return () => URL.revokeObjectURL(media.src)
+  }, [media])
   const [initial] = useState(() => JSON.stringify([existing?.title ?? '', existing?.description ?? '', existing?.alt ?? '', existing?.discipline ?? 'Ilustración', existing?.technique ?? '', existing?.license ?? 'Todos los derechos reservados', existing?.challengeId ?? initialChallenge, existing?.ownTags ?? [], existing?.location ? [String(existing.location.latitud), String(existing.location.longitud)] : ['', '']]))
   const dirty = uploading || (!existing && !!media) || JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, [latitude, longitude]]) !== initial
   const guard = useUnsavedChanges(dirty, pending)
   const openChallenges = state.challenges.filter(challenge => challengeStatus(challenge) === 'open')
   const pickedChallenge = state.challenges.find(challenge => challenge.id === challengeId)
   const invalidChallenge = !!challengeId && (!pickedChallenge || challengeStatus(pickedChallenge) !== 'open')
+  const incompatibleChallenge = !existing && !!challengeId && !!media && media.kind !== 'image'
   const upload = async (file: File) => {
+    if (pending) return
+    const request = ++uploadRequest.current
     setUploadError(''); setUploading(true)
     try {
       const result = await readUpload(file)
-      if (result.kind === 'audio') throw new Error('Por ahora solo se pueden publicar imágenes.')
+      if (request !== uploadRequest.current) {
+        if (result.file) URL.revokeObjectURL(result.src)
+        return
+      }
       setMedia(result)
     } catch (failure) {
       console.error('[Trama] No se pudo abrir el archivo.', failure)
-      setUploadError(errorMessage(failure))
-    } finally { setUploading(false) }
+      if (request === uploadRequest.current) setUploadError(errorMessage(failure))
+    } finally { if (request === uploadRequest.current) setUploading(false) }
   }
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!media || !rights) { setUploadError('Elegí un archivo y confirmá que podés compartirlo.'); return }
-    if (place.error) return
+    if (place.error || incompatibleChallenge) return
     const changes = { title, description, alt, discipline, technique, license, location: place.value, ownTags }
     const id = existing?.id ?? newId('obra')
+    const { file, ...mediaData } = media
     const result = await run(existing ? { type: 'update-post', postId: existing.id, changes } : {
       type: 'create-post',
-      post: { id, ...changes, ...media, cover: media.kind === 'audio' ? '/media/sonido.svg' : '', challengeId: challengeId || null, credit: `Obra compartida por ${user.name}.`, creditUrl: '', tutorialUrl: tutorialUrl.trim() },
+      file,
+      post: { id, ...changes, ...mediaData, cover: '', challengeId: challengeId || null, credit: `Obra compartida por ${user.name}.`, creditUrl: '', tutorialUrl: tutorialUrl.trim() },
     }, existing ? 'Los cambios de tu obra se guardaron.' : 'Tu obra se publicó.')
     if (result) { guard.allow(); navigate(`/obra/${resolveId(id)}`) }
   }
@@ -186,17 +198,19 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
     <PageTitle title={existing ? 'Editar publicación' : 'Publicar obra'} description={existing ? 'El archivo original no se modifica.' : undefined} back={{ to: existing ? `/obra/${existing.id}` : '/inicio', label: 'Volver' }} />
     <form className="publish-layout" onSubmit={event => void submit(event)}>
       <section className="publish-preview" aria-label="Archivo de la obra">
-        {preview ? <><div className="publish-media"><img src={preview.kind === 'audio' ? preview.cover : preview.src} alt={alt || 'Vista previa del archivo elegido'} width={preview.width} height={preview.height} /></div>
+        {preview ? <><div className="publish-media">{preview.kind === 'video'
+          ? <VideoPlayer key={preview.src} post={preview} eager />
+          : <ArtworkImage key={preview.src} post={preview} eager decorative={preview.kind === 'audio'} />}</div>
           {preview.kind === 'audio' && <AudioPlayer key={preview.src} post={preview} />}
           {!existing && <Button className="full-width" variant="secondary" disabled={pending} loading={uploading} onClick={() => fileInput.current?.click()}><ImagePlus size={18} aria-hidden="true" />Elegir otro archivo</Button>}
-          <p className="field-hint">{preview.kind === 'audio' ? 'Audio' : 'Imagen'} listo para compartir.</p>
+          {media?.file && <p className="field-hint upload-filename">{mediaLabel[preview.kind]} · {media.file.name}</p>}
         </> : <div className="upload-target" onDragOver={event => event.preventDefault()} onDrop={event => {
           event.preventDefault()
           if (event.dataTransfer.files.length !== 1) { setUploadError('Elegí un solo archivo por publicación.'); return }
           void upload(event.dataTransfer.files[0])
-        }}><Upload size={32} strokeWidth={1.5} aria-hidden="true" /><p>Imagen</p>
+        }}><Upload size={32} strokeWidth={1.5} aria-hidden="true" /><p>Imagen, audio o video</p>
           <Button onClick={() => fileInput.current?.click()} loading={uploading}><Plus size={19} aria-hidden="true" />Elegir archivo</Button>
-          <small>JPG, PNG o WebP: hasta 5 MB.</small>
+          <small>JPG, PNG y WebP hasta 5 MB. MP3, WAV, OGG y M4A hasta 16 MB. MP4 y WebM hasta 64 MB.</small>
         </div>}
         <input ref={fileInput} type="file" hidden accept={mediaAccept} aria-label="Elegir archivo de la obra" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file) }} />
         <ErrorMessage message={uploadError} />
@@ -211,12 +225,13 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
         }} options={disciplines.map(value => ({ value, label: value }))} />
           {techniqueOptions ? <SelectField label="Técnica (opcional)" value={technique} onChange={event => setTechnique(event.target.value)} options={techniqueOptions} />
             : <Field label="Técnica (opcional)" value={technique} onChange={event => setTechnique(event.target.value)} maxLength={80} placeholder="Por ejemplo, acuarela" />}</div>
-        <TextArea label={media?.kind === 'audio' ? 'Descripción del audio o transcripción' : 'Descripción accesible de la imagen'} value={alt} onChange={event => setAlt(event.target.value)} required maxLength={media?.kind === 'audio' ? 10000 : 700}
-          hint={media?.kind === 'audio' ? 'Describí los sonidos. Si hay voz, incluí la transcripción. Hasta 10.000 caracteres.' : 'Describí lo importante de la imagen para quienes no pueden verla. Hasta 700 caracteres.'} />
+        <TextArea label={media && media.kind !== 'image' ? `Descripción del ${mediaLabel[media.kind].toLowerCase()} o transcripción` : 'Descripción accesible de la imagen'} value={alt} onChange={event => setAlt(event.target.value)} required maxLength={media && media.kind !== 'image' ? 1200 : 700}
+          hint={media && media.kind !== 'image' ? 'Describí el contenido e incluí una transcripción si hay voz.' : 'Describí lo importante de la imagen para quienes no pueden verla. Hasta 700 caracteres.'} />
         <SelectField label="Licencia o derechos" value={license} onChange={event => setLicense(event.target.value)} options={Array.from(new Set(['Todos los derechos reservados', 'CC BY 4.0', 'CC0', 'Licencia no informada', ...(existing ? [existing.license] : [])])).map(value => ({ value, label: value }))} />
         {!existing && <><SelectField label="Desafío (opcional)" value={challengeId} onChange={event => setChallengeId(event.target.value)}
           options={[{ value: '', label: 'Publicar sin desafío' }, ...openChallenges.map(challenge => ({ value: challenge.id, label: challenge.title })), ...(invalidChallenge ? [{ value: challengeId, label: 'Desafío no disponible' }] : [])]} />
           {invalidChallenge && <ErrorMessage message="El desafío elegido no está abierto. Elegí otro o publicá sin asociar tu obra." />}
+          {incompatibleChallenge && <ErrorMessage message="Las participaciones de desafíos admiten imágenes. Para compartir este archivo, elegí Publicar sin desafío." />}
           <Field label="Enlace a video tutorial (opcional)" type="url" value={tutorialUrl} onChange={event => setTutorialUrl(event.target.value)} maxLength={500} placeholder="https://..."
             hint="Si tu obra enseña una técnica, compartí el enlace al video. Se mostrará como tutorial en Descubrir." />
         </>}
@@ -225,7 +240,7 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
         <label className="check-row"><input type="checkbox" checked={rights} onChange={event => setRights(event.target.checked)} required /><span>Confirmo que tengo derecho a compartir este archivo.</span></label>
         <ErrorMessage message={error} />
         {!media && <p className="field-hint">Elegí un archivo para habilitar la publicación.</p>}
-        <div className="form-actions"><Link className="button button-secondary" to={existing ? `/obra/${existing.id}` : '/inicio'}>Cancelar</Link><Button type="submit" loading={pending} disabled={!media || uploading || !!place.error || (!existing && invalidChallenge)}>{existing ? 'Guardar cambios' : 'Publicar obra'}</Button></div>
+        <div className="form-actions"><Link className="button button-secondary" to={existing ? `/obra/${existing.id}` : '/inicio'}>Cancelar</Link><Button type="submit" loading={pending} disabled={!media || uploading || !!place.error || incompatibleChallenge || (!existing && invalidChallenge)}>{existing ? 'Guardar cambios' : 'Publicar obra'}</Button></div>
       </div>
     </form>{guard.dialog}
   </>

@@ -75,13 +75,13 @@ export function DiscoverPage() {
     setParams(next, { replace: true, preventScrollReset: true })
   }
   const activeFilters = [discipline, technique].filter(Boolean).length
-  const posts = searchPosts(state, { query, kind: tab === 'musica' ? 'audio' : tab === 'tutoriales' ? undefined : 'image', tutorial: tab === 'tutoriales' || undefined, discipline, technique })
+  const posts = searchPosts(state, { query, kind: tab === 'musica' ? 'audio' : undefined, tutorial: tab === 'tutoriales' || undefined, discipline, technique })
   if (order === 'recientes') posts.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
   if (order === 'titulo') posts.sort((a, b) => a.title.localeCompare(b.title, 'es'))
   const artists = (viewerId ? artistResults : state.users).filter(user => user.role === 'artist' && user.status === 'active' && (!discipline || user.disciplines.some(value => value === discipline)) && normalize(`${user.name} ${user.handle} ${user.bio} ${user.disciplines.join(' ')}`).includes(normalize(artistQuery)))
   const filteredPlaces = places.filter(place => (!area || place.area === area) && normalize(`${place.name} ${place.area} ${place.kind}`).includes(normalize(query)))
   const mapPlace = filteredPlaces.find(place => place.id === selectedPlace) ?? filteredPlaces[0]
-  const legacyTechniques = Array.from(new Set(visiblePosts(state).filter(post => post.kind === (tab === 'musica' ? 'audio' : 'image')).map(post => post.technique).filter(Boolean)))
+  const legacyTechniques = Array.from(new Set(visiblePosts(state).filter(post => tab !== 'musica' || post.kind === 'audio').map(post => post.technique).filter(Boolean)))
   // Con una disciplina elegida, las técnicas válidas son las de su catálogo; sin ella se conservan las de las obras.
   const techniquesOf = (value: string) => (tab !== 'musica' && value ? catalog.find(item => normalize(item.nombre) === normalize(value))?.tecnicas.map(item => item.nombre) : undefined) ?? legacyTechniques
   const changeDiscipline = (value: string, mobile: boolean) => {

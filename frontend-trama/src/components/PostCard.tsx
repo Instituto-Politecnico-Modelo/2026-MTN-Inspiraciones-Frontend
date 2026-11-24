@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Bookmark, Heart, MessageCircle, MonitorPlay, Music2 } from 'lucide-react'
+import { Bookmark, Film, Heart, MessageCircle, MonitorPlay, Music2 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
 import type { Post } from '../data/model'
 import { profilePath } from '../data/store'
 import { Avatar, Badge, ErrorMessage } from './UI'
-import { ArtworkImage, AudioPlayer } from './Media'
+import { ArtworkImage, AudioPlayer, VideoPlayer } from './Media'
 import { SaveDialog } from './SaveDialog'
 import { useAccountGate } from './Shell'
 
@@ -37,6 +37,7 @@ export function PostTile({ post, eager = false }: { post: Post; eager?: boolean 
   return <Link to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }} className="post-tile" aria-label={post.title}>
     <ArtworkImage post={post} eager={eager} decorative retry={false} />
     {post.kind === 'audio' && <span className="media-kind"><Music2 size={16} aria-hidden="true" />Audio</span>}
+    {post.kind === 'video' && <span className="media-kind"><Film size={16} aria-hidden="true" />Video</span>}
     {post.status !== 'published' && <span className="tile-status"><Badge status={post.status} /></span>}
   </Link>
 }
@@ -47,11 +48,12 @@ export function PostCard({ post, eager = false }: { post: Post; eager?: boolean 
   const author = state.users.find(user => user.id === post.authorId)
   if (!author) return <article className="post-card"><ErrorMessage message="No pudimos encontrar la autoría de esta obra." /></article>
   return <article className="post-card">
+    {post.kind === 'video' && <div className="card-media"><VideoPlayer key={post.src} post={post} /></div>}
     <Link to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }} className="artwork-link">
-      <div className="card-media"><ArtworkImage post={post} eager={eager} decorative={post.kind === 'audio'} retry={false} />
+      {post.kind !== 'video' && <div className="card-media"><ArtworkImage post={post} eager={eager} decorative={post.kind === 'audio'} retry={false} />
         {post.kind === 'audio' && <span className="media-kind"><Music2 size={16} aria-hidden="true" />{post.technique === 'Sample' ? 'Sample' : 'Audio'}</span>}
         {!!post.tutorialUrl && post.kind !== 'audio' && <span className="media-kind"><MonitorPlay size={16} aria-hidden="true" />Tutorial</span>}
-      </div>
+      </div>}
       <h2>{post.title}</h2>
     </Link>
     {post.kind === 'audio' && <AudioPlayer post={post} />}

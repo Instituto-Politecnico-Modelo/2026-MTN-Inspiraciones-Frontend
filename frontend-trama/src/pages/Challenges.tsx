@@ -57,7 +57,7 @@ function ChallengeDetail({ challenge }: { challenge: Challenge }) {
   const status = challengeStatus(challenge)
   const posts = visiblePosts(state).filter(post => post.challengeId === challenge.id)
   const mine = posts.filter(post => post.authorId === user?.id)
-  const eligible = visiblePosts(state).filter(post => post.authorId === user?.id && !post.challengeId && challenge.kinds.includes(post.kind))
+  const eligible = visiblePosts(state).filter(post => post.kind === 'image' && post.authorId === user?.id && !post.challengeId && challenge.kinds.includes(post.kind))
   return <>
     <PageTitle title={challenge.title} back={{ to: backPath(location.state, '/desafios'), label: 'Volver a los desafíos' }} />
     <section className="challenge-detail"><div className="challenge-detail-image"><img src={challenge.cover} alt={`Imagen de referencia para ${challenge.title}`} /></div>

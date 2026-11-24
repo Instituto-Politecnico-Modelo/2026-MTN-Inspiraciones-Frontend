@@ -66,7 +66,7 @@ export const PostSchema = z.object({
   alt: z.string().trim().max(10000, 'Usá hasta 10.000 caracteres para la descripción o transcripción.'),
   discipline: z.enum(disciplines),
   technique: z.string().trim().max(80),
-  kind: z.enum(['image', 'audio']),
+  kind: z.enum(['image', 'audio', 'video']),
   src: source,
   cover: optionalImage,
   width: z.number().positive().max(50000),
@@ -203,7 +203,7 @@ export type Command =
   | { type: 'rename-folder'; folderId: string; name: string }
   | { type: 'delete-folder'; folderId: string }
   | { type: 'save-to-folder' | 'remove-from-folder'; folderId: string; postId: string }
-  | { type: 'create-post'; post: NewPost }
+  | { type: 'create-post'; post: NewPost; file?: File }
   | { type: 'update-post'; postId: string; changes: PostChanges }
   | { type: 'add-comment'; id: string; postId: string; text: string }
   | { type: 'delete-comment'; postId: string; commentId: string }

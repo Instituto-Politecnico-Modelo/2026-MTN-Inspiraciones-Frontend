@@ -407,7 +407,7 @@ export class ApiRepository {
     const seen = new Set<string>()
     const commentsByPost = await Promise.all(rawPosts.map(post => Number(post.comentariosCount ?? 0) > 0 ? http<Page<Json>>('GET', `/api/publicaciones/${post.id}/comentarios`).then(items).catch(() => [] as Json[]) : Promise.resolve([] as Json[])))
     rawPosts.forEach((raw, index) => {
-      if (!raw.fotoUrl) return
+      if (!raw.fotoUrl && !raw.archivoUrl) return
       seen.add(raw.id as string)
       posts.push(this.toPost(raw, commentsByPost[index]!, 'published'))
     })
@@ -546,12 +546,15 @@ export class ApiRepository {
     const { text, meta } = unpack(raw.contenido as string)
     const [first = '', ...rest] = text.split('\n')
     const author = raw.usuarioId as string
+    const kind = raw.tipoContenido === 'AUDIO' ? 'audio' : raw.tipoContenido === 'VIDEO' ? 'video' : 'image'
     const likes: string[] = Array.from({ length: Number(raw.reaccionesCount ?? 0) }, (_, index) => `like-${raw.id}-${index}`)
     if ((raw.likeDelUsuarioActual || this.likedIds().has(raw.id as string)) && this.meId) { if (likes.length) likes[0] = this.meId; else likes.push(this.meId) }
     return {
       id: raw.id as string, authorId: author, title: first.trim().slice(0, 120) || 'Sin título', description: rest.join('\n').trim(),
       alt: typeof meta.a === 'string' && meta.a ? meta.a : first.trim(), discipline: pickDisciplines([meta.d])[0] ?? 'Ilustración',
-      technique: typeof meta.t === 'string' ? meta.t : '', kind: 'image', src: assetUrl(raw.fotoUrl as string), cover: '',
+      technique: typeof meta.t === 'string' ? meta.t : '', kind,
+      src: assetUrl(kind === 'image' ? raw.fotoUrl : raw.archivoUrl),
+      cover: kind === 'image' ? '' : assetUrl(raw.fotoUrl),
       tutorialUrl: typeof raw.enlaceExterno === 'string' ? raw.enlaceExterno : '',
       width: Number(meta.w) > 0 ? Number(meta.w) : 1200, height: Number(meta.h) > 0 ? Number(meta.h) : 900, duration: 0,
       license: typeof meta.l === 'string' ? meta.l : '', credit: typeof meta.c === 'string' ? meta.c : '', creditUrl: typeof meta.u === 'string' ? meta.u : '',
@@ -674,18 +677,30 @@ export class ApiRepository {
         return
       case 'create-post': {
         const post = command.post
-        if (post.kind !== 'image') throw new Error('Por ahora solo se pueden publicar imágenes.')
-        if (!post.alt) throw new Error('Agregá una descripción de la imagen para que sea accesible.')
+        if (!post.alt.trim()) throw new Error('Agregá una descripción accesible de tu obra.')
+        if (post.kind !== 'image' && !command.file) throw new Error('Elegí nuevamente el archivo de tu obra.')
+        if (post.kind !== 'image' && post.challengeId) throw new Error('Por ahora, las participaciones de desafíos admiten imágenes.')
         const content = this.contentOf(post)
-        const fotoUrl = await uploadImage(post.src)
         const classification = await classificationOf(post.discipline, post.technique)
-        const created = await http<Json>('POST', '/api/publicaciones', {
-          contenido: content, tipoContenido: post.tutorialUrl ? 'TUTORIAL' : 'IMAGEN', fotoUrl, categorias: [], hashtags: [], cuentasEtiquetadas: [],
+        const fotoUrl = post.kind === 'image' ? await uploadImage(post.src) : undefined
+        const metadata = {
+          contenido: content,
+          tipoContenido: post.kind === 'audio' ? 'AUDIO' : post.kind === 'video' ? 'VIDEO' : post.tutorialUrl ? 'TUTORIAL' : 'IMAGEN',
+          fotoUrl, categorias: [], hashtags: [], cuentasEtiquetadas: [],
           ...(post.tutorialUrl ? { enlaceExterno: post.tutorialUrl } : {}),
           ...(post.location ? { ubicacion: post.location } : {}), ...(classification ?? {}), ...(post.ownTags?.length ? { tagsPropios: post.ownTags } : {}),
-        })
+        }
+        let created: Json
+        if (post.kind !== 'image' && command.file) {
+          const form = new FormData()
+          form.append('publicacion', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
+          form.append('archivo', command.file)
+          created = await http('POST', '/api/publicaciones/archivo', undefined, form)
+        } else {
+          created = await http('POST', '/api/publicaciones', metadata)
+        }
         this.aliases.set(post.id, created.id as string)
-        if (post.challengeId) {
+        if (post.challengeId && fotoUrl) {
           try { await this.joinChallenge(this.rid(post.challengeId), created.id as string, post.title, fotoUrl) }
           catch (error) { throw new Error(`Tu obra se publicó, pero no pudo sumarse al desafío: ${error instanceof Error ? error.message : 'error desconocido'}`, { cause: error }) }
         }
@@ -700,7 +715,8 @@ export class ApiRepository {
         const classification = changes.discipline !== post.discipline || changes.technique !== post.technique
           ? await classificationOf(changes.discipline, changes.technique) : null
         await http('PUT', `/api/publicaciones/${post.id}`, {
-          contenido: this.contentOf({ ...post, ...changes }), fotoUrl: post.src.startsWith(BASE) && BASE ? post.src.slice(BASE.length) : post.src,
+          contenido: this.contentOf({ ...post, ...changes }),
+          ...(post.kind === 'image' ? { fotoUrl: BASE && post.src.startsWith(BASE) ? post.src.slice(BASE.length) : post.src } : {}),
           categorias: [], hashtags: [], cuentasEtiquetadas: [],
           ...('location' in changes && !sameJson(changes.location, post.location)
             ? { cambioUbicacion: changes.location ? { accion: 'ESTABLECER', valor: changes.location } : { accion: 'QUITAR' } } : {}),
@@ -755,6 +771,7 @@ export class ApiRepository {
         return
       case 'join-challenge': {
         const post = this.post(command.postId)
+        if (post.kind !== 'image') throw new Error('Por ahora, las participaciones de desafíos admiten imágenes.')
         await this.joinChallenge(this.rid(command.challengeId), post.id, post.title, post.src.startsWith(BASE) && BASE ? post.src.slice(BASE.length) : post.src)
         return
       }
