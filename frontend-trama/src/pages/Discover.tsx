@@ -78,6 +78,7 @@ export function DiscoverPage() {
   const posts = searchPosts(state, { query, kind: tab === 'musica' ? 'audio' : undefined, tutorial: tab === 'tutoriales' || undefined, discipline, technique })
   if (order === 'recientes') posts.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
   if (order === 'titulo') posts.sort((a, b) => a.title.localeCompare(b.title, 'es'))
+  if (order === 'likes') posts.sort((a, b) => b.likes.length - a.likes.length)
   const artists = (viewerId ? artistResults : state.users).filter(user => user.role === 'artist' && user.status === 'active' && (!discipline || user.disciplines.some(value => value === discipline)) && normalize(`${user.name} ${user.handle} ${user.bio} ${user.disciplines.join(' ')}`).includes(normalize(artistQuery)))
   const filteredPlaces = places.filter(place => (!area || place.area === area) && normalize(`${place.name} ${place.area} ${place.kind}`).includes(normalize(query)))
   const mapPlace = filteredPlaces.find(place => place.id === selectedPlace) ?? filteredPlaces[0]
@@ -121,7 +122,7 @@ export function DiscoverPage() {
         <div className="filter-row">
           <div className="filter-row discover-filters">{filters()}</div>
           <Button className="filter-toggle" variant="secondary" onClick={() => { setDraftDiscipline(discipline); setDraftTechnique(technique); setFiltersOpen(true) }}><SlidersHorizontal size={18} aria-hidden="true" />Filtros{activeFilters ? ` (${activeFilters})` : ''}</Button>
-          {tab !== 'artistas' && <SelectField label="Orden" value={order} onChange={event => update({ orden: event.target.value })} options={[{ value: 'seleccion', label: 'Selección' }, { value: 'recientes', label: 'Más recientes' }, { value: 'titulo', label: 'Por título' }]} />}
+          {tab !== 'artistas' && <SelectField label="Orden" value={order} onChange={event => update({ orden: event.target.value })} options={[{ value: 'seleccion', label: 'Selección' }, { value: 'recientes', label: 'Más recientes' }, { value: 'likes', label: 'Más likes' }, { value: 'titulo', label: 'Por título' }]} />}
           {mapToggle}
           {!!activeFilters && <Button variant="ghost" onClick={() => update({ disciplina: '', tecnica: '' })}>Limpiar filtros</Button>}
         </div>

@@ -47,7 +47,7 @@ export function PostCard({ post, eager = false }: { post: Post; eager?: boolean 
   const location = useLocation()
   const author = state.users.find(user => user.id === post.authorId)
   if (!author) return <article className="post-card"><ErrorMessage message="No pudimos encontrar la autoría de esta obra." /></article>
-  return <article className="post-card">
+  return <article className="post-card" data-post-id={post.id}>
     {post.kind === 'video' && <div className="card-media"><VideoPlayer key={post.src} post={post} /></div>}
     <Link to={`/obra/${post.id}`} state={{ from: location.pathname + location.search }} className="artwork-link">
       {post.kind !== 'video' && <div className="card-media"><ArtworkImage post={post} eager={eager} decorative={post.kind === 'audio'} retry={false} />
