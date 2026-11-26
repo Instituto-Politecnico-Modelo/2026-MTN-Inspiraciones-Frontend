@@ -122,6 +122,38 @@ describe('formulario de publicación con lugar, técnica y tags (FR-002/015/018/
       expect(saved).not.toEqual(original)
     })
   })
+
+  it('busca por calle y ciudad y guarda la coincidencia elegida', async () => {
+    const chosen = { latitud: -34.60858, longitud: -58.37458 }
+    const address = 'AV DE MAYO 575, Monserrat, Ciudad Autónoma de Buenos Aires'
+    const geoFetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ direcciones: [
+      { nomenclatura: address, altura: { valor: 575 }, ubicacion: { lat: chosen.latitud, lon: chosen.longitud } },
+      { nomenclatura: 'AV DE MAYO 575, Ramos Mejía, Buenos Aires', altura: { valor: 575 }, ubicacion: { lat: -34.646, lon: -58.565 } },
+      { nomenclatura: 'Dirección sin punto', altura: { valor: 575 }, ubicacion: { lat: null, lon: null } },
+    ] }), { status: 200 }))
+    openRoute('/obra/obra-3/editar')
+    await screen.findByRole('heading', { name: 'Editar publicación' })
+    const group = screen.getByRole('group', { name: 'Lugar de inspiración (opcional)' })
+    const street = within(group).getByRole('textbox', { name: 'Calle y altura' })
+    fireEvent.change(street, { target: { value: 'Av. de Mayo 575' } })
+    fireEvent.change(within(group).getByRole('textbox', { name: 'Ciudad o localidad (opcional)' }), { target: { value: 'Buenos Aires' } })
+    expect(geoFetch).not.toHaveBeenCalled()
+
+    const search = within(group).getByRole('button', { name: 'Buscar dirección' })
+    await waitFor(() => expect(search).toBeEnabled())
+    fireEvent.keyDown(street, { key: 'Enter' })
+    const result = await within(group).findByRole('button', { name: address })
+    expect(within(group).getByRole('status')).toHaveTextContent('Sin ubicación')
+    expect(within(group).queryByText('Dirección sin punto')).not.toBeInTheDocument()
+    const url = new URL(String(geoFetch.mock.calls[0][0]))
+    expect(url.searchParams.get('direccion')).toBe('Av. de Mayo 575')
+    expect(url.searchParams.get('localidad')).toBe('Buenos Aires')
+
+    await userEvent.click(result)
+    expect(within(group).getByRole('status')).toHaveTextContent('Lugar seleccionado')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(async () => expect((await repository.load()).posts.find(item => item.id === 'obra-3')?.location).toEqual(chosen))
+  })
 })
 
 describe('filtros de disciplina y técnica en Descubrir (FR-017-020)', () => {
