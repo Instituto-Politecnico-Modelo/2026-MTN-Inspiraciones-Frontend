@@ -98,26 +98,19 @@ export function DiscoverPage() {
   const empty = <EmptyState title="Todavía no encontramos coincidencias" description="Probá con otras palabras o quitá los filtros para ampliar tu búsqueda."
     action={<Button variant="secondary" onClick={() => activeFilters || area ? update({ disciplina: '', tecnica: '', zona: '' }) : update({ q: '' })}>{activeFilters || area ? 'Quitar filtros' : 'Limpiar búsqueda'}</Button>} />
   const mapOn = params.get('mapa') === '1' && !!viewerId
-  const mapToggle = <label className="check-row map-toggle"><input type="checkbox" checked={mapOn} disabled={!viewerId} onChange={event => update({ mapa: event.target.checked ? '1' : '', q: '' })} /> Mapa</label>
-  const needle = normalize(query.trim())
-  const mapFilter = (publication: MapPublication) => {
-    const author = state.users.find(item => item.id === String(publication.usuarioId))
-    const tags = [publication.tagsPropios, publication.hashtags].flatMap(value => Array.isArray(value) ? value.map(String) : [])
-    return normalize(`${author?.name ?? ''} ${author?.handle ?? ''} ${tags.join(' ')} ${publication.contenido ?? ''}`).includes(needle)
-  }
-  const searchField = <div className="discover-search"><SearchField value={query} onChange={value => update({ q: value })} label="Buscar en Descubrir" placeholder={mapOn ? 'Buscá por artista o etiqueta para ver el mapa' : 'Buscá obras, técnicas y artistas'} /></div>
-  if (mapOn) return <div className="discover-page">
-    <PageTitle title="Descubrir" />
-    {searchField}
-    <div className="filter-row">{mapToggle}</div>
-    {needle ? <DiscoverMap filter={mapFilter} /> : <p className="filter-summary" role="status">Escribí un nombre o una etiqueta para ver las publicaciones con ubicación en el mapa.</p>}
-  </div>
+  const mapToggle = <label className="check-row map-toggle"><input type="checkbox" checked={mapOn} disabled={!viewerId} onChange={event => update({ mapa: event.target.checked ? '1' : '' })} /> Mapa</label>
+  const postIds = new Set(posts.map(post => post.id))
+  const artistIds = new Set(artists.map(artist => artist.id))
+  const mapFilter = (publication: MapPublication) => tab === 'artistas'
+    ? artistIds.has(String(publication.usuarioId))
+    : postIds.has(publication.id)
+  const searchField = <div className="discover-search"><SearchField value={query} onChange={value => update({ q: value })} label="Buscar en Descubrir" placeholder="Buscá obras, técnicas y artistas" /></div>
   return <div className="discover-page">
     <PageTitle title="Descubrir" />
     {searchField}
     {requested !== tab && <ErrorMessage message="Ese tipo de búsqueda no existe. Elegí Obras, Tutoriales o Artistas." />}
     {tab === 'artistas' && searchError && <ErrorMessage message={searchError} />}
-    <Tabs items={tabs} value={tab} label="Qué querés descubrir" onChange={value => update({ tipo: value, disciplina: '', tecnica: '', zona: '' })}>
+    <Tabs items={tabs} value={tab} label="Qué querés descubrir" onChange={value => update({ tipo: value })}>
       {tab !== 'lugares' ? <>
         <div className="filter-row">
           <div className="filter-row discover-filters">{filters()}</div>
@@ -127,6 +120,7 @@ export function DiscoverPage() {
           {!!activeFilters && <Button variant="ghost" onClick={() => update({ disciplina: '', tecnica: '' })}>Limpiar filtros</Button>}
         </div>
         <p className="filter-summary" role="status">{tab === 'artistas' ? searching ? 'Buscando artistas…' : `${artists.length} artistas` : `${posts.length} ${posts.length === 1 ? 'resultado' : 'resultados'}`}{query ? ` para «${query}»` : ''}{activeFilters ? ` · ${activeFilters} ${activeFilters === 1 ? 'filtro activo' : 'filtros activos'}` : ''}</p>
+        {mapOn && <DiscoverMap filter={mapFilter} />}
         {tab === 'artistas' ? artists.length ? <div className="artist-grid">{artists.map(artist => <article className="artist-card" key={artist.id}>
           <Link to={profilePath(artist)} title={`${artist.name} @${artist.handle}`}><Avatar user={artist} size="large" /><h2>{artist.name}</h2><p className="meta">@{artist.handle}</p></Link>
           <p className="artist-disciplines">{artist.disciplines.join(' · ')}</p><p>{artist.bio}</p><FollowButton artist={artist} />
