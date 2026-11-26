@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -83,16 +83,44 @@ describe('formulario de publicación con lugar, técnica y tags (FR-002/015/018/
     expect(screen.getByText('1/3')).toBeVisible()
   })
 
-  it('el lugar es opcional y valida las coordenadas del punto elegido', async () => {
+  it('permite marcar un lugar con un clic y quitarlo sin escribir coordenadas', async () => {
     openRoute('/publicar')
     await screen.findByRole('heading', { name: 'Publicar obra' })
 
     const group = screen.getByRole('group', { name: 'Lugar de inspiración (opcional)' })
-    expect(within(group).getByRole('textbox', { name: 'Latitud' })).toHaveValue('')
-    await userEvent.type(within(group).getByRole('textbox', { name: 'Latitud' }), '91')
-    await userEvent.type(within(group).getByRole('textbox', { name: 'Longitud' }), '10')
+    expect(within(group).queryByRole('textbox', { name: 'Latitud' })).not.toBeInTheDocument()
+    expect(within(group).getByRole('status')).toHaveTextContent('Sin ubicación')
+    const map = within(group).getByRole('application', { name: 'Mapa para elegir el lugar' })
+    await waitFor(() => expect(within(group).getByRole('button', { name: 'Marcar el centro' })).toBeEnabled())
+    fireEvent.click(map, { clientX: 20, clientY: 20 })
+    expect(within(group).getByRole('status')).toHaveTextContent('Lugar seleccionado')
+    await userEvent.click(within(group).getByRole('button', { name: 'Quitar ubicación' }))
+    expect(within(group).getByRole('status')).toHaveTextContent('Sin ubicación')
+  })
 
-    expect(within(group).getByRole('alert')).toHaveTextContent(/latitud/i)
+  it('recupera el punto guardado y persiste el cambio al editar', async () => {
+    const { id, title, description, alt, discipline, technique, license } =
+      (await repository.load()).posts.find(post => post.id === 'obra-3')!
+    const original = { latitud: -34.6037, longitud: -58.3816 }
+    await repository.execute('mora', {
+      type: 'update-post',
+      postId: id,
+      changes: { title, description, alt, discipline, technique, license, location: original },
+    })
+    openRoute('/obra/obra-3/editar')
+    await screen.findByRole('heading', { name: 'Editar publicación' })
+
+    const group = screen.getByRole('group', { name: 'Lugar de inspiración (opcional)' })
+    const map = within(group).getByRole('application', { name: 'Mapa para elegir el lugar' })
+    expect(await within(map).findByTitle('Lugar seleccionado')).toBeInTheDocument()
+    fireEvent.click(map, { clientX: 50, clientY: 50 })
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    await waitFor(async () => {
+      const saved = (await repository.load()).posts.find(item => item.id === id)?.location
+      expect(saved).toEqual({ latitud: expect.any(Number), longitud: expect.any(Number) })
+      expect(saved).not.toEqual(original)
+    })
   })
 })
 

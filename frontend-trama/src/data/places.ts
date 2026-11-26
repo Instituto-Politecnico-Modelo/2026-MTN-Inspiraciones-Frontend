@@ -1,5 +1,7 @@
 export const MAX_OWN_TAGS = 3
 export const MAX_RADIUS_KM = 100
+export const MAP_TILES = import.meta.env.VITE_MAP_TILES_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const MAP_TILE_ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 const MAX_TAG_LENGTH = 100
 
 export type Coordinates = { latitud: number; longitud: number }
@@ -33,18 +35,6 @@ export function validateCoordinates(latitud: number, longitud: number): string {
   if (latitud < -90 || latitud > 90) return 'La latitud debe estar entre -90 y 90.'
   if (longitud < -180 || longitud > 180) return 'La longitud debe estar entre -180 y 180.'
   return ''
-}
-
-// Ambos campos vacíos significan «sin lugar»; completar solo uno es un dato incompleto (FR-003).
-export function parsePlace(latitude: string, longitude: string): { value: Coordinates | null; error: string } {
-  const lat = latitude.trim()
-  const lon = longitude.trim()
-  if (!lat && !lon) return { value: null, error: '' }
-  if (!lat || !lon) return { value: null, error: 'Completá la latitud y la longitud, o dejá ambas vacías.' }
-  const latitud = Number(lat.replace(',', '.'))
-  const longitud = Number(lon.replace(',', '.'))
-  const error = validateCoordinates(latitud, longitud)
-  return error ? { value: null, error } : { value: { latitud, longitud }, error: '' }
 }
 
 export function techniquesFor(catalog: CatalogDiscipline[], discipline: string): CatalogTechnique[] {

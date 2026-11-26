@@ -5,8 +5,9 @@ import { useAction, useDemo } from '../context/DemoContext'
 import { disciplines, type Post, type ProfileChanges, type User } from '../data/model'
 import { challengeStatus, errorMessage, mediaAccept, newId, normalize } from '../data/store'
 import { placesApi } from '../data/api'
-import { parsePlace, type CatalogDiscipline } from '../data/places'
-import { OwnTagsField, PlaceFields } from '../components/PlaceFields'
+import type { CatalogDiscipline, Coordinates } from '../data/places'
+import { OwnTagsField } from '../components/PlaceFields'
+import { PlacePicker } from '../components/PlacePicker'
 import { GoogleButton } from '../components/GoogleButton'
 import { readUpload, type Upload as UploadedMedia } from '../lib/upload'
 import { Avatar, Button, Choice, EmptyState, ErrorMessage, Field, IconButton, PageTitle, SelectField, TextArea } from '../components/UI'
@@ -135,9 +136,7 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   const [rights, setRights] = useState(!!existing)
   const [catalog, setCatalog] = useState<CatalogDiscipline[]>([])
   const [ownTags, setOwnTags] = useState<string[]>(existing?.ownTags ?? [])
-  const [latitude, setLatitude] = useState(existing?.location ? String(existing.location.latitud) : '')
-  const [longitude, setLongitude] = useState(existing?.location ? String(existing.location.longitud) : '')
-  const place = parsePlace(latitude, longitude)
+  const [location, setLocation] = useState<Coordinates | null>(existing?.location ?? null)
   useEffect(() => {
     let active = true
     placesApi.catalog().then(items => { if (active) setCatalog(items) }).catch(() => undefined)
@@ -156,8 +155,8 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   useEffect(() => {
     if (media?.file) return () => URL.revokeObjectURL(media.src)
   }, [media])
-  const [initial] = useState(() => JSON.stringify([existing?.title ?? '', existing?.description ?? '', existing?.alt ?? '', existing?.discipline ?? 'Ilustración', existing?.technique ?? '', existing?.license ?? 'Todos los derechos reservados', existing?.challengeId ?? initialChallenge, existing?.ownTags ?? [], existing?.location ? [String(existing.location.latitud), String(existing.location.longitud)] : ['', '']]))
-  const dirty = uploading || (!existing && !!media) || JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, [latitude, longitude]]) !== initial
+  const [initial] = useState(() => JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, location]))
+  const dirty = uploading || (!existing && !!media) || JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, location]) !== initial
   const guard = useUnsavedChanges(dirty, pending)
   const openChallenges = state.challenges.filter(challenge => challengeStatus(challenge) === 'open')
   const pickedChallenge = state.challenges.find(challenge => challenge.id === challengeId)
@@ -182,8 +181,8 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!media || !rights) { setUploadError('Elegí un archivo y confirmá que podés compartirlo.'); return }
-    if (place.error || incompatibleChallenge) return
-    const changes = { title, description, alt, discipline, technique, license, location: place.value, ownTags }
+    if (incompatibleChallenge) return
+    const changes = { title, description, alt, discipline, technique, license, location, ownTags }
     const id = existing?.id ?? newId('obra')
     const { file, ...mediaData } = media
     const result = await run(existing ? { type: 'update-post', postId: existing.id, changes } : {
@@ -236,11 +235,11 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
             hint="Si tu obra enseña una técnica, compartí el enlace al video. Se mostrará como tutorial en Descubrir." />
         </>}
         <OwnTagsField tags={ownTags} onChange={setOwnTags} />
-        <PlaceFields latitude={latitude} longitude={longitude} onChange={(lat, lon) => { setLatitude(lat); setLongitude(lon) }} />
+        <PlacePicker value={location} onChange={setLocation} />
         <label className="check-row"><input type="checkbox" checked={rights} onChange={event => setRights(event.target.checked)} required /><span>Confirmo que tengo derecho a compartir este archivo.</span></label>
         <ErrorMessage message={error} />
         {!media && <p className="field-hint">Elegí un archivo para habilitar la publicación.</p>}
-        <div className="form-actions"><Link className="button button-secondary" to={existing ? `/obra/${existing.id}` : '/inicio'}>Cancelar</Link><Button type="submit" loading={pending} disabled={!media || uploading || !!place.error || incompatibleChallenge || (!existing && invalidChallenge)}>{existing ? 'Guardar cambios' : 'Publicar obra'}</Button></div>
+        <div className="form-actions"><Link className="button button-secondary" to={existing ? `/obra/${existing.id}` : '/inicio'}>Cancelar</Link><Button type="submit" loading={pending} disabled={!media || uploading || incompatibleChallenge || (!existing && invalidChallenge)}>{existing ? 'Guardar cambios' : 'Publicar obra'}</Button></div>
       </div>
     </form>{guard.dialog}
   </>

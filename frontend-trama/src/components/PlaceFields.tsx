@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { MAX_OWN_TAGS, normalizeOwnTags, parsePlace } from '../data/places'
+import { MAX_OWN_TAGS, normalizeOwnTags } from '../data/places'
 import { Button, ErrorMessage, Field } from './UI'
 
 export function OwnTagsField({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
@@ -28,17 +28,4 @@ export function OwnTagsField({ tags, onChange }: { tags: string[]; onChange: (ta
     </li>)}</ul>}
     <ErrorMessage message={error} />
   </div>
-}
-
-export function PlaceFields({ latitude, longitude, onChange }: { latitude: string; longitude: string; onChange: (latitude: string, longitude: string) => void }) {
-  const { error } = parsePlace(latitude, longitude)
-  return <fieldset className="place-fields">
-    <legend>Lugar de inspiración (opcional)</legend>
-    <p className="field-hint">Indicá el punto exacto que te inspiró. Se muestra tal como lo elijas en el mapa de lugares.</p>
-    <div className="form-columns">
-      <Field label="Latitud" inputMode="decimal" value={latitude} placeholder="-34.6037" onChange={event => onChange(event.target.value, longitude)} />
-      <Field label="Longitud" inputMode="decimal" value={longitude} placeholder="-58.3816" onChange={event => onChange(latitude, event.target.value)} />
-    </div>
-    <ErrorMessage message={error} />
-  </fieldset>
 }

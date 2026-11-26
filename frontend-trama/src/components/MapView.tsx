@@ -3,7 +3,7 @@ import type * as Leaflet from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { boundsToZone, publicationText, type Coordinates, type Zone } from '../data/places'
+import { boundsToZone, MAP_TILE_ATTRIBUTION, MAP_TILES, publicationText, type Coordinates, type Zone } from '../data/places'
 
 export type MapItem = { publicacion: { id: string; contenido?: string; ubicacion?: Coordinates | null }; distanciaKm?: number }
 type Props = {
@@ -16,7 +16,6 @@ type Props = {
   onUnavailable: () => void
 }
 
-const TILES = import.meta.env.VITE_MAP_TILES_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 type Engine = { L: typeof Leaflet; map: Leaflet.Map; group: Leaflet.MarkerClusterGroup; markers: Map<string, Leaflet.Marker>; quiet: { value: boolean } }
 
 const dot = (L: typeof Leaflet, selected: boolean) => L.divIcon({ className: selected ? 'map-dot is-selected' : 'map-dot', iconSize: [20, 20] })
@@ -41,7 +40,7 @@ export function MapView({ items, selectedId, focus, browse, onSelect, onViewChan
           .setView(browse ? [browse.center.latitud, browse.center.longitud] : [20, 0], browse?.zoom ?? 2)
         if (browse) L.control.zoom({ zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(map)
         let failed = false
-        L.tileLayer(TILES, { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map)
+        L.tileLayer(MAP_TILES, { maxZoom: 19, attribution: MAP_TILE_ATTRIBUTION }).addTo(map)
           .on('tileerror', () => { if (!failed) { failed = true; callbacks.current.onUnavailable() } })
         const group = L.markerClusterGroup({ spiderfyOnMaxZoom: true, showCoverageOnHover: false })
         map.addLayer(group)
