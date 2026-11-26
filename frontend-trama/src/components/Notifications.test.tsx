@@ -1,4 +1,4 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {act, cleanup, render, screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {MemoryRouter} from 'react-router-dom'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
@@ -41,6 +41,20 @@ describe('bandeja persistida',()=>{
   await userEvent.click(await screen.findByRole('button',{name:'Marcar como leída: Nuevo comentario guardado'}))
   expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo marcar el aviso.')
   expect(screen.getByRole('link',{name:/Nuevo comentario guardado/})).toBeVisible()
+ })
+ it('recupera avisos de reporte sin push al volver a la aplicación',async()=>{
+  inbox.list.mockResolvedValue([])
+  await open()
+  expect(await screen.findByText('No hay notificaciones nuevas')).toBeVisible()
+  inbox.list.mockResolvedValue([
+   {...notice,id:'ready',tipo:'REPORTE_GENERADO',titulo:'Reporte disponible',publicacionId:null,solicitudId:'report/1'},
+   {...notice,id:'failed',tipo:'REPORTE_FALLIDO',titulo:'Reporte fallido',publicacionId:null,solicitudId:'report-2'},
+   {...notice,id:'orphan',tipo:'REPORTE_FALLIDO',titulo:'Reporte sin referencia',publicacionId:null,solicitudId:null},
+  ])
+  await act(async()=>{window.dispatchEvent(new Event('focus'))})
+  expect(screen.getByRole('link',{name:/Reporte disponible/})).toHaveAttribute('href','/admin/reportes?solicitudId=report%2F1')
+  expect(screen.getByRole('link',{name:/Reporte fallido/})).toHaveAttribute('href','/admin/reportes?solicitudId=report-2')
+  expect(screen.getByRole('link',{name:/Reporte sin referencia/})).toHaveAttribute('href','/admin/reportes')
  })
 })
 

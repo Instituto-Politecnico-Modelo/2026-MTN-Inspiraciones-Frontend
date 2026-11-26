@@ -43,7 +43,7 @@ export const musicalResources = {
   remove: (id: string, item: MusicalResource) => http('DELETE', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones/${item.tipoRecurso}/${item.id}`),
 }
 
-export type InboxNotice = { id: string; tipo: string; titulo: string; mensaje: string; publicacionId?: string | null; createdAt: string }
+export type InboxNotice = { id: string; tipo: string; titulo: string; mensaje: string; publicacionId?: string | null; solicitudId?: string | null; createdAt: string }
 const notificationsPath = '/api/usuarios/me/notificaciones'
 const inboxPath = notificationsPath + '/bandeja'
 export const notificationInbox = {
@@ -165,15 +165,16 @@ export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
 }
 
-async function http<T = Json>(method: string, path: string, body?: unknown, form?: FormData, signal?: AbortSignal): Promise<T> {
-  const headers: Record<string, string> = {}
+async function http<T = Json>(method: string, path: string, body?: unknown, form?: FormData, signal?: AbortSignal, extraHeaders?: Record<string, string>): Promise<T> {
+  const headers: Record<string, string> = { ...extraHeaders }
   const token = path.startsWith(passwordResetPath + '/') ? null : getToken()
   if (token) headers.Authorization = `Bearer ${token}`
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   let response: Response
   try {
     // Las consultas del mapa llevan coordenadas del usuario: no deben quedar en caché (NFR-004).
-    const cache = path.startsWith('/api/mapa/') || path.startsWith('/api/feed/recomendaciones/ubicacion') ? 'no-store' : undefined
+    const cache = path.startsWith('/api/mapa/') || path.startsWith('/api/feed/recomendaciones/ubicacion')
+      || (method === 'GET' && (path === inboxPath || path.startsWith(`${excelReportsPath}/`))) ? 'no-store' : undefined
     response = await fetch(`${BASE}${path}`, { method, headers, cache, signal, body: form ?? (body === undefined ? undefined : JSON.stringify(body)) })
   } catch {
     throw new ApiError('No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.', 0)
@@ -195,13 +196,13 @@ async function http<T = Json>(method: string, path: string, body?: unknown, form
   return payload as T
 }
 
-export type ExcelReport = { id: string; tipoReporte: string; estado: string; motivoError?: string | null; rangoDeFechas?: { fechaInicio: string; fechaFin: string }; fechaGeneracion?: string }
+export type ExcelReport = { id: string; tipoReporte: string; estado: 'PENDIENTE' | 'EN_PROCESO' | 'GENERADO' | 'CON_ERROR'; motivoError?: string | null; rangoDeFechas?: { fechaInicio: string; fechaFin: string }; fechaGeneracion?: string; fechaInicioGeneracion?: string | null }
 export type AdminActivityPage = { items: DemoState['audit']; totalItems: number; nextPage: number | null }
 export const adminActivity = { page: (pagina = 0) => http<AdminActivityPage>('GET', `/api/admin/actividad?pagina=${pagina}&tamanio=50`) }
 const excelReportsPath = '/api/admin/reportes/excel'
 export const excelReports = {
-  request: (tipoReporte: string, fechaInicio: string, fechaFin: string) =>
-    http<ExcelReport>('POST', excelReportsPath, { tipoReporte, rangoDeFechas: { fechaInicio, fechaFin } }),
+  request: (tipoReporte: string, fechaInicio: string, fechaFin: string, idempotencyKey: string) =>
+    http<ExcelReport>('POST', excelReportsPath, { tipoReporte, rangoDeFechas: { fechaInicio, fechaFin } }, undefined, undefined, { 'Idempotency-Key': idempotencyKey }),
   status: (id: string) => http<ExcelReport>('GET', `${excelReportsPath}/${encodeURIComponent(id)}`),
   history: (pagina = 1) => http<{ items: (Omit<ExcelReport, 'id'> & { solicitudId: string })[]; pagina: number; tamanioPagina: number; totalItems: number }>('GET', `${excelReportsPath}/historial?pagina=${pagina}&tamanioPagina=20`),
   async download(id: string) {

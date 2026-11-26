@@ -1,9 +1,27 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiRepository, notificationPreferences, rankedFeed } from './api'
+import { ApiRepository, excelReports, notificationInbox, notificationPreferences, rankedFeed } from './api'
 
 afterEach(() => {
   vi.unstubAllGlobals()
   localStorage.clear()
+})
+
+it('envía la clave de intención sin cambiar el contrato público de reportes', async () => {
+  localStorage.setItem('trama-token', 'test-token')
+  const report = { id: 'report/1', tipoReporte: 'DESAFIOS', estado: 'EN_PROCESO', fechaInicioGeneracion: '2026-11-26T18:00:00Z' }
+  const fetch = vi.fn(async () => new Response(JSON.stringify(report), { status: 202 }))
+  vi.stubGlobal('fetch', fetch)
+
+  await excelReports.request('DESAFIOS', '2026-11-01', '2026-11-26', 'key-for-this-intention')
+  expect(fetch).toHaveBeenLastCalledWith('/api/admin/reportes/excel', expect.objectContaining({
+    method: 'POST',
+    headers: expect.objectContaining({ Authorization: 'Bearer test-token', 'Idempotency-Key': 'key-for-this-intention' }),
+    body: JSON.stringify({ tipoReporte: 'DESAFIOS', rangoDeFechas: { fechaInicio: '2026-11-01', fechaFin: '2026-11-26' } }),
+  }))
+  await expect(excelReports.status(report.id)).resolves.toEqual(report)
+  expect(fetch).toHaveBeenLastCalledWith('/api/admin/reportes/excel/report%2F1', expect.objectContaining({ cache: 'no-store' }))
+  await notificationInbox.list()
+  expect(fetch).toHaveBeenLastCalledWith('/api/usuarios/me/notificaciones/bandeja', expect.objectContaining({ cache: 'no-store' }))
 })
 
 it('ingresa con Google y guarda la sesión igual que el ingreso con correo', async () => {

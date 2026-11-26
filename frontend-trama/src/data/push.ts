@@ -1,6 +1,7 @@
 import type { FirebaseOptions } from 'firebase/app'
 import { z } from 'zod'
 import { getToken } from './api'
+import { isReportNotice, reportLink } from './reportLinks'
 
 const BASE = '/api/push-notifications'
 const DEVICE_KEY = 'trama-push-device'
@@ -24,6 +25,7 @@ export function notificationsEnabled(userId: string) {
 }
 
 export function notificationPath(data: Record<string, string> = {}) {
+  if (isReportNotice(data.tipo)) return reportLink(data.solicitudId)
   const postId = data.publicacionId || data.postId || (['LIKE', 'COMMENT'].includes(data.tipo) && data.resourceType !== 'COMMENT' ? data.resourceId : '')
   if (postId) return `/obra/${encodeURIComponent(postId)}`
   if (data.url) {
@@ -40,10 +42,12 @@ export function parsePushNotice(value: unknown): PushNotice | null {
   if (!result.success || (!result.data.notification && !result.data.data)) return null
   const payload = result.data
   const type = payload.data?.tipo
-  const title = type === 'LIKE' ? 'Nuevo me gusta' : type === 'COMMENT' ? 'Nuevo comentario' : 'Trama'
-  const body = type === 'LIKE' ? 'Tu obra recibió un me gusta.' : type === 'COMMENT' ? 'Tu obra recibió un comentario.' : 'Tenés una nueva notificación.'
+  const title = type === 'LIKE' ? 'Nuevo me gusta' : type === 'COMMENT' ? 'Nuevo comentario'
+    : type === 'REPORTE_GENERADO' ? 'Tu reporte está disponible' : type === 'REPORTE_FALLIDO' ? 'No se pudo generar tu reporte' : 'Trama'
+  const body = type === 'LIKE' ? 'Tu obra recibió un me gusta.' : type === 'COMMENT' ? 'Tu obra recibió un comentario.'
+    : isReportNotice(type) ? 'Consultá la solicitud en Reportes Excel.' : 'Tenés una nueva notificación.'
   return {
-    id: payload.messageId || payload.fcmMessageId || payload.data?.notificacionId || crypto.randomUUID(),
+    id: payload.data?.notificationId || payload.data?.eventId || payload.messageId || payload.fcmMessageId || payload.data?.notificacionId || crypto.randomUUID(),
     title: (payload.notification?.title || payload.data?.title || title).slice(0, 120),
     body: (payload.notification?.body || payload.data?.body || body).slice(0, 500),
     path: notificationPath(payload.data),

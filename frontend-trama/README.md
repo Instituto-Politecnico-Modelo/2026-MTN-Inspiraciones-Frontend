@@ -58,7 +58,9 @@ La campana esta disponible para cuentas activas. La activacion solicita permiso
 al navegador y registra el token FCM con el JWT de la cuenta. Las notificaciones
 recibidas con Trama abierta aparecen como avisos y en el dialogo de la campana;
 en segundo plano, `public/push-sw.js` muestra la notificacion del sistema.
-El dialogo conserva solo los avisos de la sesion, no un historial del servidor.
+El diálogo y `/notificaciones` consultan la bandeja de avisos no leídos del
+servidor, incluso sin Push. Mientras estén abiertos, se actualizan al volver a
+la aplicación y cada 30 segundos si la pestaña está visible.
 Al salir o cambiar de cuenta se desactiva la suscripcion local y se solicita la
 baja del token, incluso si falla la conexion con el servidor.
 
@@ -77,6 +79,19 @@ El circuito de likes y comentarios usa `EVENTOS_MODULE_ENABLED=true`,
 `EVENTOS_MODULE_URL` (URL privada de Eventos) y `EVENTOS_MODULE_API_KEY` en
 Spring; la clave debe coincidir con `EVENTS_API_KEY` de Eventos. Eventos y Push
 deben compartir `REDIS_URL`. No requiere habilitar el outbox experimental.
+
+### Reportes Excel
+
+La pantalla administrativa es `/admin/reportes`. Los avisos de tipo
+`REPORTE_GENERADO` y `REPORTE_FALLIDO` enlazan a
+`/admin/reportes?solicitudId=<id codificado>`. El frontend deriva el enlace de
+`data.tipo` y `data.solicitudId` del push, sin usar URLs del payload. Los
+campos `notificationId` y `eventId` permiten deduplicar. La bandeja recibe
+`solicitudId` (nullable). El estado y la descarga se consultan por la API
+administrativa existente.
+
+La solicitud de Excel incluye `Idempotency-Key`: un reintento sin editar el
+formulario reutiliza la clave; tras la aceptación se inicia una nueva intención.
 
 Antes de reiniciar Spring en Dokploy, respaldar los archivos de imagen y
 configurar su almacenamiento persistente. Cambiar variables no aplica la

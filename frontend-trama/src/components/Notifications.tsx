@@ -4,10 +4,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useDemo } from '../context/DemoContext'
 import { getToken, notificationInbox, notificationPreferences, type InboxNotice, type NotificationPreference } from '../data/api'
 import { disableNotifications, enableNotifications, listenNotifications, notificationsEnabled } from '../data/push'
+import { isReportNotice, reportLink } from '../data/reportLinks'
 import { errorMessage } from '../data/store'
 import { Button, EmptyState, ErrorMessage, IconButton, Modal, PageTitle } from './UI'
 
 const updatedEvent = 'trama-inbox-updated'
+const inboxDestination = (notice: InboxNotice) => isReportNotice(notice.tipo)
+  ? reportLink(notice.solicitudId)
+  : notice.publicacionId ? `/obra/${encodeURIComponent(notice.publicacionId)}` : '/inicio'
 
 function Inbox({ onNavigate }: { onNavigate?: () => void }) {
   const { user } = useDemo()
@@ -33,6 +37,8 @@ function Inbox({ onNavigate }: { onNavigate?: () => void }) {
     void refresh()
     const update = () => { if (document.visibilityState !== 'hidden') void refresh() }
     window.addEventListener('focus', update)
+    window.addEventListener('pageshow', update)
+    window.addEventListener('online', update)
     window.addEventListener(updatedEvent, update)
     document.addEventListener('visibilitychange', update)
     const interval = window.setInterval(update, 30000)
@@ -40,6 +46,8 @@ function Inbox({ onNavigate }: { onNavigate?: () => void }) {
       invalidate()
       window.clearInterval(interval)
       window.removeEventListener('focus', update)
+      window.removeEventListener('pageshow', update)
+      window.removeEventListener('online', update)
       window.removeEventListener(updatedEvent, update)
       document.removeEventListener('visibilitychange', update)
     }
@@ -56,7 +64,7 @@ function Inbox({ onNavigate }: { onNavigate?: () => void }) {
       window.dispatchEvent(new Event(updatedEvent))
       if (open && notice) {
         onNavigate?.()
-        navigate(notice.publicacionId ? `/obra/${encodeURIComponent(notice.publicacionId)}` : '/inicio')
+        navigate(inboxDestination(notice))
       }
     } catch (failure) { setError(errorMessage(failure)) }
     finally { setPending(false) }
@@ -70,8 +78,12 @@ function Inbox({ onNavigate }: { onNavigate?: () => void }) {
     {error && <Button variant="secondary" onClick={() => void refresh()}>Reintentar</Button>}
     {loading ? <p role="status">Cargando notificaciones…</p> : notices.length ? <ul className="notification-list">
       {notices.map(notice => <li key={notice.id}>
-        <Link to={notice.publicacionId ? `/obra/${encodeURIComponent(notice.publicacionId)}` : '/inicio'} aria-disabled={pending || undefined}
-          onClick={event => { event.preventDefault(); if (!pending) void read(notice, true) }}>
+        <Link to={inboxDestination(notice)} aria-disabled={pending || undefined}
+          onClick={event => {
+            if (!pending && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return
+            event.preventDefault()
+            if (!pending) void read(notice, true)
+          }}>
           <strong>{notice.titulo}</strong><p>{notice.mensaje}</p>
         </Link>
         <Button variant="ghost" disabled={pending} aria-label={`Marcar como leída: ${notice.titulo}`} onClick={() => void read(notice)}>Marcar como leída</Button>

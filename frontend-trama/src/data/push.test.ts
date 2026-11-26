@@ -49,6 +49,18 @@ function loadWorker(state: Map<string, string>, clients: object[] = []) {
 }
 
 describe('worker de notificaciones', () => {
+  it('abre el reporte específico desde un push sin admitir destinos externos', async () => {
+    const worker = loadWorker(new Map([['/__trama-push-state', 'true']]))
+    const url = 'https://otro.example/admin/reportes?solicitudId=incorrecto'
+    const push = (solicitudId?: string) => worker.dispatch('push', { data: { json: () => ({ data: { tipo: 'REPORTE_FALLIDO', solicitudId, notificationId: 'notice-1', eventId: 'event-1', url } }) } })
+    await push('report/1')
+    expect(worker.showNotification).toHaveBeenLastCalledWith(expect.any(String), expect.objectContaining({ tag: 'notice-1', data: { path: '/admin/reportes?solicitudId=report%2F1' } }))
+    await push()
+    expect(worker.showNotification).toHaveBeenLastCalledWith(expect.any(String), expect.objectContaining({ data: { path: '/admin/reportes' } }))
+    expect(parsePushNotice({ messageId: 'transport', data: { tipo: 'REPORTE_GENERADO', solicitudId: 'report/1', notificationId: 'notice-1', url } })).toMatchObject({
+      id: 'notice-1', path: '/admin/reportes?solicitudId=report%2F1',
+    })
+  })
   it('conserva el consentimiento tras reiniciar y muestra un solo aviso en segundo plano', async () => {
     const state = new Map<string, string>()
     await loadWorker(state).dispatch('message', { data: { type: 'TRAMA_PUSH_ENABLED', enabled: true }, ports: [] })

@@ -1,3 +1,9 @@
+function reportDestination(id) {
+  if (typeof id !== 'string' || !id || id.length > 128) return '/admin/reportes'
+  try { return `/admin/reportes?solicitudId=${encodeURIComponent(id)}` }
+  catch { return '/admin/reportes' }
+}
+
 self.addEventListener('message', event => {
   if (event.data?.type !== 'TRAMA_PUSH_ENABLED' || typeof event.data.enabled !== 'boolean') return
   event.waitUntil((async () => {
@@ -24,19 +30,22 @@ self.addEventListener('push', event => {
       return
     }
     const data = payload.data || {}
+    const report = data.tipo === 'REPORTE_GENERADO' || data.tipo === 'REPORTE_FALLIDO'
     const postId = data.publicacionId || data.postId || (['LIKE', 'COMMENT'].includes(data.tipo) && data.resourceType !== 'COMMENT' ? data.resourceId : '')
-    let path = postId ? `/obra/${encodeURIComponent(postId)}` : '/inicio'
-    if (!postId && data.url) {
+    let path = report ? reportDestination(data.solicitudId) : postId ? `/obra/${encodeURIComponent(postId)}` : '/inicio'
+    if (!report && !postId && data.url) {
       try {
         const url = new URL(data.url, self.location.origin)
         if (url.origin === self.location.origin && /^\/(obra\/|user\/|perfil\/|desafios\/|inicio(?:$|\?))/.test(url.pathname)) path = url.pathname + url.search + url.hash
       } catch { path = '/inicio' }
     }
-    const title = data.tipo === 'LIKE' ? 'Nuevo me gusta' : data.tipo === 'COMMENT' ? 'Nuevo comentario' : 'Trama'
-    const body = data.tipo === 'LIKE' ? 'Tu obra recibió un me gusta.' : data.tipo === 'COMMENT' ? 'Tu obra recibió un comentario.' : 'Tenés una nueva notificación.'
+    const title = data.tipo === 'LIKE' ? 'Nuevo me gusta' : data.tipo === 'COMMENT' ? 'Nuevo comentario'
+      : data.tipo === 'REPORTE_GENERADO' ? 'Tu reporte está disponible' : data.tipo === 'REPORTE_FALLIDO' ? 'No se pudo generar tu reporte' : 'Trama'
+    const body = data.tipo === 'LIKE' ? 'Tu obra recibió un me gusta.' : data.tipo === 'COMMENT' ? 'Tu obra recibió un comentario.'
+      : report ? 'Consultá la solicitud en Reportes Excel.' : 'Tenés una nueva notificación.'
     await self.registration.showNotification((payload.notification?.title || data.title || title).slice(0, 120), {
       body: (payload.notification?.body || data.body || body).slice(0, 500),
-      tag: payload.fcmMessageId || payload.messageId || data.notificacionId,
+      tag: data.notificationId || data.eventId || payload.fcmMessageId || payload.messageId || data.notificacionId,
       data: { path },
     })
   })())
