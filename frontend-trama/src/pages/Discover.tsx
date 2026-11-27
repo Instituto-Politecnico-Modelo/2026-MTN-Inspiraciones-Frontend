@@ -15,15 +15,40 @@ import { getPosition } from '../lib/geolocation'
 import { useDevicePermission } from '../lib/useDevicePermission'
 import { DiscoverMusic } from './DiscoverMusic'
 
+const sessionLocationKey = 'trama.ubicacionSesion'
+
+function sessionChoice(): 'ACTIVADA' | 'DESACTIVADA' | null {
+  const value = window.sessionStorage.getItem(sessionLocationKey)
+  return value === 'ACTIVADA' || value === 'DESACTIVADA' ? value : null
+}
+
 function DiscoverMap({ filter }: { filter?: (publication: MapPublication) => boolean }) {
-  const [preference, setPreference] = useState<LocationPreference>(null)
+  const [preference, setPreference] = useState<LocationPreference | undefined>(undefined)
+  const [choice, setChoice] = useState(sessionChoice)
   const [permission] = useDevicePermission()
   useEffect(() => {
     let active = true
-    placesApi.preference.get().then(value => { if (active) setPreference(value) }).catch(() => undefined)
+    placesApi.preference.get().then(value => { if (active) setPreference(value) }).catch(() => { if (active) setPreference(null) })
     return () => { active = false }
   }, [])
-  return <PlacesExplorer api={placesApi} access={proximityAccess(preference, permission)} getPosition={getPosition} filter={filter} />
+  const decide = (value: 'ACTIVADA' | 'DESACTIVADA') => {
+    window.sessionStorage.setItem(sessionLocationKey, value)
+    setChoice(value)
+  }
+  if (preference === undefined) return null
+  // La elección de sesión solo puede desactivar la ubicación guardada; nunca la activa si la preferencia es otra.
+  const asking = preference === 'ACTIVADA' && !choice
+  if (asking) return <Modal open title="¿Usar tu ubicación en esta sesión?" onClose={() => decide('ACTIVADA')}>
+    <div className="form-stack">
+      <p>Elegí si el mapa puede centrarse en tu ubicación durante esta sesión. No cambia tu preferencia guardada.</p>
+      <div className="dialog-actions">
+        <Button variant="secondary" onClick={() => decide('DESACTIVADA')}>No usar mi ubicación</Button>
+        <Button onClick={() => decide('ACTIVADA')}>Usar mi ubicación</Button>
+      </div>
+    </div>
+  </Modal>
+  const effective = preference === 'ACTIVADA' && choice === 'DESACTIVADA' ? 'DESACTIVADA' : preference
+  return <PlacesExplorer api={placesApi} access={proximityAccess(effective, permission)} getPosition={getPosition} filter={filter} />
 }
 
 const tabs = [{ value: 'obras', label: 'Obras' }, { value: 'tutoriales', label: 'Tutoriales' },

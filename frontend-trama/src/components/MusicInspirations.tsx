@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { musicalResources, type MusicCatalogItem, type MusicCatalogPage, type MusicalResource, type MusicalResourceType } from '../data/api'
 import { Button, ErrorMessage, Field, SelectField } from './UI'
+import { filtrarPorLicencia, opcionesLicenciaSonido, type FiltroLicenciaSonido } from '../data/licencias'
 
 const referenceTypes = [{ value: 'cancion', label: 'Canciones' }, { value: 'sample', label: 'Sonidos' }] as const
 const seconds = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
@@ -37,6 +38,7 @@ function MusicCatalogPicker({ linked, pending, onLink, onImport }: {
 }) {
   const [query, setQuery] = useState({ type: 'cancion' as MusicalResourceType, text: '', page: 1 })
   const [filter, setFilter] = useState('')
+  const [licencia, setLicencia] = useState<FiltroLicenciaSonido>('todas')
   const [loaded, setLoaded] = useState<{ query: typeof query; page?: MusicCatalogPage }>()
   const [search, setSearch] = useState({ type: query.type, text: '' })
   const [external, setExternal] = useState<{ search: typeof search; results?: MusicCatalogItem[]; error?: string }>()
@@ -75,6 +77,9 @@ function MusicCatalogPicker({ linked, pending, onLink, onImport }: {
     query.type === 'sample' ? resource.id === item.id : sameSong(resource, item))
   const newResults = externalCurrent?.results?.filter(item => !page?.items.some(saved =>
     query.type === 'sample' ? saved.id === item.id : sameSong(saved, item)))
+  const licenciaActiva: FiltroLicenciaSonido = query.type === 'sample' ? licencia : 'todas'
+  const guardadosVisibles = page ? filtrarPorLicencia(page.items, licenciaActiva) : []
+  const nuevosVisibles = newResults ? filtrarPorLicencia(newResults, licenciaActiva) : undefined
 
   function showPage(page: number, type = query.type, text = query.text) {
     setQuery({ page, type, text })
@@ -98,6 +103,8 @@ function MusicCatalogPicker({ linked, pending, onLink, onImport }: {
     </form>
     {query.text && <Button variant="ghost" className="music-clear-search" disabled={pending}
       onClick={() => { setFilter(''); runSearch(query.type, '') }}>Quitar filtro</Button>}
+    {query.type === 'sample' && <SelectField label="Licencia de los sonidos" value={licencia} disabled={pending}
+      options={opcionesLicenciaSonido} onChange={event => setLicencia(event.target.value as FiltroLicenciaSonido)} />}
     {search.text.length < 2
       ? <p className="meta">Buscá con dos caracteres o más para encontrar recursos nuevos en {query.type === 'cancion' ? 'Lyrics.ovh' : 'Freesound'}.</p>
       : <div className="music-catalog-group">
@@ -108,7 +115,7 @@ function MusicCatalogPicker({ linked, pending, onLink, onImport }: {
           <Button variant="secondary" disabled={pending} onClick={() => setSearch({ ...search })}>Reintentar búsqueda externa</Button>
         </>}
         {newResults && !newResults.length && <p role="status" className="meta">No aparecieron recursos nuevos para esta búsqueda.</p>}
-        {!!newResults?.length && <ResourceRows label="Resultados externos" resources={newResults} pending={pending}
+        {!!nuevosVisibles?.length && <ResourceRows label="Resultados externos" resources={nuevosVisibles} pending={pending}
           linked={isExternalLinked} onLink={item => onImport(query.type, item)} />}
       </div>}
     <div className="music-catalog-group">
@@ -119,8 +126,8 @@ function MusicCatalogPicker({ linked, pending, onLink, onImport }: {
         <Button variant="secondary" disabled={pending} onClick={() => showPage(query.page)}>Reintentar catálogo</Button>
       </>}
       {page && <>
-        {page.items.length
-          ? <ResourceRows label="Resultados del catálogo" resources={page.items} pending={pending}
+        {guardadosVisibles.length
+          ? <ResourceRows label="Resultados del catálogo" resources={guardadosVisibles} pending={pending}
             linked={isLinked} onLink={item => onLink(query.type, item.id)} />
           : <p role="status" className="meta">No hay recursos guardados para esta búsqueda.</p>}
         {(query.page > 1 || nextPage) && <div className="button-row">

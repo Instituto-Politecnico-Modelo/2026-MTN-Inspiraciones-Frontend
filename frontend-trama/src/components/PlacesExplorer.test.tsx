@@ -69,6 +69,18 @@ describe('mapa y lista de lugares (FR-005/006/013/027)', () => {
     expect(await screen.findByText('No hay lugares de inspiración para mostrar.')).toBeVisible()
   })
 
+  it('filtra por dentro o fuera de casa según la clasificación de la publicación', async () => {
+    api.query.mockResolvedValue({ items: [publication('a', { ambiente: 'EXTERIOR' }), publication('b', { ambiente: 'INTERIOR' })], nextCursor: null })
+    open()
+
+    const list = await screen.findByRole('list', { name: 'Publicaciones con lugar' })
+    await userEvent.selectOptions(screen.getByLabelText('Dónde se realiza'), 'EXTERIOR')
+
+    const items = within(list).getAllByRole('listitem')
+    expect(items).toHaveLength(1)
+    expect(items[0]).toHaveTextContent('Obra a')
+  })
+
   it('distingue un mapa no disponible de no tener resultados y conserva la lista', async () => {
     api.query.mockResolvedValue({ items: [publication('a')], nextCursor: null })
     open()

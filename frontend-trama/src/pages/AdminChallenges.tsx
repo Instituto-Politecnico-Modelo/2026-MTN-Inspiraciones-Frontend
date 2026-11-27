@@ -5,8 +5,8 @@ import { CommandDialog, type Confirmation } from '../components/CommandDialog'
 import { Badge, Button, Choice, EmptyState, ErrorMessage, Field, IconButton, PageTitle, SearchField, SelectField, TextArea } from '../components/UI'
 import { useUnsavedChanges } from '../components/UnsavedChanges'
 import { useAction, useDemo } from '../context/DemoContext'
-import { disciplines, type Challenge, type Proposal } from '../data/model'
 import { challengeStatus, errorMessage, newId, normalize } from '../data/store'
+import { disciplines, kindLabels, type Challenge, type Proposal } from '../data/model'
 import { backPath, formatDateTime, fromLocalDateTime, toLocalDateTime } from '../lib/format'
 import { readUpload } from '../lib/upload'
 
@@ -41,7 +41,7 @@ export function AdminChallengesPage() {
         <td><span className="meta">Sin fechas</span></td><td>{request.discipline === 'Música' ? 'Audio' : 'Imagen'}</td>
         <td><div className="table-actions"><Link className="button button-primary" to={`/admin/desafios/nuevo?solicitud=${request.id}`} state={{ from: location.pathname + location.search }}>Preparar desafío</Link></div></td></tr>)}
       {challenges.map(challenge => <tr key={challenge.id}><th scope="row"><Link className="table-work" to={`/admin/desafios/${challenge.id}/editar`} state={{ from: location.pathname + location.search }}><img src={challenge.cover} alt="" /><span>{challenge.title}<small>{challenge.disciplines.join(' · ')}</small></span></Link></th><td><Badge status={challengeStatus(challenge)} /></td>
-        <td><span className="date-cell">{formatDateTime(challenge.startsAt)}</span><br /><span className="date-cell">{formatDateTime(challenge.endsAt)}</span></td><td>{challenge.kinds.map(kind => kind === 'image' ? 'Imagen' : 'Audio').join(' y ')}</td>
+        <td><span className="date-cell">{formatDateTime(challenge.startsAt)}</span><br /><span className="date-cell">{formatDateTime(challenge.endsAt)}</span></td><td>{challenge.kinds.map(kind => kindLabels[kind]).join(' y ')}</td>
         <td><div className="table-actions">{!challenge.archived && <Link className="icon-button" to={`/desafios/${challenge.id}`} state={{ from: location.pathname + location.search }} aria-label={`Ver ${challenge.title}`} title="Ver en la comunidad"><Eye size={21} aria-hidden="true" /></Link>}
           <Link className="icon-button" to={`/admin/desafios/${challenge.id}/editar`} state={{ from: location.pathname + location.search }} aria-label={`Editar ${challenge.title}`} title="Editar desafío"><Pencil size={21} aria-hidden="true" /></Link>
           <IconButton icon={challenge.archived ? RotateCcw : Archive} label={`${challenge.archived ? 'Restaurar' : 'Archivar'} ${challenge.title}`} onClick={() => setConfirmation({ title: challenge.archived ? 'Restaurar este desafío' : 'Archivar este desafío', description: challenge.archived ? 'La consigna volverá a ser pública. La participación dependerá de sus fechas.' : 'La consigna se ocultará, sin eliminar las obras participantes ni sus datos.', label: challenge.archived ? 'Restaurar desafío' : 'Archivar desafío', dangerous: !challenge.archived, command: () => ({ type: 'archive-challenge', challengeId: challenge.id, archived: !challenge.archived }), success: challenge.archived ? 'Desafío restaurado.' : 'Desafío archivado.' })} />
@@ -65,7 +65,7 @@ export function AdminChallengeEditorPage() {
   return <ChallengeForm key={id ?? requestId ?? 'nuevo'} existing={existing} proposal={proposal} />
 }
 
-type FormValues = Pick<Challenge, 'title' | 'description' | 'disciplines' | 'kinds' | 'cover' | 'startsAt' | 'endsAt'>
+type FormValues = Pick<Challenge, 'title' | 'description' | 'disciplines' | 'kinds' | 'requiresLocation' | 'cover' | 'startsAt' | 'endsAt'>
 
 function ChallengeForm({ existing, proposal }: { existing?: Challenge; proposal?: Proposal }) {
   const { run, pending, error } = useAction()
@@ -75,14 +75,14 @@ function ChallengeForm({ existing, proposal }: { existing?: Challenge; proposal?
   const [id] = useState(() => existing?.id ?? newId('desafio'))
   const [initial] = useState<FormValues>(() => ({
     title: existing?.title ?? proposal?.title ?? '', description: existing?.description ?? proposal?.description ?? '',
-    disciplines: existing?.disciplines ?? (proposal ? [proposal.discipline] : []), kinds: existing?.kinds ?? (proposal?.discipline === 'Música' ? ['audio'] : ['image']),
+    disciplines: existing?.disciplines ?? (proposal ? [proposal.discipline] : []), kinds: existing?.kinds ?? (proposal?.discipline === 'Música' ? ['audio'] : ['image']), requiresLocation: existing?.requiresLocation ?? false,
     cover: existing?.cover ?? (proposal?.discipline === 'Música' ? '/media/sonido.svg' : covers[0].src),
     startsAt: existing ? toLocalDateTime(existing.startsAt) : '', endsAt: existing ? toLocalDateTime(existing.endsAt) : '',
   }))
   const [form, setForm] = useState(initial)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
-  const dirty = (['title', 'description', 'cover', 'startsAt', 'endsAt'] as const).some(key => form[key] !== initial[key]) || form.disciplines.join('|') !== initial.disciplines.join('|') || form.kinds.join('|') !== initial.kinds.join('|')
+  const dirty = (['title', 'description', 'cover', 'startsAt', 'endsAt', 'requiresLocation'] as const).some(key => form[key] !== initial[key]) || form.disciplines.join('|') !== initial.disciplines.join('|') || form.kinds.join('|') !== initial.kinds.join('|')
   const guard = useUnsavedChanges(dirty || uploading, pending || uploading)
   const destination = backPath(location.state, '/admin/desafios')
   const update = <Key extends keyof FormValues>(key: Key, value: FormValues[Key]) => setForm(current => ({ ...current, [key]: value }))
@@ -108,7 +108,9 @@ function ChallengeForm({ existing, proposal }: { existing?: Challenge; proposal?
       <Field label="Título de la consigna" value={form.title} onChange={event => update('title', event.target.value)} required maxLength={120} />
       <TextArea label="Consigna y condiciones" value={form.description} onChange={event => update('description', event.target.value)} required minLength={10} maxLength={3000} rows={6} />
       <fieldset className="plain-fieldset"><legend>Disciplinas admitidas</legend><div className="choice-grid compact">{disciplines.map(discipline => <Choice key={discipline} selected={form.disciplines.includes(discipline)} onClick={() => update('disciplines', form.disciplines.includes(discipline) ? form.disciplines.filter(value => value !== discipline) : [...form.disciplines, discipline])}>{discipline}</Choice>)}</div></fieldset>
-      <fieldset className="plain-fieldset"><legend>Formatos admitidos</legend><div className="choice-grid compact">{(['image', 'audio'] as const).map(kind => <Choice key={kind} selected={form.kinds.includes(kind)} onClick={() => update('kinds', form.kinds.includes(kind) ? form.kinds.filter(value => value !== kind) : [...form.kinds, kind])}>{kind === 'image' ? 'Imagen' : 'Audio'}</Choice>)}</div></fieldset>
+      <fieldset className="plain-fieldset"><legend>Formatos admitidos</legend><div className="choice-grid compact">{(['image', 'audio', 'video'] as const).map(kind => <Choice key={kind} selected={form.kinds.includes(kind)} onClick={() => update('kinds', form.kinds.includes(kind) ? form.kinds.filter(value => value !== kind) : [...form.kinds, kind])}>{kindLabels[kind]}</Choice>)}</div>
+        <p className="field-hint">Las participaciones se validan con estos formatos: una consigna de video no acepta fotos ni audios.</p></fieldset>
+      <label className="visibility-option"><input type="checkbox" checked={form.requiresLocation} onChange={event => update('requiresLocation', event.target.checked)} /><span><strong>Requiere ubicación</strong><small>Las obras participantes deben tener un lugar asignado.</small></span></label>
       <div className="form-columns"><Field label="Inicio (Buenos Aires)" type="datetime-local" value={form.startsAt} onChange={event => update('startsAt', event.target.value)} required /><Field label="Cierre (Buenos Aires)" type="datetime-local" value={form.endsAt} onChange={event => update('endsAt', event.target.value)} required /></div>
       <p className="field-hint">Horario de Buenos Aires (UTC−3), independientemente de la zona horaria del dispositivo. El cierre debe ser posterior al inicio.</p>
       <fieldset className="plain-fieldset"><legend>Portada</legend><div className="cover-options">{covers.map(cover => <label key={cover.src} className={`cover-choice ${form.cover === cover.src ? 'is-selected' : ''}`}><img src={cover.src} alt="" /><span><input type="radio" name="portada" value={cover.src} checked={form.cover === cover.src} onChange={() => update('cover', cover.src)} />{cover.label}</span></label>)}</div></fieldset>

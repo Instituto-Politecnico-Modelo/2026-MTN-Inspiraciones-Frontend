@@ -132,6 +132,7 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   const [technique, setTechnique] = useState(existing?.technique ?? '')
   const [license, setLicense] = useState(existing?.license ?? 'Todos los derechos reservados')
   const [tutorialUrl, setTutorialUrl] = useState(existing?.tutorialUrl ?? '')
+  const [ambiente, setAmbiente] = useState<'INTERIOR' | 'EXTERIOR' | ''>(existing?.ambiente ?? '')
   const [challengeId, setChallengeId] = useState(existing?.challengeId ?? initialChallenge)
   const [rights, setRights] = useState(!!existing)
   const [catalog, setCatalog] = useState<CatalogDiscipline[]>([])
@@ -155,8 +156,8 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
   useEffect(() => {
     if (media?.file) return () => URL.revokeObjectURL(media.src)
   }, [media])
-  const [initial] = useState(() => JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, location]))
-  const dirty = uploading || (!existing && !!media) || JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, location]) !== initial
+  const [initial] = useState(() => JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, location, tutorialUrl, ambiente]))
+  const dirty = uploading || (!existing && !!media) || JSON.stringify([title, description, alt, discipline, technique, license, challengeId, ownTags, location, tutorialUrl, ambiente]) !== initial
   const guard = useUnsavedChanges(dirty, pending)
   const openChallenges = state.challenges.filter(challenge => challengeStatus(challenge) === 'open')
   const pickedChallenge = state.challenges.find(challenge => challenge.id === challengeId)
@@ -182,13 +183,13 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
     event.preventDefault()
     if (!media || !rights) { setUploadError('Elegí un archivo y confirmá que podés compartirlo.'); return }
     if (incompatibleChallenge) return
-    const changes = { title, description, alt, discipline, technique, license, location, ownTags }
+    const changes = { title, description, alt, discipline, technique, license, location, ownTags, tutorialUrl: tutorialUrl.trim(), ambiente: ambiente || null }
     const id = existing?.id ?? newId('obra')
     const { file, ...mediaData } = media
     const result = await run(existing ? { type: 'update-post', postId: existing.id, changes } : {
       type: 'create-post',
       file,
-      post: { id, ...changes, ...mediaData, cover: '', challengeId: challengeId || null, credit: `Obra compartida por ${user.name}.`, creditUrl: '', tutorialUrl: tutorialUrl.trim() },
+      post: { id, ...changes, ...mediaData, cover: '', challengeId: challengeId || null, credit: `Obra compartida por ${user.name}.`, creditUrl: '' },
     }, existing ? 'Los cambios de tu obra se guardaron.' : 'Tu obra se publicó.')
     if (result) { guard.allow(); navigate(`/obra/${resolveId(id)}`) }
   }
@@ -231,9 +232,11 @@ function PublishForm({ user, existing, initialChallenge }: { user: User; existin
           options={[{ value: '', label: 'Publicar sin desafío' }, ...openChallenges.map(challenge => ({ value: challenge.id, label: challenge.title })), ...(invalidChallenge ? [{ value: challengeId, label: 'Desafío no disponible' }] : [])]} />
           {invalidChallenge && <ErrorMessage message="El desafío elegido no está abierto. Elegí otro o publicá sin asociar tu obra." />}
           {incompatibleChallenge && <ErrorMessage message="Las participaciones de desafíos admiten imágenes. Para compartir este archivo, elegí Publicar sin desafío." />}
-          <Field label="Enlace a video tutorial (opcional)" type="url" value={tutorialUrl} onChange={event => setTutorialUrl(event.target.value)} maxLength={500} placeholder="https://..."
-            hint="Si tu obra enseña una técnica, compartí el enlace al video. Se mostrará como tutorial en Descubrir." />
-        </>}
+          </>}
+        <Field label="Enlace a video tutorial (opcional)" type="url" value={tutorialUrl} onChange={event => setTutorialUrl(event.target.value)} maxLength={500} placeholder="https://..."
+          hint="Si tu obra enseña una técnica, compartí el enlace al video. Se mostrará como tutorial en Descubrir." />
+        <SelectField label="Dónde se realiza (opcional)" value={ambiente} onChange={event => setAmbiente(event.target.value as 'INTERIOR' | 'EXTERIOR' | '')}
+          options={[{ value: '', label: 'Sin clasificar' }, { value: 'INTERIOR', label: 'Dentro de casa' }, { value: 'EXTERIOR', label: 'Fuera de casa' }]} />
         <OwnTagsField tags={ownTags} onChange={setOwnTags} />
         <PlacePicker value={location} onChange={setLocation} />
         <label className="check-row"><input type="checkbox" checked={rights} onChange={event => setRights(event.target.checked)} required /><span>Confirmo que tengo derecho a compartir este archivo.</span></label>

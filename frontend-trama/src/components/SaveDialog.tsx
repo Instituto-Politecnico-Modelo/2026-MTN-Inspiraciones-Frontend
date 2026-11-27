@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ArtworkImage } from './Media'
 import { FolderLock, Plus } from 'lucide-react'
 import { useAction, useDemo } from '../context/DemoContext'
-import { newId, privateFolders } from '../data/store'
+import { newId, visibleFolders } from '../data/store'
 import type { Post } from '../data/model'
 import { Button, ErrorMessage, Field, Modal } from './UI'
 
@@ -11,8 +11,8 @@ export function SaveDialog({ post, onClose }: { post: Post; onClose: () => void 
   const { run, pending, error } = useAction()
   const [name, setName] = useState('')
   if (!user) return null
-  const folders = privateFolders(state, user.id, user.id)
-  return <Modal open title="Guardar inspiración" description="Tus carpetas son privadas. Los cambios se guardan al seleccionarlas." onClose={onClose} busy={pending}>
+  const folders = visibleFolders(state, user.id, user.id)
+  return <Modal open title="Guardar inspiración" description="Elegí en qué carpetas guardar esta obra. Los cambios se guardan al seleccionarlas." onClose={onClose} busy={pending}>
     <div className="save-preview"><ArtworkImage post={post} decorative retry={false} /><strong>{post.title}</strong></div>
     <div className="folder-options">{folders.map(folder => <label className="folder-option" key={folder.id}>
       <FolderLock size={21} aria-hidden="true" /><span>{folder.name}<small>{folder.postIds.length} {folder.postIds.length === 1 ? 'obra' : 'obras'}</small></span>

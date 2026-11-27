@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { ArrowRight, CalendarDays, Check, ImagePlus, Plus, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
-import { disciplines, type Challenge, type Discipline } from '../data/model'
+import { disciplines, kindLabels, type Challenge, type Discipline } from '../data/model'
 import { challengeStatus, errorMessage, newId, visiblePosts } from '../data/store'
 import { backPath, formatDate, formatDateTime } from '../lib/format'
 import { readUpload } from '../lib/upload'
@@ -57,12 +57,12 @@ function ChallengeDetail({ challenge }: { challenge: Challenge }) {
   const status = challengeStatus(challenge)
   const posts = visiblePosts(state).filter(post => post.challengeId === challenge.id)
   const mine = posts.filter(post => post.authorId === user?.id)
-  const eligible = visiblePosts(state).filter(post => post.kind === 'image' && post.authorId === user?.id && !post.challengeId && challenge.kinds.includes(post.kind))
+  const eligible = visiblePosts(state).filter(post => post.authorId === user?.id && !post.challengeId)
   return <>
     <PageTitle title={challenge.title} back={{ to: backPath(location.state, '/desafios'), label: 'Volver a los desafíos' }} />
     <section className="challenge-detail"><div className="challenge-detail-image"><img src={challenge.cover} alt={`Imagen de referencia para ${challenge.title}`} /></div>
       <div className="challenge-brief"><Badge status={status} /><h2>La consigna</h2><p>{challenge.description}</p>
-        <dl><div><dt>Disciplinas</dt><dd>{challenge.disciplines.join(', ')}</dd></div><div><dt>Formatos</dt><dd>{challenge.kinds.map(kind => kind === 'image' ? 'Imagen' : 'Audio').join(' y ')}</dd></div>
+        <dl><div><dt>Disciplinas</dt><dd>{challenge.disciplines.join(', ')}</dd></div><div><dt>Formatos</dt><dd>{challenge.kinds.map(kind => kindLabels[kind]).join(' y ')}</dd></div>{challenge.requiresLocation && <div><dt>Ubicación</dt><dd>Obligatoria en cada obra</dd></div>}
           <div><dt>Inicio</dt><dd>{formatDateTime(challenge.startsAt)}</dd></div><div><dt>Cierre</dt><dd>{formatDateTime(challenge.endsAt)}</dd></div></dl>
         <p className="field-hint">Fechas en horario de Buenos Aires (UTC−3). Sin premios, jurados ni rankings.</p>
         {!!mine.length && <p className="participation-status"><Check size={19} aria-hidden="true" />Ya participás con {mine.length} {mine.length === 1 ? 'obra' : 'obras'}.</p>}

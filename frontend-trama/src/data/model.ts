@@ -59,6 +59,8 @@ export const CommentSchema = z.object({
   createdAt: date,
 })
 
+export const AmbienteSchema = z.enum(['INTERIOR', 'EXTERIOR'])
+
 export const PostSchema = z.object({
   id, authorId: id,
   title: shortText,
@@ -76,6 +78,7 @@ export const PostSchema = z.object({
   credit: z.string().max(500),
   creditUrl: website,
   tutorialUrl: website.optional(),
+  ambiente: AmbienteSchema.nullable().optional(),
   status: z.enum(['published', 'hidden', 'deleted']),
   createdAt: date,
   likes: z.array(id),
@@ -86,13 +89,14 @@ export const PostSchema = z.object({
 })
 
 export const PostChangesSchema = PostSchema.pick({
-  title: true, description: true, alt: true, discipline: true, technique: true, license: true, location: true, ownTags: true,
+  title: true, description: true, alt: true, discipline: true, technique: true, license: true, location: true, ownTags: true, tutorialUrl: true, ambiente: true,
 }).strict()
 
 export const FolderSchema = z.object({
   id, ownerId: id,
   name: z.string().trim().min(1, 'Dale un nombre a la carpeta.').max(60, 'Usá hasta 60 caracteres.'),
   postIds: z.array(id),
+  visibility: z.enum(['public', 'private']).default('private'),
 })
 
 export const ChallengeSchema = z.object({
@@ -100,7 +104,8 @@ export const ChallengeSchema = z.object({
   title: shortText,
   description: z.string().trim().min(10, 'Contá la consigna con al menos 10 caracteres.').max(3000),
   disciplines: z.array(z.enum(disciplines)).min(1, 'Elegí al menos una disciplina.').max(8),
-  kinds: z.array(z.enum(['image', 'audio'])).min(1, 'Elegí al menos un formato.').max(2),
+  kinds: z.array(z.enum(['image', 'audio', 'video'])).min(1, 'Elegí al menos un formato.').max(3),
+  requiresLocation: z.boolean().default(false),
   startsAt: date,
   endsAt: date,
   cover: source,
@@ -190,6 +195,9 @@ export type MediaKind = Post['kind']
 export type Discipline = typeof disciplines[number]
 
 export type NewPost = Omit<Post, 'authorId' | 'createdAt' | 'status' | 'likes' | 'comments'>
+
+export const kindLabels: Record<MediaKind, string> = { image: 'Imagen', audio: 'Audio', video: 'Video' }
+
 export type ChallengeInput = Omit<Challenge, 'createdBy'>
 
 export type Command =
@@ -200,7 +208,7 @@ export type Command =
   | { type: 'toggle-follow'; userId: string }
   | { type: 'toggle-block'; userId: string }
   | { type: 'create-folder'; id: string; name: string }
-  | { type: 'rename-folder'; folderId: string; name: string }
+  | { type: 'update-folder'; folderId: string; name: string; visibility: Folder['visibility'] }
   | { type: 'delete-folder'; folderId: string }
   | { type: 'save-to-folder' | 'remove-from-folder'; folderId: string; postId: string }
   | { type: 'create-post'; post: NewPost; file?: File }

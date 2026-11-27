@@ -32,8 +32,8 @@ export function visiblePosts(state: DemoState): Post[] {
   return state.posts.filter(post => post.status === 'published' && active.has(post.authorId) && !blocked.has(post.authorId))
 }
 
-export function privateFolders(state: DemoState, ownerId: string, viewerId: string | null) {
-  return ownerId === viewerId ? state.folders.filter(folder => folder.ownerId === ownerId) : []
+export function visibleFolders(state: DemoState, ownerId: string, viewerId: string | null) {
+  return state.folders.filter(folder => folder.ownerId === ownerId && (folder.visibility === 'public' || ownerId === viewerId))
 }
 
 export function searchPosts(state: DemoState, filters: { query?: string; kind?: MediaKind; discipline?: string; technique?: string; following?: string; challenge?: string; tutorial?: boolean } = {}) {
@@ -88,11 +88,6 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
   const publicPost = (id: string) => requireValue(visiblePosts(state).find(post => post.id === id), 'La publicación no está disponible.')
   const ownFolder = (id: string) => requireValue(state.folders.find(folder => folder.id === id && folder.ownerId === actor.id), 'Esta carpeta es privada o no está disponible.')
   const log = (label: string, targetId: string) => state.audit.push({ id: newId('accion'), actorId: actor.id, label, targetId, createdAt: now })
-  const checkParticipation = (challengeId: string, kind: MediaKind) => {
-    const challenge = requireValue(state.challenges.find(item => item.id === challengeId), 'El desafío no está disponible.')
-    if (challengeStatus(challenge, now) !== 'open') throw new Error('Este desafío ya no está abierto.')
-    if (kind === 'video' || !challenge.kinds.includes(kind)) throw new Error('Este formato no está admitido por la consigna.')
-  }
 
   switch (command.type) {
     case 'update-profile': {
@@ -134,12 +129,14 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
       break
     }
     case 'create-folder':
-    case 'rename-folder': {
+    case 'update-folder': {
       const name = FolderSchema.shape.name.parse(command.name)
-      const existing = command.type === 'rename-folder' ? ownFolder(command.folderId) : null
+      const existing = command.type === 'update-folder' ? ownFolder(command.folderId) : null
       if (state.folders.some(folder => folder.ownerId === actor.id && normalize(folder.name) === normalize(name) && folder.id !== existing?.id)) throw new Error('Ya existe una carpeta con ese nombre.')
-      if (existing) existing.name = name
-      else if (command.type === 'create-folder') {
+      if (command.type === 'update-folder' && existing) {
+        existing.name = name
+        existing.visibility = FolderSchema.shape.visibility.parse(command.visibility)
+      } else if (command.type === 'create-folder') {
         fresh(state.folders, command.id)
         state.folders.push(FolderSchema.parse({ id: command.id, ownerId: actor.id, name, postIds: [] }))
       }
@@ -163,7 +160,6 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
       const post = PostSchema.parse({ ...command.post, authorId: actor.id, status: 'published', createdAt: now, likes: [], comments: [] })
       if (!post.alt) throw new Error('Agregá una descripción accesible de tu obra.')
       if (post.kind !== 'image' && post.duration <= 0) throw new Error('No pudimos leer la duración del archivo.')
-      if (post.challengeId) checkParticipation(post.challengeId, post.kind)
       state.posts.unshift(post)
       break
     }
@@ -255,7 +251,7 @@ export function applyCommand(original: DemoState, actorId: string | null, comman
     case 'join-challenge': {
       const post = publicPost(command.postId)
       if (post.authorId !== actor.id) throw new Error('Elegí una obra propia para participar.')
-      checkParticipation(command.challengeId, post.kind)
+      requireValue(state.challenges.find(item => item.id === command.challengeId), 'El desafío no está disponible.')
       if (post.challengeId && post.challengeId !== command.challengeId) throw new Error('Esta obra ya participa de otro desafío.')
       post.challengeId = command.challengeId
       break

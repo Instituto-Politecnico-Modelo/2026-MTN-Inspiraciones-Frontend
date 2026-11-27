@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { musicalResources, type MusicCatalogItem, type MusicalResourceType } from '../data/api'
+import { filtrarPorLicencia, opcionesLicenciaSonido, type FiltroLicenciaSonido } from '../data/licencias'
 import { Button, EmptyState, ErrorMessage, SelectField } from '../components/UI'
 
 const musicTypes = [{ value: 'cancion', label: 'Canciones' }, { value: 'sample', label: 'Sonidos' }]
@@ -7,14 +8,18 @@ const musicTypes = [{ value: 'cancion', label: 'Canciones' }, { value: 'sample',
 export function DiscoverMusic({ query, type, onTypeChange }: {
   query: string; type: MusicalResourceType; onTypeChange: (type: MusicalResourceType) => void;
 }) {
+  const [licencia, setLicencia] = useState<FiltroLicenciaSonido>('todas')
   return <>
     <div className="filter-row"><SelectField label="Tipo de recurso musical" value={type} options={musicTypes}
-      onChange={event => onTypeChange(event.target.value === 'sample' ? 'sample' : 'cancion')} /></div>
-    <MusicResults key={`${type}:${query.trim()}`} query={query.trim()} type={type} />
+      onChange={event => onTypeChange(event.target.value === 'sample' ? 'sample' : 'cancion')} />
+    {type === 'sample' && <SelectField label="Licencia de los sonidos" value={licencia} options={opcionesLicenciaSonido}
+      onChange={event => setLicencia(event.target.value as FiltroLicenciaSonido)} />}</div>
+    <MusicResults key={`${type}:${query.trim()}`} query={query.trim()} type={type}
+      licencia={type === 'sample' ? licencia : 'todas'} />
   </>
 }
 
-function MusicResults({ query, type }: { query: string; type: MusicalResourceType }) {
+function MusicResults({ query, type, licencia }: { query: string; type: MusicalResourceType; licencia: FiltroLicenciaSonido }) {
   const [results, setResults] = useState<MusicCatalogItem[]>()
   const [error, setError] = useState(false)
   const [retry, setRetry] = useState(0)
@@ -42,8 +47,10 @@ function MusicResults({ query, type }: { query: string; type: MusicalResourceTyp
   </div>
   if (!results) return <p role="status">Buscando recursos musicales…</p>
   if (results.length === 0) return <EmptyState title="Todavía no encontramos coincidencias" description="Probá con otro título, artista o sonido." />
+  const visibles = filtrarPorLicencia(results, licencia)
+  if (visibles.length === 0) return <EmptyState title="Ningún sonido tiene esa licencia" description="Probá con otra licencia o quitá el filtro." />
   return <ul className="music-catalog-results" aria-label="Resultados musicales">
-    {results.map(item => <li key={item.id} className="music-catalog-row">
+    {visibles.map(item => <li key={item.id} className="music-catalog-row">
       <div>
         <h2>{item.titulo}</h2>
         {item.artista && <p className="muted">{item.artista}</p>}

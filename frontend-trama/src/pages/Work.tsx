@@ -1,4 +1,5 @@
 import { MusicInspirations } from '../components/MusicInspirations'
+import { WorkInspirations } from '../components/WorkInspirations'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Flag, MonitorPlay, Music2, Pencil, Send, Trash2, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -50,7 +51,7 @@ export function WorkPage() {
 }
 
 function WorkDetail({ post }: { post: Post }) {
-  const { state, user } = useDemo()
+  const { state, user, searchWorks } = useDemo()
   const location = useLocation()
   const navigate = useNavigate()
   const gate = useAccountGate()
@@ -92,6 +93,7 @@ function WorkDetail({ post }: { post: Post }) {
         <dl className="work-facts"><div><dt>Licencia</dt><dd>{post.license || 'Licencia no informada'}</dd></div></dl>
         <details className="accessible-description"><summary>{post.kind === 'image' ? 'Descripción accesible' : `Descripción del ${mediaLabel[post.kind].toLowerCase()} / transcripción`}</summary><p>{post.alt}</p></details>
         {isPublic && user && <MusicInspirations key={post.id} postId={post.id} editable={user.id === post.authorId} />}
+        {isPublic && user && <WorkInspirations key={`obras-${post.id}`} postId={post.id} editable={user.id === post.authorId} searchWorks={searchWorks} />}
         <section className="comments-section" aria-labelledby="comentarios"><h2 id="comentarios">Conversación <span>{post.comments.length}</span></h2>
           {post.comments.length ? <ul className="comment-list">{post.comments.map(item => {
             const commenter = state.users.find(candidate => candidate.id === item.authorId)

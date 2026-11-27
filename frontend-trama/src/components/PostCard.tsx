@@ -19,7 +19,7 @@ export function PostActions({ post, comments = true }: { post: Post; comments?: 
   const saved = !!user && state.folders.some(folder => folder.ownerId === user.id && folder.postIds.includes(post.id))
   return <>
     <div className="post-actions">
-      <button type="button" className={`post-action ${liked ? 'is-active' : ''}`} aria-pressed={liked} aria-label={`${liked ? 'Quitar Me gusta de' : 'Me gusta en'} ${post.title}`} title={liked ? 'Quitar Me gusta' : 'Me gusta'} disabled={pending}
+      <button type="button" className={`post-action ${liked ? 'is-active' : ''}`} aria-pressed={liked} aria-label={`${liked ? 'Quitar Me gusta de' : 'Me gusta en'} ${post.title}, ${post.likes.length}`} title={liked ? 'Quitar Me gusta' : 'Me gusta'} disabled={pending}
         onClick={() => { if (gate()) void run({ type: 'toggle-like', postId: post.id }) }}>
         <Heart size={21} strokeWidth={1.8} aria-hidden="true" /><span>{post.likes.length}</span>
       </button>

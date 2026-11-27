@@ -10,6 +10,8 @@ const { context, music } = vi.hoisted(() => ({
   context: { value: {} as Record<string, unknown> },
   music: { search: vi.fn(), catalog: vi.fn(), resolve: vi.fn() },
 }))
+const preferenceState = vi.hoisted(() => ({ value: 'DESACTIVADA' as 'ACTIVADA' | 'DESACTIVADA' }))
+
 vi.mock('../context/DemoContext', () => ({ useDemo: () => context.value }))
 vi.mock('../lib/useDevicePermission', () => ({ useDevicePermission: () => ['denied'] }))
 vi.mock('../data/api', () => ({
@@ -17,7 +19,7 @@ vi.mock('../data/api', () => ({
   assetUrl: (value: string) => value,
   placesApi: {
     catalog: async () => [{ codigo: 'fotografia', nombre: 'Fotografía', tecnicas: [{ codigo: 'digital', nombre: 'Digital' }, { codigo: 'analogica', nombre: 'Analógica' }] }],
-    preference: { get: async () => 'DESACTIVADA' },
+    preference: { get: async () => preferenceState.value },
   },
 }))
 vi.mock('../components/FollowButton', () => ({ FollowButton: () => null }))
@@ -36,6 +38,8 @@ function Location() {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  preferenceState.value = 'DESACTIVADA'
+  window.sessionStorage.clear()
   const author = { id: 'author', role: 'artist', status: 'active', name: 'Ana', handle: 'ana', bio: '', disciplines: ['Fotografía'] }
   const post = (id: string, title: string, extra = {}) => ({
     id, title, authorId: 'author', status: 'published', discipline: 'Fotografía', technique: 'Digital',
@@ -112,6 +116,20 @@ it('busca canciones, consulta una letra y permite buscar sonidos', async () => {
   expect(music.search).toHaveBeenLastCalledWith('sample', 'yellow', expect.any(AbortSignal))
 })
 
+it('filtra sonidos por licencia CC0 o CC BY sin mostrar CC BY-SA', async () => {
+  music.search.mockResolvedValueOnce([
+    { id: 2, titulo: 'Lluvia', licencia: 'https://creativecommons.org/publicdomain/zero/1.0/' },
+    { id: 3, titulo: 'Viento', licencia: 'https://creativecommons.org/licenses/by/4.0/' },
+    { id: 4, titulo: 'Trueno', licencia: 'CC BY-SA 4.0' },
+  ])
+  render(<MemoryRouter initialEntries={['/descubrir?tipo=musica&recurso=sample&q=sonido']}><DiscoverPage /></MemoryRouter>)
+  expect(await screen.findByText('Viento')).toBeVisible()
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Licencia de los sonidos' }), 'cc-by')
+  expect(screen.getByText('Viento')).toBeVisible()
+  expect(screen.queryByText('Lluvia')).not.toBeInTheDocument()
+  expect(screen.queryByText('Trueno')).not.toBeInTheDocument()
+})
+
 it('combina mapa con búsqueda, disciplina y técnica, y conserva el orden al activarlo y desactivarlo', async () => {
   render(<MemoryRouter initialEntries={['/descubrir?q=Naturaleza&disciplina=Fotografía&tecnica=Digital&orden=titulo']}><DiscoverPage /><Location /></MemoryRouter>)
   await userEvent.click(screen.getByRole('checkbox', { name: 'Mapa' }))
@@ -129,6 +147,24 @@ it('combina mapa con búsqueda, disciplina y técnica, y conserva el orden al ac
   expect(screen.queryByLabelText('Mapa de resultados')).not.toBeInTheDocument()
   expect(screen.getByLabelText('Dirección')).toHaveTextContent('q=Naturaleza')
   expect(within(screen.getByRole('list', { name: 'Resultados' })).getAllByRole('listitem').map(item => item.textContent)).toEqual(['Bosque', 'Cómo fotografiar'])
+})
+
+it('pregunta una vez por sesión si usar la ubicación guardada y respeta la elección', async () => {
+  preferenceState.value = 'ACTIVADA'
+  render(<MemoryRouter initialEntries={['/descubrir?mapa=1']}><DiscoverPage /></MemoryRouter>)
+  const dialog = within(await screen.findByRole('dialog', { name: '¿Usar tu ubicación en esta sesión?' }))
+  await userEvent.click(dialog.getByRole('button', { name: 'No usar mi ubicación' }))
+  expect(screen.queryByRole('dialog', { name: '¿Usar tu ubicación en esta sesión?' })).not.toBeInTheDocument()
+  expect(window.sessionStorage.getItem('trama.ubicacionSesion')).toBe('DESACTIVADA')
+  expect(screen.getByLabelText('Mapa de resultados')).toBeInTheDocument()
+})
+
+it('no vuelve a preguntar la ubicación dentro de la misma sesión', async () => {
+  preferenceState.value = 'ACTIVADA'
+  window.sessionStorage.setItem('trama.ubicacionSesion', 'ACTIVADA')
+  render(<MemoryRouter initialEntries={['/descubrir?mapa=1']}><DiscoverPage /></MemoryRouter>)
+  expect(await screen.findByLabelText('Mapa de resultados')).toBeInTheDocument()
+  expect(screen.queryByRole('dialog', { name: '¿Usar tu ubicación en esta sesión?' })).not.toBeInTheDocument()
 })
 
 it('permite abrir el mapa sin texto y combinarlo con la pestaña Tutoriales', async () => {

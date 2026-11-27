@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyCommand, createSeed, privateFolders, searchPosts, toCsv, validateFile, visiblePosts } from './store'
+import { applyCommand, createSeed, searchPosts, toCsv, validateFile, visibleFolders, visiblePosts } from './store'
 
 const now = '2026-10-29T18:00:00.000Z'
 const seed = () => createSeed(now)
@@ -36,9 +36,9 @@ describe('interacciones y privacidad de la demo', () => {
   })
 
   it('mantiene las carpetas privadas incluso frente a otra cuenta administradora', () => {
-    expect(privateFolders(seed(), 'mora', 'mora')).toHaveLength(2)
-    expect(privateFolders(seed(), 'mora', 'lara')).toHaveLength(0)
-    expect(privateFolders(seed(), 'mora', 'admin')).toHaveLength(0)
+    expect(visibleFolders(seed(), 'mora', 'mora')).toHaveLength(2)
+    expect(visibleFolders(seed(), 'mora', 'lara')).toHaveLength(0)
+    expect(visibleFolders(seed(), 'mora', 'admin')).toHaveLength(0)
     expect(() => applyCommand(seed(), 'lara', { type: 'save-to-folder', folderId: 'carpeta-color', postId: 'obra-1' }, now)).toThrow(/carpeta/i)
   })
 
@@ -135,12 +135,19 @@ describe('moderación y desafíos', () => {
     expect(() => applyCommand(result, 'admin', { type: 'review-request', requestId: 'solicitud-1', status: 'rejected', note: 'Cambio' }, now)).toThrow(/resuelta/i)
   })
 
-  it('participar exige una obra propia y un desafío abierto', () => {
-    expect(() => applyCommand(seed(), 'mora', { type: 'join-challenge', challengeId: 'desafio-cerrado', postId: 'obra-3' }, now)).toThrow(/abierto/i)
-    expect(() => applyCommand(seed(), 'mora', { type: 'join-challenge', challengeId: 'desafio-linea', postId: 'obra-1' }, now)).toThrow(/propia/i)
+  it('el dueño decide si cada carpeta es pública o privada, y solo las públicas se ven desde otro perfil', () => {
+    const publicFolder = applyCommand(seed(), 'mora', { type: 'update-folder', folderId: 'carpeta-color', name: 'Color y forma', visibility: 'public' }, now)
+    expect(visibleFolders(publicFolder, 'mora', 'lara').map(folder => folder.id)).toEqual(['carpeta-color'])
+    const backToPrivate = applyCommand(publicFolder, 'mora', { type: 'update-folder', folderId: 'carpeta-color', name: 'Color y forma', visibility: 'private' }, now)
+    expect(visibleFolders(backToPrivate, 'mora', 'lara')).toHaveLength(0)
+    expect(() => applyCommand(seed(), 'lara', { type: 'update-folder', folderId: 'carpeta-color', name: 'Robada', visibility: 'public' }, now)).toThrow(/carpeta/i)
+  })
+
+  it('participar vincula una obra propia al desafío', () => {
     const result = applyCommand(seed(), 'mora', { type: 'join-challenge', challengeId: 'desafio-linea', postId: 'obra-3' }, now)
     expect(result.posts.find(p => p.id === 'obra-3')?.challengeId).toBe('desafio-linea')
   })
+
 
   it('una apelación aceptada reactiva la cuenta suspendida', () => {
     const result = applyCommand(seed(), 'admin', { type: 'review-appeal', appealId: 'apelacion-1', status: 'approved', note: 'La revisión confirmó la autoría.' }, now)
@@ -202,5 +209,11 @@ describe('moderación de publicaciones con lugar y tags propios (FR-023/025)', (
 
     expect(() => applyCommand(reported, 'lara', { type: 'review-report', reportId: 'reporte-lugar', status: 'accepted', note: 'No corresponde.' }, now)).toThrow()
     expect(() => applyCommand(located(), 'lara', { type: 'update-post', postId: 'obra-lugar', changes: { title: 'x', description: '', alt: 'x', discipline: 'Fotografía', technique: '', license: 'CC0', ownTags: [] } }, now)).toThrow(/propias/i)
+  })
+
+  it('el autor puede cambiar el enlace del tutorial desde la edición', () => {
+    const edited = applyCommand(located(), 'mora', { type: 'update-post', postId: 'obra-lugar', changes: { title: 'Atardecer en el faro', description: '', alt: 'Faro al atardecer', discipline: 'Fotografía', technique: '', license: 'CC0', ownTags: [], tutorialUrl: 'https://example.com/tutorial' } }, now)
+
+    expect(edited.posts.find(post => post.id === 'obra-lugar')).toMatchObject({ tutorialUrl: 'https://example.com/tutorial' })
   })
 })

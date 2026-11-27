@@ -1,5 +1,5 @@
 import type {
-  Appeal, Challenge, Command, DemoState, Discipline, Folder, Post, Proposal, Report, User,
+  Appeal, Challenge, Command, DemoState, Discipline, Folder, MediaKind, Post, Proposal, Report, User,
 } from './model'
 import { disciplines, inspirationTypes, reportReasons } from './model'
 import { proximityAccess, type CatalogDiscipline, type Coordinates, type LocationPreference } from './places'
@@ -42,6 +42,18 @@ export const musicalResources = {
   link: (id: string, item: Pick<MusicalResource, 'tipoRecurso' | 'id'>) =>
     http<MusicalResource>('PUT', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`, { tipoRecurso: item.tipoRecurso, id: item.id }),
   remove: (id: string, item: MusicalResource) => http('DELETE', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones/${item.tipoRecurso}/${item.id}`),
+}
+
+export type WorkInspiration = { id: string; title: string; authorId: string; thumbnail: string; type: string }
+type WorkInspirationResponse = { id: string; titulo: string; autorId: string; miniaturaUrl: string; tipoContenido: string }
+const toWorkInspiration = (item: WorkInspirationResponse): WorkInspiration => ({
+  id: item.id, title: item.titulo, authorId: item.autorId, thumbnail: assetUrl(item.miniaturaUrl), type: item.tipoContenido,
+})
+export const workInspirations = {
+  list: async (id: string) => (await http<WorkInspirationResponse[]>('GET', `/api/publicaciones/${encodeURIComponent(id)}/obras-inspiracion`)).map(toWorkInspiration),
+  link: async (id: string, obraId: string) => toWorkInspiration(await http<WorkInspirationResponse>(
+    'PUT', `/api/publicaciones/${encodeURIComponent(id)}/obras-inspiracion`, { obraId })),
+  remove: (id: string, obraId: string) => http('DELETE', `/api/publicaciones/${encodeURIComponent(id)}/obras-inspiracion/${encodeURIComponent(obraId)}`),
 }
 
 export type WorkSearchFilters = {
@@ -104,7 +116,7 @@ const preferencePath = '/api/usuarios/me/preferencia-ubicacion'
 export const placesApi = {
   catalog: () => http<{ items: CatalogDiscipline[] }>('GET', '/api/catalogo/disciplinas').then(response => response.items),
   query: (body: MapQuery, signal?: AbortSignal) => http<MapPage>('POST', '/api/mapa/publicaciones/consulta', body, undefined, signal),
-  detail: (id: string) => http<Json>('GET', `/api/mapa/publicaciones/${encodeURIComponent(id)}`),
+  detail: (id: string) => http<MapPublication>('GET', `/api/mapa/publicaciones/${encodeURIComponent(id)}`),
   preference: {
     get: () => http<{ estado: LocationPreference }>('GET', preferencePath).then(response => response.estado),
     set: (estado: 'ACTIVADA' | 'DESACTIVADA') => http<{ estado: LocationPreference }>('PUT', preferencePath, { estado }).then(response => response.estado),
@@ -151,6 +163,20 @@ const reasonCode: Record<typeof reportReasons[number], string> = {
 }
 const reasonByCode = Object.fromEntries(Object.entries(reasonCode).map(([label, code]) => [code, label])) as Record<string, typeof reportReasons[number]>
 
+// Códigos que el backend usa para disciplinas y formatos de desafíos.
+const disciplineCodes: Record<Discipline, string> = {
+  'Ilustración': 'ilustracion', Pintura: 'pintura', 'Fotografía': 'fotografia', 'Cerámica': 'ceramica',
+  Escultura: 'escultura', 'Música': 'musica', Collage: 'collage', 'Diseño': 'diseno',
+}
+const formatCodes: Record<MediaKind, string> = { image: 'imagen', audio: 'audio', video: 'video' }
+function inverse<K extends string>(record: Record<K, string>) {
+  return new Map<string, K>(Object.entries(record).map(([key, value]): [string, K] => [String(value), key as K]))
+}
+const disciplineByCode = inverse(disciplineCodes)
+const kindByFormat = inverse(formatCodes)
+const fromCodes = <T,>(value: unknown, byCode: Map<string, T>): T[] =>
+  Array.isArray(value) ? uniq(value.map(code => byCode.get(String(code))).filter((item): item is T => item !== undefined)) : []
+
 const emptyState = (): DemoState => ({
   version: 1, revision: 0, createdAt: new Date().toISOString(), users: [], posts: [], folders: [], follows: [], blocks: [],
   challenges: [], requests: [], reports: [], appeals: [], audit: [],
@@ -180,6 +206,38 @@ async function toPngDataUrl(source: string): Promise<string> {
   canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height)
   return canvas.toDataURL('image/png')
 }
+
+const ascii = (head: Uint8Array, start: number, text: string) => [...text].every((char, index) => head[start + index] === char.charCodeAt(0))
+
+// Los navegadores informan tipos vacíos o genéricos; los primeros bytes del archivo deciden el formato real.
+function sniffMime(head: Uint8Array): string | null {
+  if (head[0] === 0x89 && ascii(head, 1, 'PNG')) return 'image/png'
+  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return 'image/jpeg'
+  if (ascii(head, 4, 'ftyp')) return 'video/mp4'
+  if (head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3) return 'video/webm'
+  if (ascii(head, 0, 'RIFF') && ascii(head, 8, 'WAVE')) return 'audio/wav'
+  if (ascii(head, 0, 'ID3') || (head[0] === 0xff && (head[1] & 0xe0) === 0xe0)) return 'audio/mpeg'
+  return null
+}
+
+const acceptedMedia: Partial<Record<MediaKind, string[]>> = { audio: ['audio/mpeg', 'audio/wav'], video: ['video/mp4', 'video/webm'] }
+
+// El backend admite respuestas de imagen (PNG/JPEG), audio (MP3/WAV) y video (MP4/WebM).
+async function responseDataUrl(kind: MediaKind, source: string | Blob): Promise<string> {
+  const blob = typeof source === 'string' ? await dataUrlToBlob(source) : source
+  const mime = sniffMime(new Uint8Array(await blob.slice(0, 16).arrayBuffer())) ?? blob.type
+  if (kind === 'image') {
+    if (mime === 'image/png' || mime === 'image/jpeg') return withMime(await blobToDataUrl(blob), mime)
+    return toPngDataUrl(await blobToDataUrl(blob))
+  }
+  if (!acceptedMedia[kind]?.includes(mime)) {
+    throw new Error('Este archivo no se puede sumar al desafío. Usá MP4 o WebM para video, y MP3 o WAV para audio.')
+  }
+  return withMime(await blobToDataUrl(blob), mime)
+}
+
+// Reemplaza el tipo informado por el navegador por el tipo verificado en el contenido.
+const withMime = (dataUrl: string, mime: string) => dataUrl.replace(/^data:[^,]*,/, `data:${mime};base64,`)
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -453,35 +511,38 @@ export class ApiRepository {
       })
     }
 
-    const ownFolders = rawFolders.filter(folder => folder.creadorId === me.id)
-    const folderPosts = await Promise.all(ownFolders.map(folder => http<Page<Json>>('GET', `/api/carpetas/${folder.id}/publicaciones?limite=20`).then(items).catch(() => [] as Json[])))
-    const folders: Folder[] = ownFolders.map((folder, index) => ({
-      id: folder.id as string, ownerId: me.id as string, name: folder.nombre as string,
-      postIds: folderPosts[index]!.map(entry => String(entry.publicacionId ?? entry.id)),
-    }))
+    const folderOf = async (raw: Json, ownerId: string): Promise<Folder> => {
+      const entries = await http<Page<Json>>('GET', `/api/carpetas/${raw.id}/publicaciones?limite=20`).then(items).catch(() => [] as Json[])
+      return {
+        id: raw.id as string, ownerId, name: raw.nombre as string,
+        visibility: raw.visibilidad === 'PUBLICA' ? 'public' : 'private',
+        postIds: entries.map(entry => String(entry.publicacionId ?? entry.id)),
+      }
+    }
+    const folders: Folder[] = await Promise.all(rawFolders.filter(folder => folder.creadorId === me.id).map(folder => folderOf(folder, me.id as string)))
 
     const answers = await Promise.all(rawChallenges.map(challenge => http<Page<Json>>('GET', `/api/desafios/${challenge.id}/respuestas?limite=20`).then(items).catch(() => [] as Json[])))
     const challengeOfPost = new Map<string, string>()
     answers.forEach((list, index) => list.forEach(answer => {
-      const target = /trama-post:([\w-]+)/.exec(String(answer.descripcionLarga ?? answer.descripcion ?? ''))?.[1]
-      if (target) challengeOfPost.set(target, rawChallenges[index]!.id as string)
+      const target = answer.publicacionId ?? /trama-post:([\w-]+)/.exec(String(answer.descripcionLarga ?? answer.descripcion ?? ''))?.[1]
+      if (target) challengeOfPost.set(String(target), rawChallenges[index]!.id as string)
     }))
-    const stored = readChallengeLinks()
-    const knownChallenges = new Set(rawChallenges.map(challenge => challenge.id as string))
-    posts.forEach(post => {
-      const linked = stored[post.id]
-      post.challengeId = challengeOfPost.get(post.id) ?? (linked && knownChallenges.has(linked) ? linked : null)
-    })
+    posts.forEach(post => { post.challengeId = challengeOfPost.get(post.id) ?? null })
 
     this.versions.clear()
     const challenges: Challenge[] = rawChallenges.map(raw => {
       this.versions.set(raw.id as string, Number(raw.version ?? 0))
       const { text, meta } = unpack(raw.descripcionLarga as string | undefined)
       const cover = String(raw.fotoPrincipalUrl ?? '')
+      const serverDisciplines = fromCodes(raw.disciplinas, disciplineByCode)
+      const serverKinds = fromCodes(raw.formatos, kindByFormat)
       return {
         id: raw.id as string, title: raw.nombre as string, description: text,
-        disciplines: uniq(items<unknown>(raw.ambitos as unknown[]).map(item => disciplineByAmbito[String((item as Json)?.valor ?? item)]).filter((item): item is Discipline => !!item)),
-        kinds: (Array.isArray(meta.k) && meta.k.length ? meta.k : ['image']) as Challenge['kinds'],
+        disciplines: serverDisciplines.length ? serverDisciplines
+          : Array.isArray(meta.d) && meta.d.length ? meta.d as Discipline[]
+            : uniq(items<unknown>(raw.ambitos as unknown[]).map(item => disciplineByAmbito[String((item as Json)?.valor ?? item)]).filter((item): item is Discipline => !!item)),
+        kinds: serverKinds.length ? serverKinds : (Array.isArray(meta.k) && meta.k.length ? meta.k : ['image']) as Challenge['kinds'],
+        requiresLocation: raw.requiereUbicacion === true || meta.l === true,
         startsAt: raw.fechaInicio as string, endsAt: raw.fechaFin as string, cover, archived: false,
         createdBy: raw.autorId as string, requestId: typeof meta.r === 'string' ? meta.r : null,
       }
@@ -568,6 +629,11 @@ export class ApiRepository {
       followers.forEach(entry => { addEdge(entry.id as string, id); if (!users.has(entry.id as string)) users.set(entry.id as string, this.toUser(entry)) })
     }))
 
+    // Las carpetas de otras personas llegan solo si son públicas; el backend filtra la visibilidad.
+    const otherFolders = await Promise.all([...users.keys()].filter(id => id !== meUser.id).map(id =>
+      allPages<Json>(`/api/usuarios/${id}/carpetas`).catch(() => [] as Json[]).then(list => Promise.all(list.map(raw => folderOf(raw, id))))))
+    folders.push(...otherFolders.flat())
+
     return {
       version: 1, revision: this.state.revision + 1, createdAt: this.state.createdAt,
       users: [...users.values()], posts, folders, follows, blocks, feed, challenges, requests, reports, appeals, audit: [],
@@ -588,6 +654,7 @@ export class ApiRepository {
       src: assetUrl(kind === 'image' ? raw.fotoUrl : raw.archivoUrl),
       cover: kind === 'image' ? '' : assetUrl(raw.fotoUrl),
       tutorialUrl: typeof raw.enlaceExterno === 'string' ? raw.enlaceExterno : '',
+      ambiente: raw.ambiente === 'INTERIOR' || raw.ambiente === 'EXTERIOR' ? raw.ambiente : null,
       width: Number(meta.w) > 0 ? Number(meta.w) : 1200, height: Number(meta.h) > 0 ? Number(meta.h) : 900, duration: 0,
       license: typeof meta.l === 'string' ? meta.l : '', credit: typeof meta.c === 'string' ? meta.c : '', creditUrl: typeof meta.u === 'string' ? meta.u : '',
       status, createdAt: raw.createdAt as string, likes,
@@ -626,7 +693,10 @@ export class ApiRepository {
   private challengeBody(challenge: Challenge, cover: Awaited<ReturnType<ApiRepository['coverFor']>>) {
     return {
       nombre: challenge.title,
-      descripcionLarga: pack(challenge.description, { k: challenge.kinds, ...(challenge.requestId ? { r: challenge.requestId } : {}) }),
+      descripcionLarga: pack(challenge.description, challenge.requestId ? { r: challenge.requestId } : {}),
+      disciplinas: challenge.disciplines.map(item => disciplineCodes[item]),
+      formatos: challenge.kinds.map(kind => formatCodes[kind]),
+      requiereUbicacion: challenge.requiresLocation,
       fechaInicio: challenge.startsAt, fechaFin: challenge.endsAt,
       ambitos: uniq(challenge.disciplines.map(item => ambitoByDiscipline[item])), fotos: [cover],
     }
@@ -695,8 +765,8 @@ export class ApiRepository {
         this.aliases.set(command.id, created.id as string)
         return
       }
-      case 'rename-folder':
-        await http('PATCH', `/api/carpetas/${this.rid(command.folderId)}`, { nombre: command.name })
+      case 'update-folder':
+        await http('PATCH', `/api/carpetas/${this.rid(command.folderId)}`, { nombre: command.name, visibilidad: command.visibility === 'public' ? 'PUBLICA' : 'PRIVADA' })
         return
       case 'delete-folder':
         await http('DELETE', `/api/carpetas/${this.rid(command.folderId)}`)
@@ -711,7 +781,6 @@ export class ApiRepository {
         const post = command.post
         if (!post.alt.trim()) throw new Error('Agregá una descripción accesible de tu obra.')
         if (post.kind !== 'image' && !command.file) throw new Error('Elegí nuevamente el archivo de tu obra.')
-        if (post.kind !== 'image' && post.challengeId) throw new Error('Por ahora, las participaciones de desafíos admiten imágenes.')
         const content = this.contentOf(post)
         const classification = await classificationOf(post.discipline, post.technique)
         const fotoUrl = post.kind === 'image' ? await uploadImage(post.src) : undefined
@@ -720,6 +789,7 @@ export class ApiRepository {
           tipoContenido: post.kind === 'audio' ? 'AUDIO' : post.kind === 'video' ? 'VIDEO' : post.tutorialUrl ? 'TUTORIAL' : 'IMAGEN',
           fotoUrl, categorias: [], hashtags: [], cuentasEtiquetadas: [],
           ...(post.tutorialUrl ? { enlaceExterno: post.tutorialUrl } : {}),
+          ...(post.ambiente ? { ambiente: post.ambiente } : {}),
           ...(post.location ? { ubicacion: post.location } : {}), ...(classification ?? {}), ...(post.ownTags?.length ? { tagsPropios: post.ownTags } : {}),
         }
         let created: Json
@@ -732,8 +802,8 @@ export class ApiRepository {
           created = await http('POST', '/api/publicaciones', metadata)
         }
         this.aliases.set(post.id, created.id as string)
-        if (post.challengeId && fotoUrl) {
-          try { await this.joinChallenge(this.rid(post.challengeId), created.id as string, post.title, fotoUrl) }
+        if (post.challengeId) {
+          try { await this.joinChallenge(this.rid(post.challengeId), created.id as string, post.title, post.kind, post.kind === 'image' ? fotoUrl as string : command.file as File) }
           catch (error) { throw new Error(`Tu obra se publicó, pero no pudo sumarse al desafío: ${error instanceof Error ? error.message : 'error desconocido'}`, { cause: error }) }
         }
         return
@@ -754,6 +824,9 @@ export class ApiRepository {
             ? { cambioUbicacion: changes.location ? { accion: 'ESTABLECER', valor: changes.location } : { accion: 'QUITAR' } } : {}),
           ...(classification ? { cambioClasificacion: { accion: 'ESTABLECER', ...classification } } : {}),
           ...(changes.ownTags && !sameJson(changes.ownTags, post.ownTags ?? []) ? { tagsPropios: changes.ownTags } : {}),
+          ...(changes.tutorialUrl !== undefined && changes.tutorialUrl !== (post.tutorialUrl ?? '') ? { enlaceExterno: changes.tutorialUrl } : {}),
+          // Enviar vacío limpia la clasificación; omitir el campo la deja como está.
+          ...('ambiente' in changes && (changes.ambiente ?? null) !== (post.ambiente ?? null) ? { ambiente: changes.ambiente ?? '' } : {}),
         })
         return
       }
@@ -803,8 +876,7 @@ export class ApiRepository {
         return
       case 'join-challenge': {
         const post = this.post(command.postId)
-        if (post.kind !== 'image') throw new Error('Por ahora, las participaciones de desafíos admiten imágenes.')
-        await this.joinChallenge(this.rid(command.challengeId), post.id, post.title, post.src.startsWith(BASE) && BASE ? post.src.slice(BASE.length) : post.src)
+        await this.joinChallenge(this.rid(command.challengeId), post.id, post.title, post.kind, post.src.startsWith(BASE) && BASE ? post.src.slice(BASE.length) : post.src)
         return
       }
       case 'create-request': {
@@ -844,24 +916,11 @@ export class ApiRepository {
     }
   }
 
-  private async joinChallenge(challengeId: string, postId: string, title: string, imageUrl: string) {
-    let url = imageUrl.startsWith('data:') ? imageUrl : await blobToDataUrl(await dataUrlToBlob(imageUrl))
-    if (!/^data:image\/(png|jpeg);base64,/.test(url)) url = await toPngDataUrl(url)
-    await http('POST', `/api/desafios/${challengeId}/respuestas`, {
-      nombre: title, descripcionLarga: `Participación desde Trama. trama-post:${postId}`, contenido: { tipo: 'imagen', url },
-    })
-    writeChallengeLink(postId, challengeId)
+  private async joinChallenge(challengeId: string, postId: string, title: string, kind: MediaKind, source: string | Blob) {
+    const tipo = kind === 'image' ? 'imagen' : kind
+    const url = await responseDataUrl(kind, source)
+    await http('POST', `/api/desafios/${challengeId}/respuestas`, { nombre: title, publicacionId: postId, contenido: { tipo, url } })
   }
-}
-
-const CHALLENGE_LINKS_KEY = 'trama-challenge-links'
-
-function readChallengeLinks(): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem(CHALLENGE_LINKS_KEY) ?? '{}') as Record<string, string> } catch { return {} }
-}
-
-function writeChallengeLink(postId: string, challengeId: string) {
-  try { localStorage.setItem(CHALLENGE_LINKS_KEY, JSON.stringify({ ...readChallengeLinks(), [postId]: challengeId })) } catch { /* sin almacenamiento disponible */ }
 }
 
 const PLACEHOLDER_COVER = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
