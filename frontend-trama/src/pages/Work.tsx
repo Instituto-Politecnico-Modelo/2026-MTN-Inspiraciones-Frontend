@@ -1,5 +1,5 @@
 import { MusicInspirations } from '../components/MusicInspirations'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, Flag, MonitorPlay, Music2, Pencil, Send, Trash2, Trophy } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAction, useDemo } from '../context/DemoContext'
@@ -31,10 +31,20 @@ function ReportDialog({ post, onClose }: { post: Post; onClose: () => void }) {
 }
 
 export function WorkPage() {
-  const { state, user } = useDemo()
+  const { state, user, refresh, searchWorks } = useDemo()
   const { id } = useParams()
   const post = state.posts.find(item => item.id === id)
+  const needsRefresh = !!id && !!user && !!searchWorks && !post
+  const [checkedId, setCheckedId] = useState<string>()
+  useEffect(() => {
+    if (!needsRefresh) return
+    let active = true
+    const complete = () => { if (active) setCheckedId(id) }
+    void refresh().then(complete, complete)
+    return () => { active = false }
+  }, [id, needsRefresh, refresh])
   const allowed = post && (visiblePosts(state).some(item => item.id === post.id) || canManage(user) || (post.authorId === user?.id && post.status !== 'deleted'))
+  if (needsRefresh && checkedId !== id) return <p role="status">Buscando la obra…</p>
   if (!post || !allowed) return <EmptyState title="Esta obra no está disponible" description="El enlace puede haber cambiado o la publicación ya no es pública." action={<Link className="button button-secondary" to="/descubrir">Seguir descubriendo</Link>} />
   return <WorkDetail key={post.id} post={post} />
 }

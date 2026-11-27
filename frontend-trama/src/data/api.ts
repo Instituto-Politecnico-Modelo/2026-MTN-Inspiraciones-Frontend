@@ -29,18 +29,47 @@ export type MusicCatalogPage = { items: MusicCatalogItem[]; siguientePagina?: nu
 export type MusicalResource = MusicCatalogItem & { tipoRecurso: MusicalResourceType; letraCompleta?: string; urlExterna?: string }
 export const musicalResources = {
   list: (id: string) => http<MusicalResource[]>('GET', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`),
-  catalog: (tipoRecurso: MusicalResourceType, q: string, pagina: number) => {
+  catalog: (tipoRecurso: MusicalResourceType, q: string, pagina: number, signal?: AbortSignal) => {
     const params = new URLSearchParams({ tipoRecurso, q, pagina: String(pagina) })
-    return http<MusicCatalogPage>('GET', `/api/recursos-musicales?${params}`)
+    return http<MusicCatalogPage>('GET', `/api/recursos-musicales?${params}`, undefined, undefined, signal)
   },
-  search: (tipoRecurso: MusicalResourceType, q: string) => {
+  search: (tipoRecurso: MusicalResourceType, q: string, signal?: AbortSignal) => {
     const params = new URLSearchParams({ tipoRecurso, q })
-    return http<MusicCatalogItem[]>('GET', `/api/recursos-musicales/buscar?${params}`)
+    return http<MusicCatalogItem[]>('GET', `/api/recursos-musicales/buscar?${params}`, undefined, undefined, signal)
   },
-  resolve: (body: { tipoRecurso: string; titulo?: string; artista?: string; id?: number }) => http<MusicalResource>('POST', '/api/recursos-musicales', body),
+  resolve: (body: { tipoRecurso: string; titulo?: string; artista?: string; id?: number }, signal?: AbortSignal) =>
+    http<MusicalResource>('POST', '/api/recursos-musicales', body, undefined, signal),
   link: (id: string, item: Pick<MusicalResource, 'tipoRecurso' | 'id'>) =>
     http<MusicalResource>('PUT', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones`, { tipoRecurso: item.tipoRecurso, id: item.id }),
   remove: (id: string, item: MusicalResource) => http('DELETE', `/api/publicaciones/${encodeURIComponent(id)}/inspiraciones/${item.tipoRecurso}/${item.id}`),
+}
+
+export type WorkSearchFilters = {
+  query: string; style: string; discipline: string; technique: string; techniqueCode?: string;
+  contentType: string; order: string; cursor?: string;
+}
+export type WorkSearchItem = { id: string; authorId: string; title: string; thumbnail: string; type: string }
+export type WorkSearchPage = { items: WorkSearchItem[]; cursor: string | null }
+
+async function searchWorks(filters: WorkSearchFilters, signal: AbortSignal): Promise<WorkSearchPage> {
+  const params = new URLSearchParams({ q: filters.query.trim(), limite: '20', orden: filters.order })
+  if (filters.style) params.set('estilo', filters.style)
+  if (filters.discipline) params.set('disciplina', filters.discipline)
+  if (filters.techniqueCode) params.set('tecnicaDisciplina', filters.techniqueCode)
+  else if (filters.technique) params.set('tecnica', filters.technique)
+  if (filters.contentType) params.set('tipoContenido', filters.contentType)
+  if (filters.cursor) params.set('cursor', filters.cursor)
+  const page = await http<{ items?: { id: string; autor: { id: string }; titulo: string; miniaturaUrl?: string | null; tipoContenido: string }[]; cursorSiguiente?: string | null }>(
+    'GET', `/api/publicaciones/busqueda?${params}`, undefined, undefined, signal,
+  )
+  if (!Array.isArray(page?.items)) throw new Error('La búsqueda devolvió una respuesta incompleta.')
+  return {
+    items: page.items.map(item => ({
+      id: item.id, authorId: item.autor.id, title: unpack(item.titulo).text.split(/\r?\n/, 1)[0].trim() || 'Sin título',
+      thumbnail: assetUrl(item.miniaturaUrl), type: item.tipoContenido,
+    })),
+    cursor: page.cursorSiguiente ?? null,
+  }
 }
 
 export type InboxNotice = { id: string; tipo: string; titulo: string; mensaje: string; publicacionId?: string | null; solicitudId?: string | null; createdAt: string }
@@ -174,6 +203,7 @@ async function http<T = Json>(method: string, path: string, body?: unknown, form
   try {
     // Las consultas del mapa llevan coordenadas del usuario: no deben quedar en caché (NFR-004).
     const cache = path.startsWith('/api/mapa/') || path.startsWith('/api/feed/recomendaciones/ubicacion')
+      || path.startsWith('/api/publicaciones/busqueda?')
       || (method === 'GET' && (path === inboxPath || path.startsWith(`${excelReportsPath}/`))) ? 'no-store' : undefined
     response = await fetch(`${BASE}${path}`, { method, headers, cache, signal, body: form ?? (body === undefined ? undefined : JSON.stringify(body)) })
   } catch {
@@ -285,6 +315,7 @@ export type Session = { token: string; userId: string }
 export type ProfileLookup = { username: string } | { id: string }
 
 export class ApiRepository {
+  searchWorks = searchWorks
   private state: DemoState = emptyState()
   private versions = new Map<string, number>()
   private aliases = new Map<string, string>()

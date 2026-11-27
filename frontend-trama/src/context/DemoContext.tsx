@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, CheckCircle2, LoaderCircle, X } from 'lucide-react'
-import { ApiRepository, getToken, type ProfileLookup } from '../data/api'
+import { ApiRepository, getToken, type ProfileLookup, type WorkSearchFilters, type WorkSearchPage } from '../data/api'
 import { disableNotifications, releaseNotificationsFromOtherUser } from '../data/push'
 import { errorMessage, newId } from '../data/store'
 import type { Command, DemoState, User } from '../data/model'
@@ -18,6 +18,7 @@ export type Backend = {
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<string>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
   searchUsers?: (query: string) => Promise<User[]>
+  searchWorks?: (filters: WorkSearchFilters, signal: AbortSignal) => Promise<WorkSearchPage>
   getProfile?: (lookup: ProfileLookup) => Promise<User>
   logout: () => void
   resolveId: (id: string) => string
@@ -25,12 +26,14 @@ export type Backend = {
 type Context = {
   state: DemoState
   user: User | null
+  refresh: () => Promise<DemoState>
   execute: (command: Command) => Promise<DemoState>
   login: (email: string, password: string) => Promise<User>
   loginWithGoogle: (idToken: string) => Promise<User>
   register: (input: { email: string; username: string; nombreCompleto: string; password: string }) => Promise<User>
   appeal: (input: { email: string; password: string; mensaje: string }) => Promise<void>
   searchUsers: (query: string) => Promise<User[]>
+  searchWorks?: Backend['searchWorks']
   getProfile: (lookup: ProfileLookup) => Promise<void>
   logout: (localOnly?: boolean) => void
   resolveId: (id: string) => string
@@ -145,7 +148,7 @@ export function DemoProvider({ children, repository: providedRepository }: { chi
   </main>
 
   const user = state.users.find(candidate => candidate.id === userId && candidate.status !== 'deleted') ?? null
-  return <DemoContext.Provider value={{ state, user, execute, login, loginWithGoogle, register, appeal, searchUsers, getProfile, logout, resolveId: repository.resolveId, notify }}>
+  return <DemoContext.Provider value={{ state, user, refresh, execute, login, loginWithGoogle, register, appeal, searchUsers, searchWorks: repository.searchWorks, getProfile, logout, resolveId: repository.resolveId, notify }}>
     {children}
     {notice && <div className={`toast toast-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
       {notice.kind === 'error' ? <AlertCircle size={20} aria-hidden="true" /> : <CheckCircle2 size={20} aria-hidden="true" />}

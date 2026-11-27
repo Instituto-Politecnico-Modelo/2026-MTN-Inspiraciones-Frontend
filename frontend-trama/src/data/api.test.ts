@@ -6,6 +6,25 @@ afterEach(() => {
   localStorage.clear()
 })
 
+it('envía los filtros de Descubrir y convierte el resumen en una tarjeta navegable', async () => {
+  localStorage.setItem('trama-token', 'test-token')
+  const fetch = vi.fn(async (_path: string, _options: RequestInit) => new Response(JSON.stringify({
+    items: [{ id: 'obra', autor: { id: 'autor' }, titulo: 'Retrato\nDescripción\u2063trama:{}', miniaturaUrl: '/api/imagenes/retrato.png', tipoContenido: 'IMAGEN' }],
+    cursorSiguiente: '40',
+  })))
+  vi.stubGlobal('fetch', fetch)
+  const signal = new AbortController().signal
+  const page = await new ApiRepository().searchWorks({ query: ' dibujo realista ', style: 'Realismo', discipline: 'ilustracion',
+    technique: 'Grafito', techniqueCode: 'grafito', contentType: 'IMAGEN', order: 'titulo', cursor: '20' }, signal)
+  const [path, request] = fetch.mock.calls[0]!
+  expect(Object.fromEntries(new URL(path, 'http://localhost').searchParams)).toEqual({
+    q: 'dibujo realista', estilo: 'Realismo', disciplina: 'ilustracion', tecnicaDisciplina: 'grafito',
+    tipoContenido: 'IMAGEN', orden: 'titulo', cursor: '20', limite: '20',
+  })
+  expect(request).toEqual(expect.objectContaining({ signal, cache: 'no-store', headers: { Authorization: 'Bearer test-token' } }))
+  expect(page).toEqual({ items: [{ id: 'obra', authorId: 'autor', title: 'Retrato', thumbnail: '/api/imagenes/retrato.png', type: 'IMAGEN' }], cursor: '40' })
+})
+
 it('envía la clave de intención sin cambiar el contrato público de reportes', async () => {
   localStorage.setItem('trama-token', 'test-token')
   const report = { id: 'report/1', tipoReporte: 'DESAFIOS', estado: 'EN_PROCESO', fechaInicioGeneracion: '2026-11-26T18:00:00Z' }

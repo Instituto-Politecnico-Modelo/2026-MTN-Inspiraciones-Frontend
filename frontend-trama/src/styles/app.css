@@ -216,6 +216,10 @@ input[type='checkbox'] { appearance: auto; accent-color: var(--action); width: 2
 .filter-summary { font-size: .875rem; color: var(--muted); margin-bottom: 24px; }
 .discover-search { margin-bottom: 16px; }
 .discover-page .filter-row, .discover-page .filter-summary { margin-bottom: 16px; }
+.discover-thumbnail { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.discover-page .button-row { margin-top: 16px; }
+.music-catalog-row h2 { margin: 0; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.song-lyrics { white-space: pre-wrap; overflow-wrap: anywhere; }
 .filter-toggle { display: none; }
 .inline-notice { display: flex; align-items: flex-start; gap: 12px; padding: 16px 0; border-block: 1px solid var(--border); color: var(--muted); font-size: .875rem; margin-bottom: 24px; }
 .inline-notice > svg { flex-shrink: 0; }
